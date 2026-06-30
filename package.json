@@ -1,0 +1,16 @@
+{
+  "name": "tournament-manager",
+  "private": true,
+  "scripts": {
+    "dev:api": "turbo dev:api",
+    "dev:web": "turbo dev:web",
+    "dev": "turbo dev",
+    "build": "turbo build",
+    "db:generate": "turbo db:generate",
+    "db:migrate": "turbo db:migrate"
+  },
+  "devDependencies": {
+    "turbo": "^2.5.0"
+  },
+  "packageManager": "pnpm@9.15.0"
+}

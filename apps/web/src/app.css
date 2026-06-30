@@ -1,0 +1,219 @@
+@import 'tailwindcss';
+
+@theme {
+	--color-background: #ffffff;
+	--color-foreground: #0a0a0a;
+	--color-card: #ffffff;
+	--color-card-foreground: #0a0a0a;
+	--color-popover: #ffffff;
+	--color-popover-foreground: #0a0a0a;
+	--color-primary: #000000;
+	--color-primary-foreground: #ffffff;
+	--color-secondary: #f5f5f5;
+	--color-secondary-foreground: #0a0a0a;
+	--color-muted: #f5f5f5;
+	--color-muted-foreground: #525252;
+	--color-accent: #dc2626;
+	--color-accent-foreground: #ffffff;
+	--color-destructive: #dc2626;
+	--color-destructive-foreground: #dc2626;
+	--color-border: #000000;
+	--color-input: #000000;
+	--color-ring: #dc2626;
+	--color-sidebar-background: #ffffff;
+	--color-sidebar-foreground: #0a0a0a;
+	--color-sidebar-primary: #000000;
+	--color-sidebar-primary-foreground: #ffffff;
+	--color-sidebar-accent: #f5f5f5;
+	--color-sidebar-accent-foreground: #0a0a0a;
+	--color-sidebar-border: #000000;
+	--color-sidebar-ring: #dc2626;
+	--radius-sm: 0;
+	--radius-md: 0;
+	--radius-lg: 0;
+	--radius-xl: 0;
+}
+
+/* 动效令牌 — 统一 easing 与时长，全站一致 */
+:root {
+	--ease-out: cubic-bezier(0.22, 1, 0.36, 1);
+	--ease-in-out: cubic-bezier(0.65, 0, 0.35, 1);
+	--dur-1: 120ms;
+	--dur-2: 180ms;
+	--dur-3: 280ms;
+}
+
+@layer base {
+	* {
+		@apply border-border;
+	}
+	body {
+		@apply bg-background text-foreground;
+		font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif;
+		-webkit-font-smoothing: antialiased;
+		text-rendering: optimizeLegibility;
+	}
+	:focus-visible {
+		outline: 2px solid var(--color-accent);
+		outline-offset: 2px;
+	}
+	:focus:not(:focus-visible) {
+		outline: none;
+	}
+	@media (prefers-reduced-motion: no-preference) {
+		html {
+			scroll-behavior: smooth;
+		}
+	}
+	.tabular-nums {
+		font-variant-numeric: tabular-nums;
+	}
+}
+
+/* ============================================================
+   动效系统 — Linear 风格克制
+   原则：单一 easing · opacity + 微 transform · 不堆砌
+   ============================================================ */
+
+/* --- 入场（统一语言：fade + 微位移）--- */
+@keyframes enter {
+	from { opacity: 0; transform: translateY(6px); }
+	to { opacity: 1; transform: translateY(0); }
+}
+@keyframes enter-scale {
+	from { opacity: 0; transform: scale(0.98); }
+	to { opacity: 1; transform: scale(1); }
+}
+
+/* --- 状态反馈 --- */
+@keyframes flash {
+	0% { background-color: #0a0a0a; color: #fff; }
+	100% { background-color: transparent; color: inherit; }
+}
+@keyframes pulse {
+	0%, 100% { opacity: 1; }
+	50% { opacity: 0.35; }
+}
+@keyframes pop {
+	0% { transform: scale(1); }
+	40% { transform: scale(1.08); }
+	100% { transform: scale(1); }
+}
+
+/* --- 骨架 --- */
+@keyframes skeleton {
+	0%, 100% { opacity: 1; }
+	50% { opacity: 0.5; }
+}
+
+/* --- Toast 进度 --- */
+@keyframes progress {
+	from { transform: scaleX(1); }
+	to { transform: scaleX(0); }
+}
+
+/* ============ 工具类 ============ */
+.animate-enter {
+	animation: enter var(--dur-3) var(--ease-out) both;
+}
+.animate-enter-scale {
+	animation: enter-scale var(--dur-2) var(--ease-out) both;
+}
+.animate-flash {
+	animation: flash var(--dur-3) var(--ease-out);
+}
+.animate-pop {
+	animation: pop var(--dur-2) var(--ease-out);
+}
+
+/* 骨架屏 */
+.skeleton {
+	background-color: #f5f5f5;
+	animation: skeleton 1.6s var(--ease-in-out) infinite;
+}
+
+/* Toast 进度条 */
+.toast-progress {
+	transform-origin: left center;
+	animation: progress linear forwards;
+}
+
+/* 状态点 — 单一 opacity 脉冲，无扩散 */
+.status-dot {
+	animation: pulse 1.8s var(--ease-in-out) infinite;
+}
+
+/* 按钮按压 */
+.press {
+	transition: transform var(--dur-1) var(--ease-out), opacity var(--dur-1) var(--ease-out);
+}
+.press:active {
+	transform: scale(0.98);
+}
+
+/* 卡片悬停 — 微位移 */
+.lift {
+	transition: transform var(--dur-2) var(--ease-out), background-color var(--dur-2) var(--ease-out);
+}
+.lift:hover {
+	transform: translateY(-1px);
+}
+
+/* 链接下划线滑出 */
+.link-underline {
+	position: relative;
+}
+.link-underline::after {
+	content: '';
+	position: absolute;
+	left: 0;
+	bottom: -2px;
+	width: 100%;
+	height: 1px;
+	background: currentColor;
+	transform: scaleX(1);
+	transform-origin: left;
+	transition: transform var(--dur-2) var(--ease-out);
+}
+.link-underline:hover::after {
+	transform: scaleX(0);
+	transform-origin: right;
+}
+
+/* 屏幕阅读器专用 */
+.sr-only {
+	position: absolute;
+	width: 1px;
+	height: 1px;
+	padding: 0;
+	margin: -1px;
+	overflow: hidden;
+	clip: rect(0, 0, 0, 0);
+	white-space: nowrap;
+	border: 0;
+}
+
+/* 跳到主内容 */
+.skip-link {
+	position: absolute;
+	top: -100px;
+	left: 0;
+	background: #000;
+	color: #fff;
+	padding: 8px 16px;
+	z-index: 200;
+	font-weight: 700;
+	transition: top var(--dur-1) var(--ease-out);
+}
+.skip-link:focus {
+	top: 0;
+}
+
+@media (prefers-reduced-motion: reduce) {
+	*, *::before, *::after {
+		animation-duration: 0.01ms !important;
+		animation-iteration-count: 1 !important;
+		transition-duration: 0.01ms !important;
+		scroll-behavior: auto !important;
+	}
+}

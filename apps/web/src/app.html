@@ -1,0 +1,34 @@
+<!doctype html>
+<html lang="zh-CN">
+	<head>
+		<meta charset="utf-8" />
+		<link rel="icon" href="%sveltekit.assets%/favicon.png" />
+		<meta name="viewport" content="width=device-width, initial-scale=1" />
+		<script>
+			// 兜底：浏览器可能缓存了旧版 SSR-only 模块（server.js / env/internal.js 等），
+			// 这些模块引用了 Vite define 注入的编译时常量。
+			// 如果 define 未应用（直接 /@fs/ 请求不触发 transform），则用全局变量兜底。
+			window.__SVELTEKIT_APP_DIR__ = window.__SVELTEKIT_APP_DIR__ ?? '_app';
+			window.__SVELTEKIT_APP_VERSION__ = window.__SVELTEKIT_APP_VERSION__ ?? 'dev';
+			window.__SVELTEKIT_EMBEDDED__ = window.__SVELTEKIT_EMBEDDED__ ?? false;
+			window.__SVELTEKIT_FORK_PRELOADS__ = window.__SVELTEKIT_FORK_PRELOADS__ ?? false;
+			window.__SVELTEKIT_PATHS_ASSETS__ = window.__SVELTEKIT_PATHS_ASSETS__ ?? '';
+			window.__SVELTEKIT_PATHS_BASE__ = window.__SVELTEKIT_PATHS_BASE__ ?? '';
+			window.__SVELTEKIT_PATHS_RELATIVE__ = window.__SVELTEKIT_PATHS_RELATIVE__ ?? false;
+			window.__SVELTEKIT_CLIENT_ROUTING__ = window.__SVELTEKIT_CLIENT_ROUTING__ ?? false;
+			window.__SVELTEKIT_HASH_ROUTING__ = window.__SVELTEKIT_HASH_ROUTING__ ?? false;
+			window.__SVELTEKIT_SERVER_TRACING_ENABLED__ = window.__SVELTEKIT_SERVER_TRACING_ENABLED__ ?? false;
+			window.__SVELTEKIT_EXPERIMENTAL_USE_TRANSFORM_ERROR__ = window.__SVELTEKIT_EXPERIMENTAL_USE_TRANSFORM_ERROR__ ?? false;
+			window.__SVELTEKIT_EXPERIMENTAL_EXPLICIT_ENVIRONMENT_VARIABLES__ = window.__SVELTEKIT_EXPERIMENTAL_EXPLICIT_ENVIRONMENT_VARIABLES__ ?? false;
+			window.__SVELTEKIT_DEV__ = window.__SVELTEKIT_DEV__ ?? true;
+			window.__SVELTEKIT_APP_VERSION_POLL_INTERVAL__ = window.__SVELTEKIT_APP_VERSION_POLL_INTERVAL__ ?? 0;
+			window.__SVELTEKIT_HAS_SERVER_LOAD__ = window.__SVELTEKIT_HAS_SERVER_LOAD__ ?? true;
+			window.__SVELTEKIT_HAS_UNIVERSAL_LOAD__ = window.__SVELTEKIT_HAS_UNIVERSAL_LOAD__ ?? true;
+			window.__SVELTEKIT_PAYLOAD__ = window.__SVELTEKIT_PAYLOAD__ ?? { data: null };
+		</script>
+		%sveltekit.head%
+	</head>
+	<body data-sveltekit-preload-data="hover">
+		<div style="display: contents">%sveltekit.body%</div>
+	</body>
+</html>
