@@ -361,7 +361,13 @@
 					{#each teams as team, i (team.id)}
 						<tr class="border-t border-black/20 hover:bg-neutral-50 transition-colors duration-150">
 							<td class="px-4 py-2 text-neutral-500 font-bold">{team.seed ?? i + 1}</td>
-							<td class="px-4 py-2"><span class="text-xl">{team.logo_emoji || '🏆'}</span></td>
+							<td class="px-4 py-2">
+								{#if team.logo_url}
+									<img src={team.logo_url} alt={team.name} class="w-6 h-6 object-contain" />
+								{:else}
+									<span class="text-xl">{team.logo_emoji || '🏆'}</span>
+								{/if}
+							</td>
 							<td class="px-4 py-2 font-bold text-black">{team.name}</td>
 							<td class="px-4 py-2 text-neutral-600 font-bold">{team.players?.length ?? 0}</td>
 							<td class="px-4 py-2">
