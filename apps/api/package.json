@@ -5,13 +5,14 @@
   "scripts": {
     "dev": "bun run --watch src/index.ts",
     "dev:api": "bun run --watch src/index.ts",
+    "dev:worker": "wrangler dev",
     "build": "bun build src/index.ts --outdir=dist --target=bun",
+    "deploy": "wrangler deploy",
     "db:generate": "drizzle-kit generate",
     "db:migrate": "bun run src/db/migrate.ts",
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
-    "@hono/node-server": "^1.13.7",
     "@hono/zod-validator": "^0.4.2",
     "@tournament-manager/shared": "workspace:*",
     "bcryptjs": "^2.4.3",
@@ -27,6 +28,7 @@
     "bun-types": "^1.2.0",
     "drizzle-kit": "^0.31.0",
     "tsx": "^4.22.4",
-    "typescript": "^5.7.0"
+    "typescript": "^5.7.0",
+    "wrangler": "^3.99.0"
   }
 }

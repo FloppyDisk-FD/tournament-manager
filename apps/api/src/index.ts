@@ -6,8 +6,19 @@ import { tournamentRoutes } from './routes/tournaments';
 import { teamRoutes, globalTeamRoutes } from './routes/teams';
 import { bracketRoutes } from './routes/bracket';
 import { matchRoutes } from './routes/matches';
+import { initDb } from './db';
 
-const app = new Hono();
+/**
+ * Workers 绑定类型
+ * - HYPERDRIVE: Cloudflare Hyperdrive 连接池绑定
+ * - JWT_SECRET: 通过 `wrangler secret put JWT_SECRET` 设置
+ */
+type Bindings = {
+  HYPERDRIVE: { connectionString: string };
+  JWT_SECRET: string;
+};
+
+const app = new Hono<{ Bindings: Bindings }>();
 
 // CORS
 app.use('*', cors({
@@ -43,11 +54,20 @@ app.route('/api/v1/matches', matchRoutes);
 // 健康检查
 app.get('/api/v1/health', (c) => c.json({ status: 'ok' }));
 
-const port = Number(process.env.PORT) || 3001;
-
-Bun.serve({
-  port,
-  fetch: app.fetch,
-});
-
-console.log(`API running at http://localhost:${port}`);
+/**
+ * 入口：Workers 和 Bun 共用。
+ * - Workers: fetch(req, env) 收到 Hyperdrive 绑定，用 env.HYPERDRIVE.connectionString 初始化 db
+ * - Bun: 自动检测 export default { fetch, port } 并启动 server；db 在模块加载时用 DATABASE_URL 初始化
+ */
+export default {
+  port: Number(process.env.PORT) || 3001,
+  async fetch(req: Request, env: Bindings): Promise<Response> {
+    if (env.HYPERDRIVE?.connectionString) {
+      initDb(env.HYPERDRIVE.connectionString);
+    }
+    if (env.JWT_SECRET) {
+      process.env.JWT_SECRET = env.JWT_SECRET;
+    }
+    return app.fetch(req, env);
+  },
+};
