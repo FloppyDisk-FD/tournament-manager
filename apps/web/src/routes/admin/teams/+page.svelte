@@ -38,16 +38,30 @@
 	const emojiPresets = ['🔥', '🐉', '🦁', '⚔️', '🛡️', '⚡', '🎯', '🏆'];
 	const avatarPresets = ['🦸', '🥷', '🐺', '🦅', '👾', '🤖', '🐯', '👑'];
 
+	// 后端返回 camelCase，前端统一用 snake_case
+	function normalizeTeam(t: any): Team {
+		return {
+			id: t.id,
+			name: t.name,
+			logo_emoji: t.logo_emoji ?? t.logoEmoji ?? '🏆',
+			logo_url: t.logo_url ?? t.logoUrl ?? undefined,
+			players: (t.players ?? []).map((p: any) => ({
+				player_name: p.player_name ?? p.playerName ?? '',
+				player_role: p.player_role ?? p.playerRole ?? 'member',
+				game_id: p.game_id ?? p.gameId ?? '',
+				avatar_emoji: p.avatar_emoji ?? p.avatarEmoji ?? '🦸',
+				is_captain: p.is_captain ?? p.isCaptain ?? false,
+			})),
+		};
+	}
+
 	function toggleExpand(id: string) {
 		expandedId = expandedId === id ? null : id;
 	}
 
-	function startEdit(team: Team) {
+	function startEdit(team: any) {
 		editingId = team.id ?? null;
-		editDraft = {
-			...team,
-			players: team.players.map((p) => ({ ...p })),
-		};
+		editDraft = normalizeTeam(team);
 		expandedId = team.id ?? null;
 	}
 
@@ -69,7 +83,7 @@
 				logo_url: editDraft.logo_url || undefined,
 				players: editDraft.players,
 			});
-			teams = teams.map((t) => (t.id === teamId ? { ...updated } : t));
+			teams = teams.map((t) => (t.id === teamId ? normalizeTeam(updated) : t));
 			editingId = null;
 			editDraft = null;
 			success('队伍已更新');
@@ -107,7 +121,7 @@
 				logo_url: newLogoUrl.trim() || undefined,
 				players: [],
 			});
-			teams = [...teams, team];
+			teams = [...teams, normalizeTeam(team)];
 			newName = '';
 			newEmoji = '🏆';
 			newLogoUrl = '';
