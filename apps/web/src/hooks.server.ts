@@ -43,8 +43,11 @@ export const handle: Handle = async ({ event, resolve }) => {
 };
 
 export const handleFetch: HandleFetch = async ({ event, request, fetch }) => {
-	const { pathname } = event.url;
-	if (!pathname.startsWith('/api/')) {
+	// 注意：handleFetch 的 event 是页面请求的 event（如首页 /），
+	// request 才是 load 函数里 fetch 的实际请求（如 /api/v1/tournaments）。
+	// 必须用 request.url 判断，不能用 event.url。
+	const url = new URL(request.url);
+	if (!url.pathname.startsWith('/api/')) {
 		return fetch(request);
 	}
 
@@ -54,6 +57,6 @@ export const handleFetch: HandleFetch = async ({ event, request, fetch }) => {
 	}
 
 	const body = request.method !== 'GET' && request.method !== 'HEAD' ? request.body : null;
-	const apiReq = buildApiRequest(request.method, request.headers, body, pathname, event.url.search);
+	const apiReq = buildApiRequest(request.method, request.headers, body, url.pathname, url.search);
 	return api.fetch(apiReq);
 };

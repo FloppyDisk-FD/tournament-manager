@@ -1,11 +1,11 @@
 import { Hono } from 'hono';
 import { eq, ilike, and, sql, inArray } from 'drizzle-orm';
-import { db } from '../db';
+import type { Db } from '../db';
 import { tournaments, stages, matches, games, standings, tournamentTeams } from '../db/schema';
 import { AppError } from '../middleware/error';
 import { authMiddleware, requireAdmin } from '../middleware/auth';
 
-export const tournamentRoutes = new Hono<{ Variables: { user: any | null } }>();
+export const tournamentRoutes = new Hono<{ Variables: { user: any | null; db: Db } }>();
 
 // 全局中间件：解析 cookie 挂载 user
 tournamentRoutes.use('*', authMiddleware);
@@ -24,8 +24,8 @@ tournamentRoutes.get('/', async (c) => {
   const where = conditions.length > 0 ? and(...conditions) : undefined;
 
   const [items, countResult] = await Promise.all([
-    db.select().from(tournaments).where(where).limit(limit).offset(offset).orderBy(sql`${tournaments.createdAt} DESC`),
-    db.select({ count: sql<number>`count(*)` }).from(tournaments).where(where),
+    c.get('db').select().from(tournaments).where(where).limit(limit).offset(offset).orderBy(sql`${tournaments.createdAt} DESC`),
+    c.get('db').select({ count: sql<number>`count(*)` }).from(tournaments).where(where),
   ]);
 
   return c.json({
@@ -37,7 +37,7 @@ tournamentRoutes.get('/', async (c) => {
 });
 
 tournamentRoutes.get('/:id', async (c) => {
-  const [tournament] = await db.select().from(tournaments).where(eq(tournaments.id, c.req.param('id'))).limit(1);
+  const [tournament] = await c.get('db').select().from(tournaments).where(eq(tournaments.id, c.req.param('id'))).limit(1);
   if (!tournament) {
     throw new AppError('NOT_FOUND', '赛事不存在', 404);
   }
@@ -48,7 +48,7 @@ tournamentRoutes.get('/:id', async (c) => {
 tournamentRoutes.post('/', requireAdmin, async (c) => {
   const data = await c.req.json();
   const user = c.get('user')!;
-  const [tournament] = await db.insert(tournaments).values({
+  const [tournament] = await c.get('db').insert(tournaments).values({
     name: data.name,
     description: data.description || '',
     game: data.game,
@@ -72,7 +72,7 @@ tournamentRoutes.post('/', requireAdmin, async (c) => {
 
 tournamentRoutes.put('/:id', requireAdmin, async (c) => {
   const id = c.req.param('id');
-  const [existing] = await db.select().from(tournaments).where(eq(tournaments.id, id)).limit(1);
+  const [existing] = await c.get('db').select().from(tournaments).where(eq(tournaments.id, id)).limit(1);
   if (!existing) {
     throw new AppError('NOT_FOUND', '赛事不存在', 404);
   }
@@ -81,7 +81,7 @@ tournamentRoutes.put('/:id', requireAdmin, async (c) => {
   }
 
   const data = await c.req.json();
-  const [updated] = await db.update(tournaments).set({
+  const [updated] = await c.get('db').update(tournaments).set({
     name: data.name,
     description: data.description,
     game: data.game,
@@ -106,7 +106,7 @@ tournamentRoutes.put('/:id', requireAdmin, async (c) => {
 
 tournamentRoutes.delete('/:id', requireAdmin, async (c) => {
   const id = c.req.param('id');
-  const [existing] = await db.select().from(tournaments).where(eq(tournaments.id, id)).limit(1);
+  const [existing] = await c.get('db').select().from(tournaments).where(eq(tournaments.id, id)).limit(1);
   if (!existing) {
     throw new AppError('NOT_FOUND', '赛事不存在', 404);
   }
@@ -114,20 +114,20 @@ tournamentRoutes.delete('/:id', requireAdmin, async (c) => {
     throw new AppError('TOURNAMENT_ALREADY_STARTED', '赛事已开始，无法删除');
   }
   // 级联删除所有关联数据
-  const stageRows = await db.select({ id: stages.id }).from(stages).where(eq(stages.tournamentId, id));
+  const stageRows = await c.get('db').select({ id: stages.id }).from(stages).where(eq(stages.tournamentId, id));
   if (stageRows.length > 0) {
     const stageIds = stageRows.map((s) => s.id);
-    const matchRows = await db.select({ id: matches.id }).from(matches).where(inArray(matches.stageId, stageIds));
+    const matchRows = await c.get('db').select({ id: matches.id }).from(matches).where(inArray(matches.stageId, stageIds));
     if (matchRows.length > 0) {
       const matchIds = matchRows.map((m) => m.id);
-      await db.update(matches).set({ nextMatchId: null, nextLosersMatchId: null }).where(inArray(matches.id, matchIds));
-      await db.delete(games).where(inArray(games.matchId, matchIds));
+      await c.get('db').update(matches).set({ nextMatchId: null, nextLosersMatchId: null }).where(inArray(matches.id, matchIds));
+      await c.get('db').delete(games).where(inArray(games.matchId, matchIds));
     }
-    await db.delete(standings).where(inArray(standings.stageId, stageIds));
-    await db.delete(matches).where(inArray(matches.stageId, stageIds));
-    await db.delete(stages).where(inArray(stages.id, stageIds));
+    await c.get('db').delete(standings).where(inArray(standings.stageId, stageIds));
+    await c.get('db').delete(matches).where(inArray(matches.stageId, stageIds));
+    await c.get('db').delete(stages).where(inArray(stages.id, stageIds));
   }
-  await db.delete(tournamentTeams).where(eq(tournamentTeams.tournamentId, id));
-  await db.delete(tournaments).where(eq(tournaments.id, id));
+  await c.get('db').delete(tournamentTeams).where(eq(tournamentTeams.tournamentId, id));
+  await c.get('db').delete(tournaments).where(eq(tournaments.id, id));
   return c.json({ message: '赛事已删除' });
 });

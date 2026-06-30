@@ -1,19 +1,19 @@
 import { Hono } from 'hono';
 import { eq, and, inArray, isNull } from 'drizzle-orm';
-import { db } from '../db';
+import type { Db } from '../db';
 import { teams, teamPlayers, tournaments, tournamentTeams } from '../db/schema';
 import { AppError } from '../middleware/error';
 import { authMiddleware, requireAdmin } from '../middleware/auth';
 
 // 全局队伍库路由（/api/v1/teams）
-export const globalTeamRoutes = new Hono<{ Variables: { user: any | null } }>();
+export const globalTeamRoutes = new Hono<{ Variables: { user: any | null; db: Db } }>();
 globalTeamRoutes.use('*', authMiddleware, requireAdmin);
 
 globalTeamRoutes.get('/', async (c) => {
-  const allTeams = await db.select().from(teams).where(isNull(teams.tournamentId));
+  const allTeams = await c.get('db').select().from(teams).where(isNull(teams.tournamentId));
   const teamIds = allTeams.map((t) => t.id);
   if (teamIds.length === 0) return c.json([]);
-  const players = await db.select().from(teamPlayers).where(inArray(teamPlayers.teamId, teamIds));
+  const players = await c.get('db').select().from(teamPlayers).where(inArray(teamPlayers.teamId, teamIds));
   const playersByTeam = new Map<string, typeof players>();
   for (const p of players) {
     const arr = playersByTeam.get(p.teamId) ?? [];
@@ -25,7 +25,7 @@ globalTeamRoutes.get('/', async (c) => {
 
 globalTeamRoutes.post('/', async (c) => {
   const data = await c.req.json();
-  const [team] = await db.insert(teams).values({
+  const [team] = await c.get('db').insert(teams).values({
     name: data.name,
     logoUrl: data.logo_url,
     logoEmoji: data.logo_emoji,
@@ -33,7 +33,7 @@ globalTeamRoutes.post('/', async (c) => {
   }).returning();
 
   if (data.players && Array.isArray(data.players) && data.players.length > 0) {
-    await db.insert(teamPlayers).values(
+    await c.get('db').insert(teamPlayers).values(
       data.players.map((p: any) => ({
         teamId: team.id,
         playerName: p.player_name,
@@ -51,7 +51,7 @@ globalTeamRoutes.post('/', async (c) => {
 globalTeamRoutes.put('/:teamId', async (c) => {
   const teamId = c.req.param('teamId');
   const data = await c.req.json();
-  const [updated] = await db.update(teams).set({
+  const [updated] = await c.get('db').update(teams).set({
     name: data.name,
     logoUrl: data.logo_url,
     logoEmoji: data.logo_emoji,
@@ -60,9 +60,9 @@ globalTeamRoutes.put('/:teamId', async (c) => {
 
   // 选手更新：全量替换
   if (data.players && Array.isArray(data.players)) {
-    await db.delete(teamPlayers).where(eq(teamPlayers.teamId, teamId));
+    await c.get('db').delete(teamPlayers).where(eq(teamPlayers.teamId, teamId));
     if (data.players.length > 0) {
-      await db.insert(teamPlayers).values(
+      await c.get('db').insert(teamPlayers).values(
         data.players.map((p: any) => ({
           teamId,
           playerName: p.player_name,
@@ -79,22 +79,22 @@ globalTeamRoutes.put('/:teamId', async (c) => {
 
 globalTeamRoutes.delete('/:teamId', async (c) => {
   const teamId = c.req.param('teamId');
-  const [existing] = await db.select().from(teams).where(and(eq(teams.id, teamId), isNull(teams.tournamentId))).limit(1);
+  const [existing] = await c.get('db').select().from(teams).where(and(eq(teams.id, teamId), isNull(teams.tournamentId))).limit(1);
   if (!existing) throw new AppError('NOT_FOUND', '队伍不存在', 404);
-  await db.delete(teamPlayers).where(eq(teamPlayers.teamId, teamId));
-  await db.delete(tournamentTeams).where(eq(tournamentTeams.teamId, teamId));
-  await db.delete(teams).where(eq(teams.id, teamId));
+  await c.get('db').delete(teamPlayers).where(eq(teamPlayers.teamId, teamId));
+  await c.get('db').delete(tournamentTeams).where(eq(tournamentTeams.teamId, teamId));
+  await c.get('db').delete(teams).where(eq(teams.id, teamId));
   return c.json({ message: '队伍已删除' });
 });
 
 // 赛事内队伍路由（/api/v1/tournaments/:id/teams）
-export const teamRoutes = new Hono<{ Variables: { user: any | null } }>();
+export const teamRoutes = new Hono<{ Variables: { user: any | null; db: Db } }>();
 teamRoutes.use('*', authMiddleware);
 
 // 列出赛事队伍（公开）
 teamRoutes.get('/', async (c) => {
   const id = c.req.param('id');
-  const rows = await db.select({
+  const rows = await c.get('db').select({
     entry: tournamentTeams,
     team: teams,
   })
@@ -104,7 +104,7 @@ teamRoutes.get('/', async (c) => {
 
   if (rows.length === 0) return c.json([]);
   const teamIds = rows.map((r) => r.team.id);
-  const players = await db.select().from(teamPlayers).where(inArray(teamPlayers.teamId, teamIds));
+  const players = await c.get('db').select().from(teamPlayers).where(inArray(teamPlayers.teamId, teamIds));
   const playersByTeam = new Map<string, typeof players>();
   for (const p of players) {
     const arr = playersByTeam.get(p.teamId) ?? [];
@@ -128,19 +128,19 @@ teamRoutes.use('*', requireAdmin);
 
 teamRoutes.post('/import', async (c) => {
   const id = c.req.param('id');
-  const [tournament] = await db.select().from(tournaments).where(eq(tournaments.id, id)).limit(1);
+  const [tournament] = await c.get('db').select().from(tournaments).where(eq(tournaments.id, id)).limit(1);
   if (!tournament) throw new AppError('NOT_FOUND', '赛事不存在', 404);
   if (tournament.status !== 'draft') throw new AppError('TOURNAMENT_ALREADY_STARTED', '赛事已开始');
 
   const data = await c.req.json();
   if (!data.team_ids || data.team_ids.length === 0) throw new AppError('INVALID_INPUT', '未选择队伍');
 
-  const existingEntries = await db.select().from(tournamentTeams)
+  const existingEntries = await c.get('db').select().from(tournamentTeams)
     .where(and(eq(tournamentTeams.tournamentId, id), inArray(tournamentTeams.teamId, data.team_ids)));
   const existingIds = new Set(existingEntries.map((e) => e.teamId));
   const newTeamIds = data.team_ids.filter((tid: string) => !existingIds.has(tid));
 
-  const currentCount = (await db.select().from(tournamentTeams).where(eq(tournamentTeams.tournamentId, id))).length;
+  const currentCount = (await c.get('db').select().from(tournamentTeams).where(eq(tournamentTeams.tournamentId, id))).length;
   if (currentCount + newTeamIds.length > tournament.maxTeams) {
     throw new AppError('TEAM_LIMIT_EXCEEDED', '加入会超出队伍上限');
   }
@@ -149,7 +149,7 @@ teamRoutes.post('/import', async (c) => {
     return c.json({ message: '队伍已在赛事中', added: 0 });
   }
 
-  const inserted = await db.insert(tournamentTeams).values(
+  const inserted = await c.get('db').insert(tournamentTeams).values(
     newTeamIds.map((tid: string, i: number) => ({
       tournamentId: id,
       teamId: tid,
@@ -163,28 +163,28 @@ teamRoutes.post('/import', async (c) => {
 
 teamRoutes.post('/', async (c) => {
   const id = c.req.param('id');
-  const [tournament] = await db.select().from(tournaments).where(eq(tournaments.id, id)).limit(1);
+  const [tournament] = await c.get('db').select().from(tournaments).where(eq(tournaments.id, id)).limit(1);
   if (!tournament) throw new AppError('NOT_FOUND', '赛事不存在', 404);
   if (tournament.status !== 'draft') throw new AppError('TOURNAMENT_ALREADY_STARTED', '赛事已开始');
 
   const data = await c.req.json();
-  const teamCount = (await db.select().from(tournamentTeams).where(eq(tournamentTeams.tournamentId, id))).length;
+  const teamCount = (await c.get('db').select().from(tournamentTeams).where(eq(tournamentTeams.tournamentId, id))).length;
   if (teamCount >= tournament.maxTeams) throw new AppError('TEAM_LIMIT_EXCEEDED', '队伍数已达上限');
 
-  const [team] = await db.insert(teams).values({
+  const [team] = await c.get('db').insert(teams).values({
     tournamentId: id,
     name: data.name,
     logoUrl: data.logo_url,
     logoEmoji: data.logo_emoji,
   }).returning();
-  await db.insert(tournamentTeams).values({
+  await c.get('db').insert(tournamentTeams).values({
     tournamentId: id,
     teamId: team.id,
     seed: teamCount + 1,
   });
 
   if (data.players && Array.isArray(data.players) && data.players.length > 0) {
-    await db.insert(teamPlayers).values(
+    await c.get('db').insert(teamPlayers).values(
       data.players.map((p: any) => ({
         teamId: team.id,
         playerName: p.player_name,
@@ -202,24 +202,24 @@ teamRoutes.post('/', async (c) => {
 
 teamRoutes.post('/batch', async (c) => {
   const id = c.req.param('id');
-  const [tournament] = await db.select().from(tournaments).where(eq(tournaments.id, id)).limit(1);
+  const [tournament] = await c.get('db').select().from(tournaments).where(eq(tournaments.id, id)).limit(1);
   if (!tournament) throw new AppError('NOT_FOUND', '赛事不存在', 404);
   if (tournament.status !== 'draft') throw new AppError('TOURNAMENT_ALREADY_STARTED', '赛事已开始');
 
   const data = await c.req.json();
   if (!data.names || data.names.length === 0) throw new AppError('INVALID_INPUT', '队伍名称不能为空');
-  const teamCount = (await db.select().from(tournamentTeams).where(eq(tournamentTeams.tournamentId, id))).length;
+  const teamCount = (await c.get('db').select().from(tournamentTeams).where(eq(tournamentTeams.tournamentId, id))).length;
   if (teamCount + data.names.length > tournament.maxTeams) {
     throw new AppError('TEAM_LIMIT_EXCEEDED', '批量添加会超出队伍上限');
   }
 
-  const inserted = await db.insert(teams).values(
+  const inserted = await c.get('db').insert(teams).values(
     data.names.map((name: string) => ({
       tournamentId: id,
       name,
     })),
   ).returning();
-  await db.insert(tournamentTeams).values(
+  await c.get('db').insert(tournamentTeams).values(
     inserted.map((t, i) => ({
       tournamentId: id,
       teamId: t.id,
@@ -235,7 +235,7 @@ teamRoutes.put('/:teamId', async (c) => {
   const id = c.req.param('id');
   const teamId = c.req.param('teamId');
   const data = await c.req.json();
-  const [updated] = await db.update(teams).set({
+  const [updated] = await c.get('db').update(teams).set({
     name: data.name,
     logoUrl: data.logo_url,
     logoEmoji: data.logo_emoji,
@@ -243,7 +243,7 @@ teamRoutes.put('/:teamId', async (c) => {
   if (!updated) throw new AppError('NOT_FOUND', '队伍不存在', 404);
 
   if (data.seed !== undefined || data.status || data.group_label !== undefined) {
-    await db.update(tournamentTeams).set({
+    await c.get('db').update(tournamentTeams).set({
       seed: data.seed,
       status: data.status,
       groupLabel: data.group_label,
@@ -251,9 +251,9 @@ teamRoutes.put('/:teamId', async (c) => {
   }
 
   if (data.players && Array.isArray(data.players)) {
-    await db.delete(teamPlayers).where(eq(teamPlayers.teamId, teamId));
+    await c.get('db').delete(teamPlayers).where(eq(teamPlayers.teamId, teamId));
     if (data.players.length > 0) {
-      await db.insert(teamPlayers).values(
+      await c.get('db').insert(teamPlayers).values(
         data.players.map((p: any) => ({
           teamId,
           playerName: p.player_name,
@@ -271,17 +271,17 @@ teamRoutes.put('/:teamId', async (c) => {
 teamRoutes.delete('/:teamId', async (c) => {
   const id = c.req.param('id');
   const teamId = c.req.param('teamId');
-  const [entry] = await db.select().from(tournamentTeams)
+  const [entry] = await c.get('db').select().from(tournamentTeams)
     .where(and(eq(tournamentTeams.teamId, teamId), eq(tournamentTeams.tournamentId, id))).limit(1);
   if (!entry) throw new AppError('NOT_FOUND', '队伍不在此赛事中', 404);
 
-  await db.delete(tournamentTeams).where(eq(tournamentTeams.id, entry.id));
+  await c.get('db').delete(tournamentTeams).where(eq(tournamentTeams.id, entry.id));
 
   // 如果队伍绑定了此赛事（旧数据），删除它及其选手
-  const [team] = await db.select().from(teams).where(eq(teams.id, teamId)).limit(1);
+  const [team] = await c.get('db').select().from(teams).where(eq(teams.id, teamId)).limit(1);
   if (team && team.tournamentId === id) {
-    await db.delete(teamPlayers).where(eq(teamPlayers.teamId, teamId));
-    await db.delete(teams).where(eq(teams.id, teamId));
+    await c.get('db').delete(teamPlayers).where(eq(teamPlayers.teamId, teamId));
+    await c.get('db').delete(teams).where(eq(teams.id, teamId));
   }
   return c.json({ message: '队伍已移除' });
 });

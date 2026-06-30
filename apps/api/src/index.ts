@@ -6,7 +6,7 @@ import { tournamentRoutes } from './routes/tournaments';
 import { teamRoutes, globalTeamRoutes } from './routes/teams';
 import { bracketRoutes } from './routes/bracket';
 import { matchRoutes } from './routes/matches';
-import { initDb } from './db';
+import { createDb, type Db } from './db';
 
 /**
  * Workers 绑定类型
@@ -18,13 +18,29 @@ type Bindings = {
   JWT_SECRET: string;
 };
 
-const app = new Hono<{ Bindings: Bindings }>();
+const app = new Hono<{ Bindings: Bindings; Variables: { db: Db } }>();
 
 // CORS
 app.use('*', cors({
   origin: ['http://localhost:5173', 'http://localhost:5174', 'http://localhost:3001'],
   credentials: true,
 }));
+
+/**
+ * 请求级 DB 中间件：每请求创建新 DB client 存入 Hono Context（c.set('db', ...)）。
+ *
+ * 背景：Workers 的 I/O 对象（socket）不能跨请求复用，复用会导致间歇性 500
+ * （交替出现 200/500）。模块级变量方案在 await 期间存在跨请求竞态，
+ * 改用 Hono Context Variables 可保证实例严格绑定到当前请求。
+ *
+ * Workers 用 Hyperdrive 连接串；本地开发用 DATABASE_URL。统一走 createDb，
+ * 每请求新实例（本地虽有连接池开销但可接受）。
+ */
+app.use('*', async (c, next) => {
+  const connStr = c.env.HYPERDRIVE?.connectionString ?? process.env.DATABASE_URL;
+  if (connStr) c.set('db', createDb(connStr));
+  await next();
+});
 
 // 全局错误处理
 app.onError((err, c) => {
@@ -56,15 +72,12 @@ app.get('/api/v1/health', (c) => c.json({ status: 'ok' }));
 
 /**
  * 入口：Workers 和 Bun 共用。
- * - Workers: fetch(req, env) 收到 Hyperdrive 绑定，用 env.HYPERDRIVE.connectionString 初始化 db
- * - Bun: 自动检测 export default { fetch, port } 并启动 server；db 在模块加载时用 DATABASE_URL 初始化
+ * - Workers: fetch(req, env) 经中间件按请求创建 db client 存入 Context（避免跨请求复用失效 socket）
+ * - Bun: 中间件用 process.env.DATABASE_URL 每请求创建 db client
  */
 export default {
   port: Number(process.env.PORT) || 3001,
   async fetch(req: Request, env: Bindings): Promise<Response> {
-    if (env.HYPERDRIVE?.connectionString) {
-      initDb(env.HYPERDRIVE.connectionString);
-    }
     if (env.JWT_SECRET) {
       process.env.JWT_SECRET = env.JWT_SECRET;
     }

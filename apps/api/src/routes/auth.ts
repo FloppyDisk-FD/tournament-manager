@@ -3,12 +3,12 @@ import { z } from 'zod';
 import { zValidator } from '@hono/zod-validator';
 import { eq } from 'drizzle-orm';
 import bcrypt from 'bcryptjs';
-import { db } from '../db';
+import type { Db } from '../db';
 import { users } from '../db/schema';
 import { AppError } from '../middleware/error';
 import { authMiddleware, issueAuthCookie, clearAuthCookie } from '../middleware/auth';
 
-const auth = new Hono<{ Variables: { user: any | null } }>();
+const auth = new Hono<{ Variables: { user: any | null; db: Db } }>();
 
 const credentialsSchema = z.object({
   username: z.string().min(1),
@@ -20,13 +20,13 @@ auth.use('*', authMiddleware);
 auth.post('/register', zValidator('json', credentialsSchema), async (c) => {
   const { username, password } = c.req.valid('json');
 
-  const existing = await db.select().from(users).where(eq(users.username, username)).limit(1);
+  const existing = await c.get('db').select().from(users).where(eq(users.username, username)).limit(1);
   if (existing.length > 0) {
     throw new AppError('USERNAME_TAKEN', '用户名已被占用');
   }
 
   const passwordHash = await bcrypt.hash(password, 10);
-  const [newUser] = await db.insert(users).values({ username, passwordHash }).returning();
+  const [newUser] = await c.get('db').insert(users).values({ username, passwordHash }).returning();
 
   issueAuthCookie(c, newUser.id, newUser.role);
   c.status(201);
@@ -36,7 +36,7 @@ auth.post('/register', zValidator('json', credentialsSchema), async (c) => {
 auth.post('/login', zValidator('json', credentialsSchema), async (c) => {
   const { username, password } = c.req.valid('json');
 
-  const [user] = await db.select().from(users).where(eq(users.username, username)).limit(1);
+  const [user] = await c.get('db').select().from(users).where(eq(users.username, username)).limit(1);
   if (!user) {
     throw new AppError('INVALID_CREDENTIALS', '用户名或密码错误', 401);
   }
@@ -61,7 +61,7 @@ auth.get('/me', async (c) => {
     c.status(401);
     return c.json({ error: '未登录' });
   }
-  const [dbUser] = await db.select({
+  const [dbUser] = await c.get('db').select({
     id: users.id,
     username: users.username,
     role: users.role,

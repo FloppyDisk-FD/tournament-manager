@@ -1,7 +1,7 @@
 import { Hono } from 'hono';
 import { eq, and, inArray } from 'drizzle-orm';
 import { alias } from 'drizzle-orm/pg-core';
-import { db } from '../db';
+import type { Db } from '../db';
 import { tournaments, teams, stages, matches, games, standings, tournamentTeams } from '../db/schema';
 import { AppError } from '../middleware/error';
 import { authMiddleware, requireAdmin } from '../middleware/auth';
@@ -21,13 +21,13 @@ function getGenerator(format: string) {
   }
 }
 
-export const bracketRoutes = new Hono<{ Variables: { user: any | null } }>();
+export const bracketRoutes = new Hono<{ Variables: { user: any | null; db: Db } }>();
 bracketRoutes.use('*', authMiddleware);
 
 // ========== 公开路由 ==========
 bracketRoutes.get('/:id/bracket', async (c) => {
   const id = c.req.param('id');
-  const tsRows = await db.select({
+  const tsRows = await c.get('db').select({
     tournament: { id: tournaments.id, name: tournaments.name, format: tournaments.format, status: tournaments.status },
     stage: stages,
   })
@@ -52,7 +52,7 @@ bracketRoutes.get('/:id/bracket', async (c) => {
 
   const t1 = alias(teams, 't1');
   const t2 = alias(teams, 't2');
-  const matchRows = await db.select({
+  const matchRows = await c.get('db').select({
     match: matches,
     game: games,
     team1: { id: t1.id, name: t1.name, logoUrl: t1.logoUrl, seed: t1.seed },
@@ -109,7 +109,7 @@ bracketRoutes.get('/:id/bracket', async (c) => {
 
 bracketRoutes.get('/:id/stages', async (c) => {
   const id = c.req.param('id');
-  const result = await db.select().from(stages).where(eq(stages.tournamentId, id));
+  const result = await c.get('db').select().from(stages).where(eq(stages.tournamentId, id));
   return c.json(result);
 });
 
@@ -117,7 +117,7 @@ bracketRoutes.get('/:id/matches', async (c) => {
   const id = c.req.param('id');
   const t1 = alias(teams, 't1');
   const t2 = alias(teams, 't2');
-  const rows = await db.select({
+  const rows = await c.get('db').select({
     match: matches,
     stageType: stages.type,
     stageName: stages.name,
@@ -150,13 +150,13 @@ bracketRoutes.get('/:id/matches', async (c) => {
 
 bracketRoutes.get('/:id/stages/:stageId/matches', async (c) => {
   const stageId = c.req.param('stageId');
-  const result = await db.select().from(matches).where(eq(matches.stageId, stageId));
+  const result = await c.get('db').select().from(matches).where(eq(matches.stageId, stageId));
   return c.json(result);
 });
 
 bracketRoutes.get('/:id/standings', async (c) => {
   const id = c.req.param('id');
-  const rows = await db.select({
+  const rows = await c.get('db').select({
     rank: standings.rank,
     groupLabel: standings.groupLabel,
     wins: standings.wins,
@@ -187,7 +187,7 @@ bracketRoutes.get('/:id/standings', async (c) => {
 bracketRoutes.get('/:id/standings/:groupLabel', async (c) => {
   const id = c.req.param('id');
   const groupLabel = c.req.param('groupLabel');
-  const rows = await db.select({
+  const rows = await c.get('db').select({
     rank: standings.rank,
     wins: standings.wins,
     losses: standings.losses,
@@ -216,34 +216,34 @@ bracketRoutes.get('/:id/standings/:groupLabel', async (c) => {
 // ========== 管理员路由 ==========
 bracketRoutes.post('/:id/reset', requireAdmin, async (c) => {
   const id = c.req.param('id');
-  const [tournament] = await db.select().from(tournaments).where(eq(tournaments.id, id)).limit(1);
+  const [tournament] = await c.get('db').select().from(tournaments).where(eq(tournaments.id, id)).limit(1);
   if (!tournament) throw new AppError('NOT_FOUND', '赛事不存在', 404);
-  const stageRows = await db.select({ id: stages.id }).from(stages).where(eq(stages.tournamentId, id));
+  const stageRows = await c.get('db').select({ id: stages.id }).from(stages).where(eq(stages.tournamentId, id));
   if (stageRows.length > 0) {
     const stageIds = stageRows.map((s) => s.id);
-    const matchRows = await db.select({ id: matches.id }).from(matches).where(inArray(matches.stageId, stageIds));
+    const matchRows = await c.get('db').select({ id: matches.id }).from(matches).where(inArray(matches.stageId, stageIds));
     if (matchRows.length > 0) {
       const matchIds = matchRows.map((m) => m.id);
-      await db.update(matches).set({ nextMatchId: null, nextLosersMatchId: null })
+      await c.get('db').update(matches).set({ nextMatchId: null, nextLosersMatchId: null })
         .where(inArray(matches.id, matchIds));
-      await db.delete(games).where(inArray(games.matchId, matchIds));
+      await c.get('db').delete(games).where(inArray(games.matchId, matchIds));
     }
-    await db.delete(standings).where(inArray(standings.stageId, stageIds));
-    await db.delete(matches).where(inArray(matches.stageId, stageIds));
-    await db.delete(stages).where(inArray(stages.id, stageIds));
+    await c.get('db').delete(standings).where(inArray(standings.stageId, stageIds));
+    await c.get('db').delete(matches).where(inArray(matches.stageId, stageIds));
+    await c.get('db').delete(stages).where(inArray(stages.id, stageIds));
   }
-  await db.update(tournaments).set({ status: 'draft' }).where(eq(tournaments.id, id));
+  await c.get('db').update(tournaments).set({ status: 'draft' }).where(eq(tournaments.id, id));
   return c.json({ message: '赛程已重置' });
 });
 
 bracketRoutes.post('/:id/generate', requireAdmin, async (c) => {
   const id = c.req.param('id');
   const user = c.get('user')!;
-  const [tournament] = await db.select().from(tournaments).where(eq(tournaments.id, id)).limit(1);
+  const [tournament] = await c.get('db').select().from(tournaments).where(eq(tournaments.id, id)).limit(1);
   if (!tournament) throw new AppError('NOT_FOUND', '赛事不存在', 404);
   if (tournament.status !== 'draft') throw new AppError('BRACKET_ALREADY_GENERATED', '赛程已生成');
 
-  const tournamentTeamsRows = await db.select({
+  const tournamentTeamsRows = await c.get('db').select({
     entry: tournamentTeams,
     team: teams,
   })
@@ -295,7 +295,7 @@ bracketRoutes.post('/:id/generate', requireAdmin, async (c) => {
   // Insert stages
   const insertedStageIds: string[] = [];
   for (const stage of result.stages) {
-    const [inserted] = await db.insert(stages).values({
+    const [inserted] = await c.get('db').insert(stages).values({
       tournamentId: id,
       name: stage.name,
       type: stage.type,
@@ -319,7 +319,7 @@ bracketRoutes.post('/:id/generate', requireAdmin, async (c) => {
       }
     }
 
-    const [inserted] = await db.insert(matches).values({
+    const [inserted] = await c.get('db').insert(matches).values({
       stageId,
       groupLabel: match.groupLabel,
       round: match.round,
@@ -358,7 +358,7 @@ bracketRoutes.post('/:id/generate', requireAdmin, async (c) => {
     }
 
     if (Object.keys(updates).length > 0) {
-      await db.update(matches).set(updates).where(eq(matches.id, insertedMatchIds[i]));
+      await c.get('db').update(matches).set(updates).where(eq(matches.id, insertedMatchIds[i]));
     }
   }
 
@@ -366,22 +366,22 @@ bracketRoutes.post('/:id/generate', requireAdmin, async (c) => {
   let walkChanged = true;
   while (walkChanged) {
     walkChanged = false;
-    const walkthroughMatches = await db.select().from(matches)
+    const walkthroughMatches = await c.get('db').select().from(matches)
       .where(and(
         inArray(matches.stageId, insertedStageIds),
         eq(matches.status, 'walkthrough'),
       ));
     for (const m of walkthroughMatches) {
       if (!m.winnerId || !m.nextMatchId) continue;
-      const [nextMatch] = await db.select().from(matches)
+      const [nextMatch] = await c.get('db').select().from(matches)
         .where(eq(matches.id, m.nextMatchId)).limit(1);
       if (!nextMatch) continue;
       if (!nextMatch.team1Id) {
-        await db.update(matches).set({ team1Id: m.winnerId })
+        await c.get('db').update(matches).set({ team1Id: m.winnerId })
           .where(eq(matches.id, nextMatch.id));
         walkChanged = true;
       } else if (!nextMatch.team2Id && nextMatch.team1Id !== m.winnerId) {
-        await db.update(matches).set({ team2Id: m.winnerId })
+        await c.get('db').update(matches).set({ team2Id: m.winnerId })
           .where(eq(matches.id, nextMatch.id));
         walkChanged = true;
       }
@@ -405,31 +405,31 @@ bracketRoutes.post('/:id/generate', requireAdmin, async (c) => {
       rank: 0,
     }));
     if (standingsRows.length > 0) {
-      await db.insert(standings).values(standingsRows);
+      await c.get('db').insert(standings).values(standingsRows);
     }
   }
 
-  await db.update(tournaments).set({ status: 'ongoing' }).where(eq(tournaments.id, id));
+  await c.get('db').update(tournaments).set({ status: 'ongoing' }).where(eq(tournaments.id, id));
 
   return c.json({ message: '赛程生成成功', stagesCount: result.stages.length, matchesCount: result.matches.length });
 });
 
 bracketRoutes.post('/:id/generate-next-round', requireAdmin, async (c) => {
   const id = c.req.param('id');
-  const [tournament] = await db.select().from(tournaments).where(eq(tournaments.id, id)).limit(1);
+  const [tournament] = await c.get('db').select().from(tournaments).where(eq(tournaments.id, id)).limit(1);
   if (!tournament) throw new AppError('NOT_FOUND', '赛事不存在', 404);
   if (tournament.format !== 'swiss') throw new AppError('INVALID_FORMAT', '仅瑞士轮支持逐轮生成');
 
-  const tournamentTeamsRows = await db.select({ team: teams })
+  const tournamentTeamsRows = await c.get('db').select({ team: teams })
     .from(tournamentTeams)
     .innerJoin(teams, eq(teams.id, tournamentTeams.teamId))
     .where(eq(tournamentTeams.tournamentId, id));
   const tournamentTeamsList = tournamentTeamsRows.map((r) => r.team);
-  const tournamentStages = await db.select().from(stages).where(eq(stages.tournamentId, id));
+  const tournamentStages = await c.get('db').select().from(stages).where(eq(stages.tournamentId, id));
   const swissStage = tournamentStages.find((s) => s.type === 'swiss');
   if (!swissStage) throw new AppError('NOT_FOUND', '瑞士轮阶段不存在', 404);
 
-  const stageMatches = await db.select().from(matches).where(eq(matches.stageId, swissStage.id));
+  const stageMatches = await c.get('db').select().from(matches).where(eq(matches.stageId, swissStage.id));
   const currentRound = Math.max(...stageMatches.map((m) => m.round));
   const currentRoundMatches = stageMatches.filter((m) => m.round === currentRound);
 
@@ -457,7 +457,7 @@ bracketRoutes.post('/:id/generate-next-round', requireAdmin, async (c) => {
 
   const newMatches = generator.generateNextRound(tournamentTeamsList, currentRound, standingsData, playedPairs);
   for (const match of newMatches) {
-    await db.insert(matches).values({ ...match, stageId: swissStage.id });
+    await c.get('db').insert(matches).values({ ...match, stageId: swissStage.id });
   }
 
   return c.json({ message: `第${currentRound + 1}轮生成成功`, matchesCount: newMatches.length });
