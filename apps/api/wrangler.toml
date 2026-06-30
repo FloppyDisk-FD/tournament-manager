@@ -3,12 +3,10 @@ main = "src/index.ts"
 compatibility_date = "2025-01-15"
 compatibility_flags = ["nodejs_compat"]
 
-# Hyperdrive 绑定 — 部署前用 `wrangler hyperdrive create` 创建：
-# wrangler hyperdrive create tournament-db --connection-string="postgres://..."
-# 创建后把下面 id 替换成返回的 ID
-[[hyperdrive_configs]]
+# Hyperdrive 绑定
+[[hyperdrive]]
 binding = "HYPERDRIVE"
-id = "REPLACE_WITH_HYPERDRIVE_ID"
+id = "cc9be29ccab640a4be24a6b21bb0564a"
 localConnectionString = "postgres://postgres:postgres@localhost:5432/tournament_manager"
 
 # 通过 secret 设置：wrangler secret put JWT_SECRET
