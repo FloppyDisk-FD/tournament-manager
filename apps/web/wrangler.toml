@@ -1,0 +1,10 @@
+name = "tournament-manager-web"
+pages_build_output_dir = ".svelte-kit/cloudflare"
+compatibility_date = "2025-01-15"
+compatibility_flags = ["nodejs_compat"]
+
+# Service binding：把 /api/* 请求转发给后端 Worker
+# 前提：后端 Worker 已部署（apps/api 的 wrangler deploy）
+[[services]]
+binding = "API"
+service = "tournament-manager-api"
