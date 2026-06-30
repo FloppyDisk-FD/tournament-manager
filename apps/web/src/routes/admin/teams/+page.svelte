@@ -247,7 +247,13 @@
 							onclick={() => toggleExpand(team.id!)}
 							class="flex items-center gap-3 flex-1 text-left transition-opacity duration-150 active:opacity-70"
 						>
-							<span class="font-black text-2xl w-8 text-center">{team.logo_emoji || '🏆'}</span>
+							<span class="font-black text-2xl w-8 text-center">
+							{#if team.logo_url}
+								<img src={team.logo_url} alt={team.name} class="w-8 h-8 object-contain" />
+							{:else}
+								{team.logo_emoji || '🏆'}
+							{/if}
+						</span>
 							<div class="flex-1 min-w-0">
 								{#if isEditing}
 									<input
