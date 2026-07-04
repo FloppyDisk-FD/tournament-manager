@@ -135,10 +135,16 @@ teamRoutes.post('/import', async (c) => {
   const data = await c.req.json();
   if (!data.team_ids || data.team_ids.length === 0) throw new AppError('INVALID_INPUT', '未选择队伍');
 
+  // 验证 team_id 是否存在（防止前端缓存了已删除队伍的旧 ID 触发 FK 错误）
+  const validTeams = await c.get('db').select({ id: teams.id }).from(teams)
+    .where(inArray(teams.id, data.team_ids));
+  const validIds = new Set(validTeams.map((t) => t.id));
+  const skipped = data.team_ids.filter((tid: string) => !validIds.has(tid));
+
   const existingEntries = await c.get('db').select().from(tournamentTeams)
     .where(and(eq(tournamentTeams.tournamentId, id), inArray(tournamentTeams.teamId, data.team_ids)));
   const existingIds = new Set(existingEntries.map((e) => e.teamId));
-  const newTeamIds = data.team_ids.filter((tid: string) => !existingIds.has(tid));
+  const newTeamIds = data.team_ids.filter((tid: string) => validIds.has(tid) && !existingIds.has(tid));
 
   const currentCount = (await c.get('db').select().from(tournamentTeams).where(eq(tournamentTeams.tournamentId, id))).length;
   if (currentCount + newTeamIds.length > tournament.maxTeams) {
@@ -146,7 +152,7 @@ teamRoutes.post('/import', async (c) => {
   }
 
   if (newTeamIds.length === 0) {
-    return c.json({ message: '队伍已在赛事中', added: 0 });
+    return c.json({ message: '队伍已在赛事中', added: 0, skipped });
   }
 
   const inserted = await c.get('db').insert(tournamentTeams).values(
@@ -158,7 +164,7 @@ teamRoutes.post('/import', async (c) => {
   ).returning();
 
   c.status(201);
-  return c.json({ message: '队伍已加入赛事', added: inserted.length });
+  return c.json({ message: '队伍已加入赛事', added: inserted.length, skipped });
 });
 
 teamRoutes.post('/', async (c) => {
