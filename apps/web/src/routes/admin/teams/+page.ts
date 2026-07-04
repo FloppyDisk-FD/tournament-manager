@@ -12,7 +12,7 @@ export const load = async ({ fetch }) => {
 			player_name: p.player_name ?? p.playerName ?? '',
 			player_role: p.player_role ?? p.playerRole ?? 'member',
 			game_id: p.game_id ?? p.gameId ?? '',
-			avatar_emoji: p.avatar_emoji ?? p.avatarEmoji ?? '🦸',
+			avatar_url: p.avatar_url ?? p.avatarUrl ?? null,
 			is_captain: p.is_captain ?? p.isCaptain ?? false,
 		})),
 	}));

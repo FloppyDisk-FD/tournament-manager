@@ -4,7 +4,7 @@ export interface NormalizedPlayer {
   player_name: string;
   player_role: string;
   game_id: string;
-  avatar_emoji: string;
+  avatar_url: string | null;
   is_captain: boolean;
 }
 
@@ -41,7 +41,7 @@ export function normalizePlayer(p: any): NormalizedPlayer {
     player_name: p.player_name ?? p.playerName ?? '',
     player_role: p.player_role ?? p.playerRole ?? 'member',
     game_id: p.game_id ?? p.gameId ?? '',
-    avatar_emoji: p.avatar_emoji ?? p.avatarEmoji ?? '🦸',
+    avatar_url: p.avatar_url ?? p.avatarUrl ?? null,
     is_captain: p.is_captain ?? p.isCaptain ?? false,
   };
 }

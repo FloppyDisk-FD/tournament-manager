@@ -142,7 +142,13 @@
                     <td class="px-4 py-3 text-neutral-500 font-bold tabular-nums">{i + 1}</td>
                     <td class="px-4 py-3">
                       <div class="flex items-center gap-2">
-                        <span class="text-lg" aria-hidden="true">{p.avatar_emoji}</span>
+                        <div class="w-8 h-8 shrink-0 border border-black bg-neutral-100 overflow-hidden flex items-center justify-center">
+                          {#if p.avatar_url}
+                            <img src={p.avatar_url} alt={p.player_name || '选手'} class="w-full h-full object-cover" width="32" height="32" />
+                          {:else}
+                            <span class="text-[9px] text-neutral-400 font-bold">无</span>
+                          {/if}
+                        </div>
                         <span class="font-bold">{p.player_name}</span>
                         {#if p.is_captain}
                           <span class="text-xs font-bold text-accent border border-accent px-1">C</span>

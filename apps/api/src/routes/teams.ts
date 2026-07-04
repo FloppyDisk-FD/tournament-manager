@@ -39,7 +39,7 @@ globalTeamRoutes.post('/', async (c) => {
         playerName: p.player_name,
         playerRole: p.player_role,
         gameId: p.game_id,
-        avatarEmoji: p.avatar_emoji,
+        avatarUrl: p.avatar_url,
         isCaptain: p.is_captain ?? false,
       })),
     );
@@ -68,7 +68,7 @@ globalTeamRoutes.put('/:teamId', async (c) => {
           playerName: p.player_name,
           playerRole: p.player_role,
           gameId: p.game_id,
-          avatarEmoji: p.avatar_emoji,
+          avatarUrl: p.avatar_url,
           isCaptain: p.is_captain ?? false,
         })),
       );
@@ -190,7 +190,7 @@ teamRoutes.post('/', async (c) => {
         playerName: p.player_name,
         playerRole: p.player_role,
         gameId: p.game_id,
-        avatarEmoji: p.avatar_emoji,
+        avatarUrl: p.avatar_url,
         isCaptain: p.is_captain ?? false,
       })),
     );
@@ -259,7 +259,7 @@ teamRoutes.put('/:teamId', async (c) => {
           playerName: p.player_name,
           playerRole: p.player_role,
           gameId: p.game_id,
-          avatarEmoji: p.avatar_emoji,
+          avatarUrl: p.avatar_url,
           isCaptain: p.is_captain ?? false,
         })),
       );
