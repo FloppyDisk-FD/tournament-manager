@@ -2,7 +2,7 @@ import { Hono } from 'hono';
 import { eq, ilike, and, sql, inArray } from 'drizzle-orm';
 import type { Db } from '../db';
 import { tournaments, stages, matches, games, standings, tournamentTeams } from '../db/schema';
-import { AppError } from '../middleware/error';
+import { AppError, requireUuid } from '../middleware/error';
 import { authMiddleware, requireAdmin } from '../middleware/auth';
 
 export const tournamentRoutes = new Hono<{ Variables: { user: any | null; db: Db } }>();
@@ -37,7 +37,8 @@ tournamentRoutes.get('/', async (c) => {
 });
 
 tournamentRoutes.get('/:id', async (c) => {
-  const [tournament] = await c.get('db').select().from(tournaments).where(eq(tournaments.id, c.req.param('id'))).limit(1);
+  const id = requireUuid(c.req.param('id'), '赛事');
+  const [tournament] = await c.get('db').select().from(tournaments).where(eq(tournaments.id, id)).limit(1);
   if (!tournament) {
     throw new AppError('NOT_FOUND', '赛事不存在', 404);
   }

@@ -3,7 +3,7 @@ import { eq, and, inArray } from 'drizzle-orm';
 import { alias } from 'drizzle-orm/pg-core';
 import type { Db } from '../db';
 import { tournaments, teams, stages, matches, games, standings, tournamentTeams } from '../db/schema';
-import { AppError } from '../middleware/error';
+import { AppError, requireUuid } from '../middleware/error';
 import { authMiddleware, requireAdmin } from '../middleware/auth';
 import { SingleElimGenerator } from '../generators/single-elimination';
 import { DoubleElimGenerator } from '../generators/double-elimination';
@@ -23,6 +23,8 @@ function getGenerator(format: string) {
 
 export const bracketRoutes = new Hono<{ Variables: { user: any | null; db: Db } }>();
 bracketRoutes.use('*', authMiddleware);
+// 校验赛事 ID 为合法 UUID，避免非 UUID 字符串触发 DB 语法错误返回 500
+bracketRoutes.use('/:id/*', async (c, next) => { requireUuid(c.req.param('id'), '赛事'); await next(); });
 
 // ========== 公开路由 ==========
 bracketRoutes.get('/:id/bracket', async (c) => {

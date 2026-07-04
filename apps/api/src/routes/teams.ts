@@ -2,7 +2,7 @@ import { Hono } from 'hono';
 import { eq, and, inArray, isNull } from 'drizzle-orm';
 import type { Db } from '../db';
 import { teams, teamPlayers, tournaments, tournamentTeams } from '../db/schema';
-import { AppError } from '../middleware/error';
+import { AppError, requireUuid } from '../middleware/error';
 import { authMiddleware, requireAdmin } from '../middleware/auth';
 
 // 全局队伍库路由（/api/v1/teams）
@@ -90,6 +90,8 @@ globalTeamRoutes.delete('/:teamId', async (c) => {
 // 赛事内队伍路由（/api/v1/tournaments/:id/teams）
 export const teamRoutes = new Hono<{ Variables: { user: any | null; db: Db } }>();
 teamRoutes.use('*', authMiddleware);
+// 校验赛事 ID 为合法 UUID，避免非 UUID 字符串触发 DB 语法错误返回 500
+teamRoutes.use('*', async (c, next) => { requireUuid(c.req.param('id'), '赛事'); await next(); });
 
 // 列出赛事队伍（公开）
 teamRoutes.get('/', async (c) => {
