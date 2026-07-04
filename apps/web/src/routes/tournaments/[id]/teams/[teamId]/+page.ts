@@ -48,7 +48,7 @@ export const load: PageLoad = async ({ params, fetch }) => {
     console.error('[team detail] fetch standings failed:', err);
   }
 
-  return { tournamentId, team, matches, standing };
+  return { tournamentId, teamId, team, matches, standing };
 };
 
 /** 从 bracket 结构中提取目标队伍的所有比赛，按 stage → round → 顺序展平 */
