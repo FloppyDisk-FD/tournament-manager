@@ -1,4 +1,5 @@
 // apps/web/src/routes/tournaments/[id]/teams/[teamId]/+page.ts
+import { error } from '@sveltejs/kit';
 import { normalizeTeam } from '$lib/utils/normalize';
 import type { PageLoad } from './$types';
 
@@ -13,10 +14,12 @@ export const load: PageLoad = async ({ params, fetch }) => {
       const allTeams = await res.json();
       const raw = (allTeams as any[]).find((t) => t.id === teamId);
       if (raw) team = normalizeTeam(raw);
-    } else {
-      console.error('[team detail] teams API returned', res.status);
+      else throw error(404, '队伍不存在');
+    } else if (res.status === 404) {
+      throw error(404, '赛事不存在');
     }
   } catch (err) {
+    if (err && typeof err === 'object' && 'status' in err) throw err;
     console.error('[team detail] fetch teams failed:', err);
   }
 
