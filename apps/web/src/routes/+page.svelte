@@ -57,14 +57,14 @@
 <section class="px-4 md:px-8 lg:px-16 py-8 md:py-12">
 	<div class="max-w-7xl mx-auto">
 		<!-- Filter -->
-		<div class="flex flex-wrap gap-0 mb-8 border border-black" role="tablist" aria-label="赛事状态筛选">
+		<div class="flex flex-wrap gap-0 mb-8 border border-black w-full" role="tablist" aria-label="赛事状态筛选">
 			{#each filters as f, i}
 				<button
 					role="tab"
 					aria-selected={currentStatus === f.value}
 					onclick={() => setFilter(f.value)}
 					class={cn(
-						'px-4 md:px-6 py-2 md:py-3 text-sm font-bold transition-opacity duration-150 active:opacity-70 press',
+						'flex-1 min-w-0 px-4 md:px-6 py-2 md:py-3 text-sm font-bold transition-opacity duration-150 active:opacity-70 press',
 						i > 0 ? 'border-l border-black' : '',
 						currentStatus === f.value
 							? 'bg-black text-white'
