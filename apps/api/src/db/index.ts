@@ -14,15 +14,23 @@ export type Db = ReturnType<typeof drizzle<typeof schema>>;
 
 /**
  * 创建新的 DB client 实例（每请求调用）。
- * Workers 通过 Hyperdrive 连接串调用；本地开发也可用 DATABASE_URL 调用。
+ *
+ * Workers：通过 Hyperdrive 连接串，按官方推荐配置
+ *   - max: 5（Workers 并发外部连接限制）
+ *   - fetch_types: false（避免额外 round-trip，我们不用 postgres 数组类型）
+ *   - prepare: true（Hyperdrive 原生支持 prepared statements 缓存，false 会导致额外 round-trip）
+ *   Hyperdrive 自己维护连接池，每请求新建 client 很快且推荐。
+ *
+ * 本地开发：直连 Neon，用 prepare: false 兼容 Neon pooler（PgBouncer 模式）。
  */
-export function createDb(connectionString: string): Db {
+export function createDb(connectionString: string, isHyperdrive = false): Db {
   const client = postgres(connectionString, {
-    max: 1,
-    idle_timeout: 5,
+    max: isHyperdrive ? 5 : 10,
+    idle_timeout: 20,
     connect_timeout: 10,
-    // Hyperdrive / Neon pooler 不支持 prepared statements
-    prepare: false,
+    fetch_types: false,
+    // Hyperdrive 支持 prepared statements 缓存；Neon pooler (PgBouncer) 不支持
+    prepare: isHyperdrive ? true : false,
   });
   return drizzle(client, { schema });
 }

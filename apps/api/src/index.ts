@@ -37,8 +37,14 @@ app.use('*', cors({
  * 每请求新实例（本地虽有连接池开销但可接受）。
  */
 app.use('*', async (c, next) => {
-  const connStr = c.env.HYPERDRIVE?.connectionString ?? process.env.DATABASE_URL;
-  if (connStr) c.set('db', createDb(connStr));
+  const hyperdriveStr = c.env.HYPERDRIVE?.connectionString;
+  if (hyperdriveStr) {
+    // Workers + Hyperdrive
+    c.set('db', createDb(hyperdriveStr, true));
+  } else if (process.env.DATABASE_URL) {
+    // 本地开发
+    c.set('db', createDb(process.env.DATABASE_URL, false));
+  }
   await next();
 });
 
