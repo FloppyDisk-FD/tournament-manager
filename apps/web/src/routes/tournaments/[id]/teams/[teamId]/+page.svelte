@@ -66,7 +66,7 @@
     <div class="flex items-start gap-4 mb-8 flex-wrap">
       <div class="flex items-center gap-4 min-w-0 flex-1">
         {#if t.logo_url}
-          <img src={t.logo_url} alt={t.name} class="w-16 h-16 md:w-20 md:h-20 object-contain border border-black" />
+          <img src={t.logo_url} alt={t.name} width={80} height={80} class="w-16 h-16 md:w-20 md:h-20 object-contain border border-black" />
         {:else}
           <div class="w-16 h-16 md:w-20 md:h-20 flex items-center justify-center border border-black bg-white text-4xl">
             {t.logo_emoji}
@@ -190,7 +190,7 @@
                 <!-- 对手 -->
                 <div class="flex items-center gap-2 min-w-0 flex-1">
                   {#if opponent?.logo_url}
-                    <img src={opponent.logo_url} alt={opponent.name} class="w-5 h-5 object-contain shrink-0" />
+                    <img src={opponent.logo_url} alt={opponent.name} width={20} height={20} class="w-5 h-5 object-contain shrink-0" />
                   {:else if opponent?.logo_emoji}
                     <span class="text-lg shrink-0" aria-hidden="true">{opponent.logo_emoji}</span>
                   {/if}
