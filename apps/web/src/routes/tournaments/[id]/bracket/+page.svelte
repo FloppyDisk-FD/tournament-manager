@@ -125,9 +125,9 @@
 	}
 </script>
 
-<div class="min-h-screen bg-white font-sans">
+<div class="min-h-screen bg-neutral-100 font-sans">
 	<div
-		class="sticky top-0 z-20 bg-white border-b-2 border-black px-4 md:px-6 py-3 flex items-center justify-between"
+		class="sticky top-0 z-20 bg-white/80 backdrop-blur-md border-b-2 border-black px-4 md:px-6 py-3 flex items-center justify-between"
 	>
 		<div class="flex items-center gap-4 min-w-0">
 			<a
@@ -394,7 +394,7 @@
 		</div>
 	{/snippet}
 
-	<div class="p-4 md:p-6 overflow-auto animate-enter" bind:this={bracketEl}>
+	<div class="p-4 md:p-6 overflow-auto animate-enter bg-white/70 backdrop-blur-md" bind:this={bracketEl}>
 		{#if stages.length > 0}
 			<div class="flex gap-10 flex-nowrap">
 				{#each stages as stage}

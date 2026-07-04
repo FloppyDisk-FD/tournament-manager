@@ -308,129 +308,135 @@
 					{#if isOpen}
 						<div class="border-t border-black p-3 md:p-4 bg-neutral-50">
 							{#if isEditing}
-								<!-- 编辑模式：emoji / logo_url -->
-								<div class="grid grid-cols-1 md:grid-cols-2 gap-0 border border-black mb-4">
-									<div class="border-b md:border-b-0 md:border-r border-black p-3">
-										<label class="block text-xs font-bold text-neutral-600 mb-1">Logo Emoji</label>
-										<input
-											type="text"
-											maxlength="10"
-											bind:value={editDraft!.logo_emoji}
-											class="w-full rounded-none border border-black font-sans px-2 py-1.5 text-sm bg-white focus:outline-none"
-										/>
-										<div class="flex flex-wrap gap-1 mt-2">
-											{#each emojiPresets as em}
-												<button
-													type="button"
-													onclick={() => (editDraft!.logo_emoji = em)}
-													class="border border-black bg-white px-1.5 py-0.5 text-sm font-bold transition-opacity duration-150 active:opacity-70"
-												>
-													{em}
-												</button>
-											{/each}
+								<!-- 队伍信息 -->
+								<div class="mb-5">
+									<div class="text-[10px] font-bold uppercase tracking-widest text-neutral-500 mb-2">队伍信息</div>
+									<div class="grid grid-cols-1 md:grid-cols-2 gap-0 border border-black bg-white">
+										<div class="border-b md:border-b-0 md:border-r border-black p-3">
+											<label class="block text-xs font-bold text-neutral-600 mb-1">Logo Emoji</label>
+											<input
+												type="text"
+												maxlength="10"
+												bind:value={editDraft!.logo_emoji}
+												class="w-full rounded-none border border-black font-sans px-2 py-1.5 text-sm bg-white focus:outline-none"
+											/>
+											<div class="flex flex-wrap gap-1 mt-2">
+												{#each emojiPresets as em}
+													<button
+														type="button"
+														onclick={() => (editDraft!.logo_emoji = em)}
+														class="border border-black bg-white px-1.5 py-0.5 text-sm font-bold transition-opacity duration-150 active:opacity-70"
+													>
+														{em}
+													</button>
+												{/each}
+											</div>
 										</div>
-									</div>
-									<div class="p-3">
-										<label class="block text-xs font-bold text-neutral-600 mb-1">Logo URL（可选）</label>
-										<input
-											type="text"
-											bind:value={editDraft!.logo_url}
-											placeholder="https://..."
-											class="w-full rounded-none border border-black font-sans px-2 py-1.5 text-sm bg-white focus:outline-none"
-										/>
+										<div class="p-3">
+											<label class="block text-xs font-bold text-neutral-600 mb-1">Logo URL（可选）</label>
+											<input
+												type="text"
+												bind:value={editDraft!.logo_url}
+												placeholder="https://..."
+												class="w-full rounded-none border border-black font-sans px-2 py-1.5 text-sm bg-white focus:outline-none"
+											/>
+										</div>
 									</div>
 								</div>
 
 								<!-- 选手管理 -->
-								<div class="flex items-center justify-between mb-2">
-									<h3 class="font-black text-sm tracking-tight text-black">选手管理</h3>
-									<button
-										type="button"
-										onclick={addPlayer}
-										class="rounded-none font-sans font-bold border border-black bg-black text-white px-3 py-1 text-xs transition-opacity duration-150 active:opacity-70"
-									>
-										+ 添加选手
-									</button>
-								</div>
-
-								{#if editDraft!.players.length === 0}
-									<div class="rounded-none border border-black bg-white p-3 text-center text-xs text-neutral-500 font-bold">
-										暂无选手
+								<div class="mb-5">
+									<div class="flex items-center justify-between mb-2">
+										<div class="text-[10px] font-bold uppercase tracking-widest text-neutral-500">选手管理</div>
+										<button
+											type="button"
+											onclick={addPlayer}
+											class="rounded-none font-sans font-bold border border-black bg-black text-white px-3 py-1 text-xs transition-opacity duration-150 active:opacity-70"
+										>
+											+ 添加选手
+										</button>
 									</div>
-								{:else}
-									<div class="space-y-0 border-t border-l border-black">
-										{#each editDraft!.players as p, i}
-											<div class="rounded-none border-r border-b border-black bg-white p-2 grid grid-cols-12 gap-2 items-center">
-												<div class="col-span-2 md:col-span-1">
-													<input
-														type="text"
-														maxlength="10"
-														bind:value={p.avatar_emoji}
-														class="w-full rounded-none border border-black font-sans px-1 py-1 text-sm text-center bg-white focus:outline-none"
-													/>
-													<div class="hidden md:flex flex-wrap gap-0.5 mt-1">
-														{#each avatarPresets.slice(0, 4) as av}
-															<button
-																type="button"
-																onclick={() => (p.avatar_emoji = av)}
-																class="border border-black bg-white px-1 text-xs transition-opacity duration-150 active:opacity-70"
-															>
-																{av}
-															</button>
-														{/each}
+
+									{#if editDraft!.players.length === 0}
+										<div class="rounded-none border border-black bg-white p-3 text-center text-xs text-neutral-500 font-bold">
+											暂无选手
+										</div>
+									{:else}
+										<div class="space-y-0 border-t border-l border-black">
+											{#each editDraft!.players as p, i}
+												<div class="rounded-none border-r border-b border-black bg-white p-2 grid grid-cols-12 gap-2 items-center">
+													<div class="col-span-2 md:col-span-1">
+														<input
+															type="text"
+															maxlength="10"
+															bind:value={p.avatar_emoji}
+															class="w-full rounded-none border border-black font-sans px-1 py-1 text-sm text-center bg-white focus:outline-none"
+														/>
+														<div class="hidden md:flex flex-wrap gap-0.5 mt-1">
+															{#each avatarPresets.slice(0, 4) as av}
+																<button
+																	type="button"
+																	onclick={() => (p.avatar_emoji = av)}
+																	class="border border-black bg-white px-1 text-xs transition-opacity duration-150 active:opacity-70"
+																>
+																	{av}
+																</button>
+															{/each}
+														</div>
+													</div>
+													<div class="col-span-5 md:col-span-4">
+														<input
+															type="text"
+															bind:value={p.player_name}
+															placeholder="选手名"
+															class="w-full rounded-none border border-black font-sans px-2 py-1 text-sm bg-white focus:outline-none"
+														/>
+													</div>
+													<div class="col-span-3 md:col-span-3">
+														<select
+															bind:value={p.player_role}
+															class="w-full rounded-none border border-black font-sans px-1 py-1 text-sm bg-white focus:outline-none"
+														>
+															<option value="member">队员</option>
+															<option value="captain">队长</option>
+															<option value="substitute">替补</option>
+															<option value="coach">教练</option>
+														</select>
+													</div>
+													<div class="col-span-2 md:col-span-3">
+														<input
+															type="text"
+															bind:value={p.game_id}
+															placeholder="游戏 ID"
+															class="w-full rounded-none border border-black font-sans px-2 py-1 text-sm bg-white focus:outline-none"
+														/>
+													</div>
+													<div class="col-span-12 md:col-span-1 flex items-center gap-1 md:justify-end">
+														<button
+															type="button"
+															onclick={() => setCaptain(i)}
+															class="rounded-none font-sans font-bold border border-black bg-white px-2 py-1 text-xs transition-opacity duration-150 active:opacity-70"
+															title="设为队长"
+														>
+															{p.is_captain ? '★' : '☆'}
+														</button>
+														<button
+															type="button"
+															onclick={() => removePlayer(i)}
+															class="rounded-none font-sans font-bold border border-black bg-white text-accent px-2 py-1 text-xs transition-opacity duration-150 active:opacity-70"
+															title="删除选手"
+														>
+															×
+														</button>
 													</div>
 												</div>
-												<div class="col-span-5 md:col-span-4">
-													<input
-														type="text"
-														bind:value={p.player_name}
-														placeholder="选手名"
-														class="w-full rounded-none border border-black font-sans px-2 py-1 text-sm bg-white focus:outline-none"
-													/>
-												</div>
-												<div class="col-span-3 md:col-span-3">
-													<select
-														bind:value={p.player_role}
-														class="w-full rounded-none border border-black font-sans px-1 py-1 text-sm bg-white focus:outline-none"
-													>
-														<option value="member">队员</option>
-														<option value="captain">队长</option>
-														<option value="substitute">替补</option>
-														<option value="coach">教练</option>
-													</select>
-												</div>
-												<div class="col-span-2 md:col-span-3">
-													<input
-														type="text"
-														bind:value={p.game_id}
-														placeholder="游戏 ID"
-														class="w-full rounded-none border border-black font-sans px-2 py-1 text-sm bg-white focus:outline-none"
-													/>
-												</div>
-												<div class="col-span-12 md:col-span-1 flex items-center gap-1 md:justify-end">
-													<button
-														type="button"
-														onclick={() => setCaptain(i)}
-														class="rounded-none font-sans font-bold border border-black bg-white px-2 py-1 text-xs transition-opacity duration-150 active:opacity-70"
-														title="设为队长"
-													>
-														{p.is_captain ? '★' : '☆'}
-													</button>
-													<button
-														type="button"
-														onclick={() => removePlayer(i)}
-														class="rounded-none font-sans font-bold border border-black bg-white text-accent px-2 py-1 text-xs transition-opacity duration-150 active:opacity-70"
-														title="删除选手"
-													>
-														×
-													</button>
-												</div>
-											</div>
-										{/each}
-									</div>
-								{/if}
+											{/each}
+										</div>
+									{/if}
+								</div>
 
-								<div class="mt-4 flex gap-2">
+								<!-- 底部操作 -->
+								<div class="pt-4 border-t border-neutral-300 flex gap-2">
 									<button
 										onclick={() => saveEdit(team.id!)}
 										disabled={creating}
@@ -447,30 +453,33 @@
 								</div>
 							{:else}
 								<!-- 只读模式：选手列表 -->
-								{#if team.players?.length > 0}
-									<div class="space-y-0 border-t border-l border-black">
-										{#each team.players as p}
-											<div class="rounded-none border-r border-b border-black bg-white p-2 flex items-center gap-3">
-												<span class="font-black text-xl w-6 text-center">{p.avatar_emoji || '🦸'}</span>
-												<div class="flex-1 min-w-0">
-													<div class="font-bold text-sm text-black truncate">
-														{p.player_name || '未命名'}
-														{#if p.is_captain}
-															<span class="text-accent ml-1" title="队长">★</span>
-														{/if}
-													</div>
-													<div class="text-xs text-neutral-500 font-bold">
-														{p.player_role} · {p.game_id || '无 ID'}
+								<div>
+									<div class="text-[10px] font-bold uppercase tracking-widest text-neutral-500 mb-2">选手名单</div>
+									{#if team.players?.length > 0}
+										<div class="space-y-0 border-t border-l border-black">
+											{#each team.players as p}
+												<div class="rounded-none border-r border-b border-black bg-white p-2 flex items-center gap-3">
+													<span class="font-black text-xl w-6 text-center">{p.avatar_emoji || '🦸'}</span>
+													<div class="flex-1 min-w-0">
+														<div class="font-bold text-sm text-black truncate">
+															{p.player_name || '未命名'}
+															{#if p.is_captain}
+																<span class="text-accent ml-1" title="队长">★</span>
+															{/if}
+														</div>
+														<div class="text-xs text-neutral-500 font-bold">
+															{p.player_role} · {p.game_id || '无 ID'}
+														</div>
 													</div>
 												</div>
-											</div>
-										{/each}
-									</div>
-								{:else}
-									<div class="rounded-none border border-black bg-white p-3 text-center text-xs text-neutral-500 font-bold">
-										暂无选手
-									</div>
-								{/if}
+											{/each}
+										</div>
+									{:else}
+										<div class="rounded-none border border-black bg-white p-3 text-center text-xs text-neutral-500 font-bold">
+											暂无选手
+										</div>
+									{/if}
+								</div>
 							{/if}
 						</div>
 					{/if}
