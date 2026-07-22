@@ -1,5 +1,6 @@
-import { Elysia } from 'elysia';
-
+/**
+ * 应用错误类 — 统一错误对象
+ */
 export class AppError extends Error {
   constructor(
     public code: string,
@@ -10,22 +11,15 @@ export class AppError extends Error {
   }
 }
 
-export const errorPlugin = new Elysia({ name: 'error' })
-  .error({ AppError })
-  .onError(({ code, error, set }) => {
-    console.error('[API Error]', code, error?.message ?? error);
-    if (error instanceof AppError) {
-      set.status = error.statusCode;
-      return { error: { code: error.code, message: error.message } };
-    }
-    if (code === 'VALIDATION') {
-      set.status = 400;
-      return { error: { code: 'VALIDATION_ERROR', message: error.message } };
-    }
-    if (code === 'NOT_FOUND') {
-      set.status = 404;
-      return { error: { code: 'NOT_FOUND', message: 'Resource not found' } };
-    }
-    set.status = 500;
-    return { error: { code: 'INTERNAL_ERROR', message: error?.message ?? 'Internal server error' } };
-  });
+const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
+/**
+ * 校验路径参数是否为合法 UUID；非法时抛 404（避免传入非 UUID 字符串
+ * 触发 PostgreSQL "invalid input syntax for type uuid" 而被全局 onError 返回 500）。
+ */
+export function requireUuid(value: string, label = '资源'): string {
+  if (!value || !UUID_RE.test(value)) {
+    throw new AppError('NOT_FOUND', `${label}不存在`, 404);
+  }
+  return value;
+}

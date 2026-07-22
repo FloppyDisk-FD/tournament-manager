@@ -125,7 +125,9 @@
 				<h2 class="font-black text-lg md:text-xl tracking-tight mb-3">参赛队伍</h2>
 				<div class="grid grid-cols-2 md:grid-cols-4 gap-0 border-l border-t border-black">
 					{#each teams as team, i}
-						<div class="border-r border-b border-black bg-white px-3 py-2 text-sm flex items-center gap-2 animate-enter" style="animation-delay:{Math.min(i * 30, 300)}ms">
+						<a href="/tournaments/{data.tournament.id}/teams/{team.id}"
+							class="border-r border-b border-black bg-white px-3 py-2 text-sm flex items-center gap-2 animate-enter lift hover:bg-neutral-50 transition-colors duration-150"
+							style="animation-delay:{Math.min(i * 30, 300)}ms">
 							<span class="text-neutral-500 font-bold tabular-nums">#{i + 1}</span>
 							{#if team.logo_url ?? team.logoUrl}
 								<img src={team.logo_url ?? team.logoUrl} alt={team.name} class="w-5 h-5 object-contain" />
@@ -133,7 +135,7 @@
 								<span class="text-lg" aria-hidden="true">{team.logo_emoji ?? team.logoEmoji}</span>
 							{/if}
 							<span class="font-bold truncate">{team.name}</span>
-						</div>
+						</a>
 					{/each}
 				</div>
 			{/if}

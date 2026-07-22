@@ -15,20 +15,20 @@
 
 <div class="min-h-screen flex flex-col">
 	<a href="#main-content" class="skip-link">跳到主内容</a>
-	<nav class="bg-white border-b-2 border-black px-4 md:px-8 h-14 flex items-center justify-between sticky top-0 z-50" aria-label="主导航">
-		<a href="/" class="font-black text-lg md:text-xl tracking-tight text-black press inline-block" aria-label="返回首页">
+	<nav class="bg-black border-b-2 border-black px-4 md:px-8 h-14 flex items-center justify-between sticky top-0 z-50" aria-label="主导航">
+		<a href="/" class="font-black text-lg md:text-xl tracking-tight text-white press inline-block" aria-label="返回首页">
 			赛事管理平台
 		</a>
 		<div class="flex items-center gap-4 md:gap-6">
 			{#if data.authenticated}
-				<a href="/admin" class="text-sm font-bold text-black border-b-2 border-black hover:text-accent hover:border-accent transition-colors duration-150 link-underline">
+				<a href="/admin" class="text-sm font-bold text-white border-b-2 border-white hover:text-accent hover:border-accent transition-colors duration-150 link-underline">
 					管理后台 →
 				</a>
-				<button onclick={logout} class="text-sm font-bold text-neutral-500 hover:text-accent transition-colors duration-150 press" aria-label="退出登录">
+				<button onclick={logout} class="text-sm font-bold text-neutral-400 hover:text-accent transition-colors duration-150 press" aria-label="退出登录">
 					退出
 				</button>
 			{:else}
-				<a href="/login" class="text-sm font-bold text-black border-b-2 border-black hover:text-accent hover:border-accent transition-colors duration-150 link-underline">
+				<a href="/login" class="text-sm font-bold text-white border-b-2 border-white hover:text-accent hover:border-accent transition-colors duration-150 link-underline">
 					管理后台 →
 				</a>
 			{/if}

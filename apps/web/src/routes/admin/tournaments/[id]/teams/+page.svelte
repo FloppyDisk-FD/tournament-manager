@@ -162,7 +162,7 @@
 		}
 		importing = true;
 		try {
-			const res = await api.post<{ message: string; added: number }>(
+			const res = await api.post<{ message: string; added: number; skipped?: string[] }>(
 				`/tournaments/${t.id}/teams/import`,
 				{ team_ids: [...selectedIds] },
 			);
@@ -180,7 +180,13 @@
 				}));
 			teams = [...teams, ...toAdd];
 			selectedIds = [];
-			success(res.added > 0 ? `已加入 ${res.added} 支队伍` : res.message ?? '无新增队伍');
+			// 如果有被跳过的队伍（已删除的旧 ID），刷新全局队伍列表
+			if (res.skipped && res.skipped.length > 0) {
+				await loadLibrary();
+				success(`已加入 ${res.added} 支队伍，${res.skipped.length} 支已失效被跳过`);
+			} else {
+				success(res.added > 0 ? `已加入 ${res.added} 支队伍` : res.message ?? '无新增队伍');
+			}
 		} catch (e: any) {
 			error(e.message ?? '导入失败');
 		} finally {

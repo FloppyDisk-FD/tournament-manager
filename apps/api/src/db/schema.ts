@@ -96,7 +96,7 @@ export const teamPlayers = pgTable('team_players', {
   playerName: varchar('player_name', { length: 50 }).notNull(),
   playerRole: varchar('player_role', { length: 30 }),
   gameId: varchar('game_id', { length: 50 }),
-  avatarEmoji: varchar('avatar_emoji', { length: 10 }),
+  avatarUrl: varchar('avatar_url', { length: 500 }),
   isCaptain: boolean('is_captain').notNull().default(false),
 });
 

@@ -95,7 +95,7 @@ async function main() {
       "player_name" varchar(50) NOT NULL,
       "player_role" varchar(30),
       "game_id" varchar(50),
-      "avatar_emoji" varchar(10),
+      "avatar_url" varchar(500),
       "is_captain" boolean DEFAULT false NOT NULL
     );
 

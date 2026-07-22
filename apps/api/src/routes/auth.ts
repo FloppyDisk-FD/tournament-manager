@@ -1,92 +1,77 @@
-import { Elysia, t } from 'elysia';
+import { Hono } from 'hono';
+import { z } from 'zod';
+import { zValidator } from '@hono/zod-validator';
 import { eq } from 'drizzle-orm';
 import bcrypt from 'bcryptjs';
-import { db } from '../db';
+import type { Db } from '../db';
 import { users } from '../db/schema';
 import { AppError } from '../middleware/error';
-import { authPlugin } from '../middleware/auth';
+import { authMiddleware, issueAuthCookie, clearAuthCookie } from '../middleware/auth';
 
-export const authRoutes = new Elysia({ prefix: '/api/v1/auth' })
-  .use(authPlugin)
-  .post('/register', async ({ body, jwt, cookie: { auth }, set }) => {
-    const { username, password } = body;
+const auth = new Hono<{ Variables: { user: any | null; db: Db } }>();
 
-    if (!username || !password) {
-      throw new AppError('VALIDATION_ERROR', '用户名和密码不能为空');
-    }
+const credentialsSchema = z.object({
+  username: z.string().min(1),
+  password: z.string().min(1),
+});
 
-    const existing = await db.select().from(users).where(eq(users.username, username)).limit(1);
-    if (existing.length > 0) {
-      throw new AppError('USERNAME_TAKEN', '用户名已被占用');
-    }
+auth.use('*', authMiddleware);
 
-    const passwordHash = await bcrypt.hash(password, 10);
-    const [newUser] = await db.insert(users).values({ username, passwordHash }).returning();
+auth.post('/register', zValidator('json', credentialsSchema), async (c) => {
+  const { username, password } = c.req.valid('json');
 
-    const token = await jwt.sign({ sub: newUser.id, role: newUser.role });
-    auth!.set({
-      value: token,
-      httpOnly: true,
-      maxAge: 7 * 24 * 3600,
-      path: '/',
-      sameSite: 'Lax',
-    });
+  const existing = await c.get('db').select().from(users).where(eq(users.username, username)).limit(1);
+  if (existing.length > 0) {
+    throw new AppError('USERNAME_TAKEN', '用户名已被占用');
+  }
 
-    set.status = 201;
-    return { id: newUser.id, username: newUser.username, role: newUser.role };
-  }, {
-    body: t.Object({
-      username: t.String(),
-      password: t.String(),
-    }),
-  })
-  .post('/login', async ({ body, jwt, cookie: { auth }, set }) => {
-    const { username, password } = body;
+  const passwordHash = await bcrypt.hash(password, 10);
+  const [newUser] = await c.get('db').insert(users).values({ username, passwordHash }).returning();
 
-    const [user] = await db.select().from(users).where(eq(users.username, username)).limit(1);
-    if (!user) {
-      throw new AppError('INVALID_CREDENTIALS', '用户名或密码错误', 401);
-    }
+  issueAuthCookie(c, newUser.id, newUser.role);
+  c.status(201);
+  return c.json({ id: newUser.id, username: newUser.username, role: newUser.role });
+});
 
-    const valid = await bcrypt.compare(password, user.passwordHash);
-    if (!valid) {
-      throw new AppError('INVALID_CREDENTIALS', '用户名或密码错误', 401);
-    }
+auth.post('/login', zValidator('json', credentialsSchema), async (c) => {
+  const { username, password } = c.req.valid('json');
 
-    const token = await jwt.sign({ sub: user.id, role: user.role });
-    auth!.set({
-      value: token,
-      httpOnly: true,
-      maxAge: 7 * 24 * 3600,
-      path: '/',
-      sameSite: 'Lax',
-    });
+  const [user] = await c.get('db').select().from(users).where(eq(users.username, username)).limit(1);
+  if (!user) {
+    throw new AppError('INVALID_CREDENTIALS', '用户名或密码错误', 401);
+  }
 
-    return { id: user.id, username: user.username, role: user.role };
-  }, {
-    body: t.Object({
-      username: t.String(),
-      password: t.String(),
-    }),
-  })
-  .post('/logout', async ({ cookie: { auth } }) => {
-    auth!.remove();
-    return { message: '已登出' };
-  })
-  .get('/me', async ({ user, set }) => {
-    if (!user) {
-      set.status = 401;
-      return { error: '未登录' };
-    }
-    const [dbUser] = await db.select({
-      id: users.id,
-      username: users.username,
-      role: users.role,
-      avatarUrl: users.avatarUrl,
-    }).from(users).where(eq(users.id, user.id)).limit(1);
-    if (!dbUser) {
-      set.status = 401;
-      return { error: '用户不存在' };
-    }
-    return dbUser;
-  });
+  const valid = await bcrypt.compare(password, user.passwordHash);
+  if (!valid) {
+    throw new AppError('INVALID_CREDENTIALS', '用户名或密码错误', 401);
+  }
+
+  issueAuthCookie(c, user.id, user.role);
+  return c.json({ id: user.id, username: user.username, role: user.role });
+});
+
+auth.post('/logout', (c) => {
+  clearAuthCookie(c);
+  return c.json({ message: '已登出' });
+});
+
+auth.get('/me', async (c) => {
+  const user = c.get('user');
+  if (!user) {
+    c.status(401);
+    return c.json({ error: '未登录' });
+  }
+  const [dbUser] = await c.get('db').select({
+    id: users.id,
+    username: users.username,
+    role: users.role,
+    avatarUrl: users.avatarUrl,
+  }).from(users).where(eq(users.id, user.id)).limit(1);
+  if (!dbUser) {
+    c.status(401);
+    return c.json({ error: '用户不存在' });
+  }
+  return c.json(dbUser);
+});
+
+export { auth as authRoutes };

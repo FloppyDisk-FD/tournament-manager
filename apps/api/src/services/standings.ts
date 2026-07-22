@@ -1,8 +1,8 @@
 import { eq, and } from 'drizzle-orm';
-import { db } from '../db';
+import type { Db } from '../db';
 import { standings, matches, stages } from '../db/schema';
 
-export async function updateStandings(tournamentId: string, stageId: string) {
+export async function updateStandings(db: Db, tournamentId: string, stageId: string) {
   const stage = (await db.select().from(stages).where(eq(stages.id, stageId)))[0];
   if (!stage) return;
 
