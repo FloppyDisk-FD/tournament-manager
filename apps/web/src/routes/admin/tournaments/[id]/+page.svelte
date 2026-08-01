@@ -1,5 +1,6 @@
 <script lang="ts">
 	import { api } from '$lib/api/client';
+	import { ArrowRight } from 'lucide-svelte';
 	import Button from '$lib/components/Button.svelte';
 	import { success, error } from '$lib/stores/toast.svelte';
 
@@ -120,7 +121,8 @@
 		<div class="flex gap-2">
 			{#if t.status === 'draft'}
 				<Button onclick={generateBracket} disabled={generating} en="Generate Bracket">
-					{generating ? '生成中...' : '生成赛程 →'}
+					<ArrowRight size={14} class="shrink-0" aria-hidden="true" />
+					{generating ? '生成中...' : '生成赛程'}
 				</Button>
 			{:else}
 				<button onclick={resetBracket} disabled={generating}

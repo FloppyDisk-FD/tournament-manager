@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { GitFork } from 'lucide-svelte';
 	import Button from '$lib/components/Button.svelte';
 
 	let { data } = $props();
@@ -423,7 +424,10 @@
 				{/each}
 			</div>
 		{:else}
-			<div class="text-center py-20 text-sm text-neutral-500">暂无赛程数据</div>
+			<div class="text-center py-20 text-sm text-neutral-500">
+				<GitFork size={32} strokeWidth={1.5} class="mx-auto text-neutral-300 mb-3" aria-hidden="true" />
+				暂无赛程数据
+			</div>
 		{/if}
 	</div>
 </div>

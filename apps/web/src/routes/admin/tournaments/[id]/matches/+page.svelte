@@ -1,5 +1,6 @@
 <script lang="ts">
 	import { api } from '$lib/api/client';
+	import { ArrowRight, ClipboardList } from 'lucide-svelte';
 	import Button from '$lib/components/Button.svelte';
 	import { success, error } from '$lib/stores/toast.svelte';
 
@@ -134,6 +135,7 @@
 
 	{#if matches.length === 0}
 		<div class="text-center py-16 border border-black bg-neutral-50">
+			<ClipboardList size={32} strokeWidth={1.5} class="mx-auto text-neutral-300 mb-3" aria-hidden="true" />
 			<p class="text-sm text-neutral-500 font-bold">尚未生成赛程</p>
 			<p class="text-xs text-neutral-400 mt-1">请先返回赛事页面生成赛程</p>
 		</div>
@@ -196,7 +198,8 @@
 										{/each}
 									</div>
 									<Button onclick={() => submitScore(match)} disabled={submitting === match.id} en="Submit" class="mt-4">
-									{submitting === match.id ? '提交中...' : '提交比分 →'}
+									<ArrowRight size={14} class="shrink-0" aria-hidden="true" />
+									{submitting === match.id ? '提交中...' : '提交比分'}
 								</Button>
 								</div>
 							{/if}

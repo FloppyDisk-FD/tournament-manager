@@ -1,6 +1,7 @@
 <script lang="ts">
 	import '../app.css';
 	import { onMount } from 'svelte';
+	import { Trophy, LayoutDashboard, LogOut } from 'lucide-svelte';
 	import { fetchUser, getUser, logout } from '$lib/stores/auth.svelte';
 	import Toast from '$lib/components/Toast.svelte';
 
@@ -16,20 +17,24 @@
 <div class="min-h-screen flex flex-col">
 	<a href="#main-content" class="skip-link">跳到主内容</a>
 	<nav class="bg-black/75 backdrop-blur-md border-b-2 border-black px-4 md:px-8 h-14 flex items-center justify-between sticky top-0 z-50" aria-label="主导航">
-		<a href="/" class="font-black text-lg md:text-xl tracking-tight text-white press inline-block" aria-label="返回首页">
+		<a href="/" class="font-black text-lg md:text-xl tracking-tight text-white press inline-flex items-center gap-2" aria-label="返回首页">
+			<Trophy size={20} strokeWidth={2} class="shrink-0" aria-hidden="true" />
 			赛事管理平台
 		</a>
 		<div class="flex items-center gap-4 md:gap-6">
 			{#if data.authenticated}
-				<a href="/admin" class="text-sm font-bold text-white border-b-2 border-white hover:text-accent hover:border-accent transition-colors duration-150 link-underline">
-					管理后台 →
+				<a href="/admin" class="text-sm font-bold text-white border-b-2 border-white hover:text-accent hover:border-accent transition-colors duration-150 link-underline inline-flex items-center gap-1.5">
+					<LayoutDashboard size={15} class="shrink-0" aria-hidden="true" />
+					管理后台
 				</a>
-				<button onclick={logout} class="text-sm font-bold text-neutral-400 hover:text-accent transition-colors duration-150 press" aria-label="退出登录">
+				<button onclick={logout} class="text-sm font-bold text-neutral-400 hover:text-accent transition-colors duration-150 press inline-flex items-center gap-1.5" aria-label="退出登录">
+					<LogOut size={15} class="shrink-0" aria-hidden="true" />
 					退出
 				</button>
 			{:else}
-				<a href="/login" class="text-sm font-bold text-white border-b-2 border-white hover:text-accent hover:border-accent transition-colors duration-150 link-underline">
-					管理后台 →
+				<a href="/login" class="text-sm font-bold text-white border-b-2 border-white hover:text-accent hover:border-accent transition-colors duration-150 link-underline inline-flex items-center gap-1.5">
+					<LayoutDashboard size={15} class="shrink-0" aria-hidden="true" />
+					管理后台
 				</a>
 			{/if}
 		</div>

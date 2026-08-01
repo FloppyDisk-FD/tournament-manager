@@ -1,5 +1,6 @@
 <script lang="ts">
 	import { api } from '$lib/api/client';
+	import { ArrowRight, Users } from 'lucide-svelte';
 	import Button from '$lib/components/Button.svelte';
 	import { success, error } from '$lib/stores/toast.svelte';
 
@@ -230,7 +231,8 @@
 				en="Create"
 				class="rounded-none"
 			>
-				{creating ? '创建中…' : '创建队伍 →'}
+				<ArrowRight size={14} class="shrink-0" aria-hidden="true" />
+				{creating ? '创建中…' : '创建队伍'}
 			</Button>
 			</div>
 		</div>
@@ -238,6 +240,7 @@
 
 	{#if teams.length === 0}
 		<div class="rounded-none border border-black bg-white text-center py-12 text-sm text-neutral-500">
+			<Users size={32} strokeWidth={1.5} class="mx-auto text-neutral-300 mb-3" aria-hidden="true" />
 			暂无队伍，点击「新建队伍」开始
 		</div>
 	{:else}
