@@ -6,9 +6,17 @@
  *                直接通过 service binding 转发，避免发起真实 HTTP 子请求
  *                （子请求在 Pages 环境下不稳定，会导致 SSR 间歇性失败）
  *
- * 本地开发（vite dev）时 platform.env 不存在，两者都回退到 vite proxy。
+ * 本地开发（vite dev）时：
+ * - SvelteKit/adapter 会用 miniflare 模拟 platform.env（含 API binding），
+ *   但该模拟 Fetcher 与 Node 的 Request 不兼容（new Request(Request) 会抛错），
+ *   因此 dev 模式下一律跳过 service binding，改走本地 API 的 HTTP 端口。
+ * - 浏览器 /api/* 请求由 vite proxy 转发，不经过 handle。
  */
+import { dev } from '$app/environment';
 import type { Handle, HandleFetch } from '@sveltejs/kit';
+
+/** 本地 API 端口（与 vite.config.ts 的 proxy 目标一致） */
+const LOCAL_API = 'http://localhost:3001';
 
 /** 构造转发给 API Worker 的 Request（service binding 只关心 pathname + search） */
 function buildApiRequest(method: string, headers: Headers, body: ReadableStream<Uint8Array> | null, pathname: string, search: string): Request {
@@ -22,6 +30,11 @@ function buildApiRequest(method: string, headers: Headers, body: ReadableStream<
 }
 
 export const handle: Handle = async ({ event, resolve }) => {
+	if (dev) {
+		// 本地开发：/api/* 由 vite proxy 处理，SvelteKit handle 不介入
+		return resolve(event);
+	}
+
 	const { pathname } = event.url;
 	if (!pathname.startsWith('/api/')) {
 		return resolve(event);
@@ -49,6 +62,13 @@ export const handleFetch: HandleFetch = async ({ event, request, fetch }) => {
 	const url = new URL(request.url);
 	if (!url.pathname.startsWith('/api/')) {
 		return fetch(request);
+	}
+
+	if (dev) {
+		// 本地开发：改写 URL 为本地 API 端口，使 origin 与页面不同，
+		// SvelteKit 才会发真实 HTTP 请求（同 origin 会走内部路由导致 404）。
+		const apiUrl = new URL(url.pathname + url.search, LOCAL_API);
+		return fetch(new Request(apiUrl, request));
 	}
 
 	const api = event.platform?.env?.API;

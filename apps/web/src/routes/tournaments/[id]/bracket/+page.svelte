@@ -1,4 +1,6 @@
 <script lang="ts">
+	import Button from '$lib/components/Button.svelte';
+
 	let { data } = $props();
 	let bracketEl: HTMLElement;
 	let exporting = $state(false);
@@ -132,6 +134,13 @@
 		<div class="flex items-center gap-4 min-w-0">
 			<a
 				href="/tournaments/{data.tournament.id}"
+				onclick={(e) => {
+					// 优先返回来源页面（如管理后台）；新标签页直达时才回退到详情页
+					if (window.history.length > 1) {
+						e.preventDefault();
+						window.history.back();
+					}
+				}}
 				class="shrink-0 text-sm font-bold text-black border-b border-black hover:text-neutral-500 hover:border-neutral-500 transition-colors duration-150"
 			>
 				← 返回详情
@@ -140,14 +149,15 @@
 				{data.tournament.name} — 赛程图
 			</h1>
 		</div>
-		<button
+		<Button
 			onclick={exportImage}
 			disabled={exporting}
-			class="shrink-0 rounded-none font-sans font-bold border border-black bg-black text-white px-4 py-2 text-sm transition-opacity duration-150 active:opacity-70 hover:opacity-90 disabled:opacity-50 press disabled:active:scale-100"
+			en="Export"
+			class="rounded-none shrink-0"
 			aria-label="导出赛程图为图片"
 		>
-		{exporting ? '导出中...' : '导出为图片 →'}
-	</button>
+			{exporting ? '导出中...' : '导出为图片 →'}
+		</Button>
 	</div>
 
 	{#snippet matchCard(m: any, isFinal: boolean)}
