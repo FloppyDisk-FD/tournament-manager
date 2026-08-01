@@ -1,5 +1,6 @@
 <script lang="ts">
 	import { api } from '$lib/api/client';
+	import Button from '$lib/components/Button.svelte';
 	import { success, error } from '$lib/stores/toast.svelte';
 
 	let { data } = $props();
@@ -95,10 +96,9 @@
 			<div class="flex gap-0">
 				<input type="url" bind:value={bannerUrl} placeholder="https://..."
 					class="flex-1 border border-black font-sans px-3 py-2 text-sm bg-white focus:outline-none" />
-				<button onclick={saveBanner}
-					class="border border-l-0 border-black bg-black text-white font-bold px-4 py-2 text-sm transition-opacity duration-150 active:opacity-70">
+				<Button onclick={saveBanner} en="Save" class="px-4">
 					保存
-				</button>
+				</Button>
 				<button onclick={() => { editingBanner = false; bannerUrl = t.coverImage ?? t.cover_image ?? ''; }}
 					class="border border-l-0 border-black bg-white text-black font-bold px-4 py-2 text-sm hover:bg-neutral-100 transition-colors duration-150">
 					取消
@@ -119,10 +119,9 @@
 		</div>
 		<div class="flex gap-2">
 			{#if t.status === 'draft'}
-				<button onclick={generateBracket} disabled={generating}
-					class="border border-black bg-black text-white font-bold px-4 py-2 text-sm transition-opacity duration-150 active:opacity-70 disabled:opacity-50">
+				<Button onclick={generateBracket} disabled={generating} en="Generate Bracket">
 					{generating ? '生成中...' : '生成赛程 →'}
-				</button>
+				</Button>
 			{:else}
 				<button onclick={resetBracket} disabled={generating}
 					class="border border-black bg-white text-black font-bold px-4 py-2 text-sm transition-opacity duration-150 active:opacity-70 disabled:opacity-50">

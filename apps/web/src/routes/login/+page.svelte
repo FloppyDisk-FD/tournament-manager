@@ -1,6 +1,7 @@
 <script lang="ts">
 	import { login, register } from '$lib/stores/auth.svelte';
 	import { goto } from '$app/navigation';
+	import Button from '$lib/components/Button.svelte';
 
 	let username = $state('');
 	let password = $state('');
@@ -50,10 +51,9 @@
 						onkeydown={(e) => e.key === 'Enter' && submit()}
 						class="w-full border border-black font-sans px-3 py-2 md:px-4 md:py-3 text-sm bg-white focus:outline-none focus:border-accent" />
 				</div>
-				<button onclick={submit} disabled={loading}
-					class="w-full border border-black bg-black text-white font-bold px-4 py-2 md:px-6 md:py-3 text-sm transition-opacity duration-150 active:opacity-70 disabled:opacity-50">
+				<Button onclick={submit} disabled={loading} en={isRegister ? 'Register' : 'Sign In'} class="w-full md:px-6 md:py-3">
 					{loading ? (isRegister ? '注册中...' : '登录中...') : (isRegister ? '注册 →' : '登录 →')}
-				</button>
+				</Button>
 			</div>
 
 			<div class="mt-6 pt-4 border-t border-black/20 text-center text-sm">

@@ -1,5 +1,6 @@
 <script lang="ts">
 	import { api } from '$lib/api/client';
+	import Button from '$lib/components/Button.svelte';
 	import { success, error } from '$lib/stores/toast.svelte';
 
 	interface TournamentTeam {
@@ -232,13 +233,14 @@
 					onkeydown={(e) => e.key === 'Enter' && addTeam()}
 					class="w-full md:flex-1 border-b md:border-b-0 md:border-r border-black px-3 py-2 text-sm font-sans bg-white focus:outline-none rounded-none"
 				/>
-				<button
+				<Button
 					onclick={addTeam}
 					disabled={adding}
-					class="w-full md:w-auto border-b md:border-b-0 md:border-r border-black bg-black text-white px-4 py-2 text-sm rounded-none font-sans font-bold transition-opacity duration-150 active:opacity-70 disabled:opacity-50 whitespace-nowrap"
+					en="Add"
+					class="w-full md:w-auto rounded-none whitespace-nowrap"
 				>
 					添加 →
-				</button>
+				</Button>
 				<button
 					onclick={() => (showBatch = !showBatch)}
 					class="w-full md:w-auto bg-white text-black px-4 py-2 text-sm rounded-none font-sans font-bold transition-opacity duration-150 active:opacity-70 whitespace-nowrap"
@@ -255,13 +257,14 @@
 						placeholder="每行一个队伍名称"
 						class="w-full rounded-none border border-black font-sans px-3 py-2 text-sm bg-white focus:outline-none"
 					></textarea>
-					<button
+					<Button
 						onclick={addBatch}
 						disabled={adding}
-						class="mt-2 rounded-none font-sans font-bold border border-black bg-black text-white px-4 py-2 text-sm transition-opacity duration-150 active:opacity-70 disabled:opacity-50"
+						en="Add All"
+						class="mt-2 rounded-none"
 					>
 						批量添加 →
-					</button>
+					</Button>
 				</div>
 			{/if}
 
@@ -330,13 +333,14 @@
 						</div>
 
 						<div class="mt-3 flex flex-wrap items-center gap-2">
-							<button
-								onclick={importSelected}
-								disabled={importing || selectedIds.length === 0}
-								class="rounded-none font-sans font-bold border border-black bg-black text-white px-4 py-2 text-sm transition-opacity duration-150 active:opacity-70 disabled:opacity-50"
-							>
-								{importing ? '加入中…' : '加入选中队伍 →'}
-							</button>
+							<Button
+							onclick={importSelected}
+							disabled={importing || selectedIds.length === 0}
+							en="Import"
+							class="rounded-none"
+						>
+							{importing ? '加入中…' : '加入选中队伍 →'}
+						</Button>
 							<button
 								onclick={() => (selectedIds = [])}
 								disabled={selectedIds.length === 0}

@@ -1,6 +1,7 @@
 <script lang="ts">
 	import { api } from '$lib/api/client';
 	import { cn } from '$lib/utils';
+	import Button from '$lib/components/Button.svelte';
 
 	let { data } = $props();
 
@@ -83,10 +84,9 @@
 			</div>
 			<p class="text-sm text-neutral-600">{t.game} · {formatMap[t.format]} · {teams.length}/{t.maxTeams} 队</p>
 		</div>
-		<a href="/tournaments/{t.id}/bracket"
-			class="border border-black bg-black text-white font-bold px-4 py-2 text-sm transition-opacity duration-150 active:opacity-70 press hover:opacity-90 whitespace-nowrap">
+		<Button href="/tournaments/{t.id}/bracket" en="Bracket" class="whitespace-nowrap">
 			全屏赛程图 →
-		</a>
+		</Button>
 	</div>
 
 	<!-- Tabs -->

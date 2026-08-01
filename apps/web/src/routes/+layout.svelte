@@ -15,7 +15,7 @@
 
 <div class="min-h-screen flex flex-col">
 	<a href="#main-content" class="skip-link">跳到主内容</a>
-	<nav class="bg-black border-b-2 border-black px-4 md:px-8 h-14 flex items-center justify-between sticky top-0 z-50" aria-label="主导航">
+	<nav class="bg-black/75 backdrop-blur-md border-b-2 border-black px-4 md:px-8 h-14 flex items-center justify-between sticky top-0 z-50" aria-label="主导航">
 		<a href="/" class="font-black text-lg md:text-xl tracking-tight text-white press inline-block" aria-label="返回首页">
 			赛事管理平台
 		</a>

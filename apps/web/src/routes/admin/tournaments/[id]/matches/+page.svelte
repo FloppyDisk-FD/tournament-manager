@@ -1,5 +1,6 @@
 <script lang="ts">
 	import { api } from '$lib/api/client';
+	import Button from '$lib/components/Button.svelte';
 	import { success, error } from '$lib/stores/toast.svelte';
 
 	let { data } = $props();
@@ -125,10 +126,9 @@
 				<span class="w-1.5 h-1.5 bg-accent status-dot" aria-hidden="true"></span>
 				<span class="text-sm font-bold text-black">当前轮次已全部结束，可以生成下一轮对阵</span>
 			</div>
-			<button onclick={generateNextRound} disabled={generating}
-				class="border border-black bg-black text-white font-bold px-4 py-2 text-sm transition-opacity duration-150 active:opacity-70 press disabled:opacity-50 disabled:active:scale-100">
-				{generating ? '生成中...' : '生成下一轮 →'}
-			</button>
+			<Button onclick={generateNextRound} disabled={generating} en="Next Round">
+			{generating ? '生成中...' : '生成下一轮 →'}
+		</Button>
 		</div>
 	{/if}
 
@@ -195,10 +195,9 @@
 											</div>
 										{/each}
 									</div>
-									<button onclick={() => submitScore(match)} disabled={submitting === match.id}
-										class="mt-4 border border-black bg-black text-white font-bold px-4 py-2 text-sm transition-opacity duration-150 active:opacity-70 press disabled:opacity-50 disabled:active:scale-100">
-										{submitting === match.id ? '提交中...' : '提交比分 →'}
-									</button>
+									<Button onclick={() => submitScore(match)} disabled={submitting === match.id} en="Submit" class="mt-4">
+									{submitting === match.id ? '提交中...' : '提交比分 →'}
+								</Button>
 								</div>
 							{/if}
 						</div>

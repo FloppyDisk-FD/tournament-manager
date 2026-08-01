@@ -1,5 +1,6 @@
 <script lang="ts">
 	import { cn } from '$lib/utils';
+	import Button from '$lib/components/Button.svelte';
 
 	let { data } = $props();
 	let stats = $derived(data.stats);
@@ -63,13 +64,9 @@
 				<div class="text-xs font-bold uppercase tracking-widest text-neutral-500 mb-1">快速操作</div>
 				<div class="font-black text-lg md:text-xl tracking-tight">开始创建新赛事</div>
 			</div>
-			<a
-				href="/admin/tournaments/new"
-				class="inline-flex items-center gap-2 border border-black bg-black text-white font-bold px-5 py-2.5 text-sm transition-opacity duration-150 active:opacity-70 press hover:opacity-90"
-			>
-				<span>创建赛事</span>
-				<span>→</span>
-			</a>
+			<Button href="/admin/tournaments/new" en="Create Tournament">
+				创建赛事 →
+			</Button>
 		</div>
 	</div>
 

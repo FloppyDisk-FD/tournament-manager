@@ -9,9 +9,9 @@
 		{
 			label: '主要功能',
 			items: [
-				{ href: '/admin', label: '概览', exact: true },
-				{ href: '/admin/tournaments', label: '赛事管理', exact: false },
-				{ href: '/admin/teams', label: '队伍库', exact: false },
+				{ href: '/admin', label: '概览', en: 'Overview', exact: true },
+				{ href: '/admin/tournaments', label: '赛事管理', en: 'Tournaments', exact: false },
+				{ href: '/admin/teams', label: '队伍库', en: 'Teams', exact: false },
 			],
 		},
 	]);
@@ -42,8 +42,9 @@
 				{#each group.items as item}
 					<a
 						href={item.href}
+						data-sveltekit-preload-data="hover"
 						aria-current={isActive(item.href, item.exact) ? 'page' : undefined}
-						class="block px-3 py-2 text-sm font-bold transition-colors duration-150 {isActive(item.href, item.exact)
+						class="group relative flex items-center justify-between gap-2 overflow-hidden px-3 py-2 text-sm font-bold transition-colors duration-150 {isActive(item.href, item.exact)
 							? 'bg-black text-white'
 							: 'text-black hover:bg-neutral-100'}"
 					>
@@ -51,6 +52,12 @@
 							<span class="inline-block w-1 h-1 {isActive(item.href, item.exact) ? 'bg-accent' : 'bg-transparent'}"></span>
 							<span>{item.label}</span>
 						</span>
+						{#if isActive(item.href, item.exact)}
+							<span
+								class="pointer-events-none absolute right-1 top-1/2 -translate-y-1/2 text-5xl leading-none font-black uppercase tracking-widest whitespace-nowrap select-none text-white/15 group-hover:animate-[watermark-in_200ms_ease-out]"
+								style="-webkit-mask-image: linear-gradient(to right, transparent, black); mask-image: linear-gradient(to right, transparent, black)"
+							>{item.en}</span>
+						{/if}
 					</a>
 				{/each}
 			{/each}

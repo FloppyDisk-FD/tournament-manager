@@ -1,6 +1,7 @@
 <script lang="ts">
 	import { api } from '$lib/api/client';
 	import { goto } from '$app/navigation';
+	import Button from '$lib/components/Button.svelte';
 	import { success, error } from '$lib/stores/toast.svelte';
 
 	let name = $state('');
@@ -108,9 +109,8 @@
 				</div>
 			{/if}
 		</div>
-		<button onclick={createTournament} disabled={loading || !name}
-			class="border border-black bg-black text-white font-bold px-6 py-2 text-sm transition-opacity duration-150 active:opacity-70 disabled:opacity-50">
+		<Button onclick={createTournament} disabled={loading || !name} en="Create Tournament" class="px-6">
 			{loading ? '创建中...' : '创建赛事 →'}
-		</button>
+		</Button>
 	</div>
 </div>

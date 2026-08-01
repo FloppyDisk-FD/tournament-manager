@@ -1,6 +1,7 @@
 <script lang="ts">
 	import { api } from '$lib/api/client';
 	import { cn } from '$lib/utils';
+	import Button from '$lib/components/Button.svelte';
 	import { success, error } from '$lib/stores/toast.svelte';
 
 	let { data } = $props();
@@ -42,10 +43,9 @@
 			<h1 class="font-black text-2xl md:text-4xl tracking-tight text-black">赛事管理</h1>
 			<span class="text-xs font-bold uppercase tracking-widest text-neutral-500">{tournaments.length} 项</span>
 		</div>
-		<a href="/admin/tournaments/new"
-			class="border border-black bg-black text-white font-bold px-4 py-2 text-sm transition-opacity duration-150 active:opacity-70 press hover:opacity-90">
+		<Button href="/admin/tournaments/new" en="Create Tournament">
 			创建赛事 →
-		</a>
+		</Button>
 	</div>
 
 	{#if tournaments.length === 0}
