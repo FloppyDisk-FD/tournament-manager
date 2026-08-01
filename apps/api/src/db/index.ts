@@ -42,7 +42,7 @@ let _localDb: Db | null = null;
 if (typeof process !== 'undefined' && process.env?.DATABASE_URL) {
   const client = postgres(process.env.DATABASE_URL, {
     max: 10,
-    idle_timeout: 20,
+    idle_timeout: 120,
     connect_timeout: 10,
     prepare: false,
   });

@@ -6,7 +6,7 @@ import { tournamentRoutes } from './routes/tournaments';
 import { teamRoutes, globalTeamRoutes } from './routes/teams';
 import { bracketRoutes } from './routes/bracket';
 import { matchRoutes } from './routes/matches';
-import { createDb, type Db } from './db';
+import { createDb, db, type Db } from './db';
 
 /**
  * Workers 绑定类型
@@ -27,14 +27,15 @@ app.use('*', cors({
 }));
 
 /**
- * 请求级 DB 中间件：每请求创建新 DB client 存入 Hono Context（c.set('db', ...)）。
+ * 请求级 DB 中间件。
  *
- * 背景：Workers 的 I/O 对象（socket）不能跨请求复用，复用会导致间歇性 500
- * （交替出现 200/500）。模块级变量方案在 await 期间存在跨请求竞态，
- * 改用 Hono Context Variables 可保证实例严格绑定到当前请求。
- *
- * Workers 用 Hyperdrive 连接串；本地开发用 DATABASE_URL。统一走 createDb，
- * 每请求新实例（本地虽有连接池开销但可接受）。
+ * - Workers + Hyperdrive：每请求创建新 DB client 存入 Hono Context（c.set('db', ...)）。
+ *   背景：Workers 的 I/O 对象（socket）不能跨请求复用，复用会导致间歇性 500
+ *   （交替出现 200/500）。模块级变量方案在 await 期间存在跨请求竞态，
+ *   改用 Hono Context Variables 可保证实例严格绑定到当前请求。
+ * - 本地开发（Bun/Node）：复用模块级单例连接池（db），避免每请求新建连接。
+ *   远端数据库（如 Neon）每次新建 client 都会触发 TCP/TLS/认证多次握手，
+ *   网络延迟高时会让每个请求慢几百毫秒。
  */
 app.use('*', async (c, next) => {
   const hyperdriveStr = c.env.HYPERDRIVE?.connectionString;
@@ -42,8 +43,8 @@ app.use('*', async (c, next) => {
     // Workers + Hyperdrive
     c.set('db', createDb(hyperdriveStr, true));
   } else if (process.env.DATABASE_URL) {
-    // 本地开发
-    c.set('db', createDb(process.env.DATABASE_URL, false));
+    // 本地开发：复用单例连接池
+    c.set('db', db);
   }
   await next();
 });
