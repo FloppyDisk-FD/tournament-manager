@@ -5,7 +5,8 @@
 	import BackLink from '$lib/components/BackLink.svelte';
 	import Input from '$lib/components/Input.svelte';
 	import SeedRankingPanel from '$lib/components/SeedRankingPanel.svelte';
-	import { FORMAT_MAP, TOURNAMENT_STATUS_MAP } from '$lib/constants/tournament';
+	import { FORMAT_MAP, TOURNAMENT_STATUS_MAP, REGISTRATION_STATUS_MAP } from '$lib/constants/tournament';
+	import StatusBadge from '$lib/components/StatusBadge.svelte';
 	import { success, error } from '$lib/stores/toast.svelte';
 
 	let { data } = $props();
@@ -13,8 +14,85 @@
 	let editingBanner = $state(false);
 	let bannerUrl = $state(data.tournament?.coverImage ?? data.tournament?.cover_image ?? '');
 
+	// 报名审核
+	let registrations = $state<any[]>([]);
+	let regLoaded = $state(false);
+	let reviewing = $state<string | null>(null);
+
+	// 签到管理
+	let checkins = $state<any>({ teams: [], stats: { total: 0, checked: 0 } });
+	let checkinLoaded = $state(false);
+	let checkinToggling = $state<string | null>(null);
+
+	async function loadCheckins() {
+		try {
+			const res = await api.get<any>(`/tournaments/${data.tournament.id}/checkins`);
+			checkins = res ?? { teams: [], stats: { total: 0, checked: 0 } };
+			checkinLoaded = true;
+		} catch { /* ignore */ }
+	}
+
+	async function toggleCheckin(teamId: string) {
+		checkinToggling = teamId;
+		try {
+			await api.post(`/tournaments/${data.tournament.id}/checkins/team/${teamId}`);
+			await loadCheckins();
+		} catch (e: any) {
+			error(e.message);
+		} finally {
+			checkinToggling = null;
+		}
+	}
+
+	$effect(() => {
+		if (data.tournament && !checkinLoaded) loadCheckins();
+	});
+
 	// 手动种子排位（面板组件化）
 	let seedPanelOpen = $state(false);
+
+	async function loadRegistrations() {
+		try {
+			const res = await api.get<any[]>(`/tournaments/${data.tournament.id}/registrations`);
+			registrations = Array.isArray(res) ? res : [];
+			regLoaded = true;
+		} catch { /* ignore */ }
+	}
+
+	$effect(() => {
+		if (data.tournament?.status === 'draft' && !regLoaded) loadRegistrations();
+	});
+
+	const pendingRegs = $derived(registrations.filter((r) => r.status === 'pending'));
+
+	async function approveRegistration(rid: string) {
+		reviewing = rid;
+		try {
+			await api.post(`/tournaments/${data.tournament.id}/registrations/${rid}/approve`);
+			success('报名已通过');
+			await loadRegistrations();
+		} catch (e: any) {
+			error(e.message);
+		} finally {
+			reviewing = null;
+		}
+	}
+
+	async function rejectRegistration(rid: string) {
+		const note = prompt('拒绝原因（可选）：');
+		if (note === null) return;
+		reviewing = rid;
+		try {
+			await api.post(`/tournaments/${data.tournament.id}/registrations/${rid}/reject`, { note });
+			success('报名已拒绝');
+			await loadRegistrations();
+		} catch (e: any) {
+			error(e.message);
+		} finally {
+			reviewing = null;
+		}
+	}
+
 
 	/** 打开种子排位面板 */
 	function openSeedPanel() {
@@ -158,6 +236,100 @@
 		<div class="border-r border-b border-black bg-white p-4">
 			<div class="text-xs text-neutral-500 font-bold">状态</div>
 			<div class="font-black text-lg mt-1">{TOURNAMENT_STATUS_MAP[t.status]?.label ?? t.status}</div>
+		</div>
+	</div>
+
+	{#if t.status === 'draft'}
+		<div class="border border-black bg-white mb-6">
+			<div class="relative overflow-hidden flex items-center justify-between px-4 py-3 bg-black text-white">
+				<div class="flex items-center gap-2 relative z-10">
+					<span class="inline-block w-1 h-1 bg-accent shrink-0" aria-hidden="true"></span>
+					<span class="font-black text-base tracking-tight">报名审核</span>
+					{#if pendingRegs.length > 0}
+						<span class="text-xs font-black bg-accent text-white px-1.5 py-0.5 shrink-0">{pendingRegs.length}</span>
+					{/if}
+				</div>
+				<span
+					class="pointer-events-none absolute right-2 top-1/2 -translate-y-1/2 text-4xl leading-none font-black uppercase tracking-widest whitespace-nowrap select-none text-white/15"
+					style="-webkit-mask-image: linear-gradient(to right, transparent, black); mask-image: linear-gradient(to right, transparent, black)"
+				>Review</span>
+			</div>
+			<div class="p-4">
+				{#if registrations.length === 0}
+					<p class="text-sm text-neutral-500 font-bold text-center py-2">暂无报名</p>
+				{:else}
+					<div class="space-y-2">
+						{#each registrations as reg (reg.id)}
+							<div class="border border-black bg-white">
+								<div class="flex items-center justify-between gap-3 px-3 py-2 flex-wrap">
+									<div class="flex items-center gap-3 min-w-0 flex-wrap">
+										<StatusBadge status={reg.status} map={REGISTRATION_STATUS_MAP} />
+										<span class="text-sm font-black truncate">{reg.teamName}</span>
+										<span class="text-xs text-neutral-500 font-bold shrink-0">报名人：{reg.applicant?.username ?? '—'}</span>
+										<span class="text-xs text-neutral-400 font-bold shrink-0">{reg.players?.length ?? 0} 名选手</span>
+										{#if reg.status === 'rejected' && reg.note}
+											<span class="text-xs text-neutral-500 font-bold">原因：{reg.note}</span>
+										{/if}
+									</div>
+									<div class="flex gap-1 shrink-0">
+										{#if reg.status === 'pending'}
+											<button onclick={() => approveRegistration(reg.id)} disabled={reviewing === reg.id}
+												class="rounded-none font-sans font-bold border border-black bg-black text-white px-3 py-1 text-xs transition-opacity duration-150 active:opacity-70 disabled:opacity-50">通过</button>
+											<button onclick={() => rejectRegistration(reg.id)} disabled={reviewing === reg.id}
+												class="rounded-none font-sans font-bold border border-black bg-white text-accent px-3 py-1 text-xs transition-opacity duration-150 active:opacity-70 disabled:opacity-50">拒绝</button>
+										{/if}
+									</div>
+								</div>
+							</div>
+						{/each}
+					</div>
+				{/if}
+			</div>
+		</div>
+	{/if}
+
+	<div class="border border-black bg-white mb-6">
+		<div class="relative overflow-hidden flex items-center justify-between px-4 py-3 bg-black text-white">
+			<div class="flex items-center gap-2 relative z-10">
+				<span class="inline-block w-1 h-1 bg-accent shrink-0" aria-hidden="true"></span>
+				<span class="font-black text-base tracking-tight">签到管理</span>
+				<span class="text-xs font-black text-white/70">{checkins.stats.checked}/{checkins.stats.total}</span>
+			</div>
+			<span class="pointer-events-none absolute right-2 top-1/2 -translate-y-1/2 text-4xl leading-none font-black uppercase tracking-widest whitespace-nowrap select-none text-white/15"
+				style="-webkit-mask-image: linear-gradient(to right, transparent, black); mask-image: linear-gradient(to right, transparent, black)">Check-in</span>
+		</div>
+		<div class="p-4">
+			{#if checkins.teams.length === 0}
+				<p class="text-sm text-neutral-500 font-bold text-center py-2">暂无队伍</p>
+			{:else}
+				<div class="flex items-center gap-3 mb-3 text-xs font-bold text-neutral-500">
+					<span class="inline-block w-2 h-2 bg-accent" aria-hidden="true"></span> 已到 {checkins.stats.checked}
+					<span class="inline-block w-2 h-2 bg-neutral-300" aria-hidden="true"></span> 未到 {checkins.stats.total - checkins.stats.checked}
+				</div>
+				<div class="space-y-1">
+					{#each checkins.teams as t (t.teamId)}
+						<div class="flex items-center justify-between gap-3 border border-black bg-white px-3 py-2 flex-wrap">
+							<div class="flex items-center gap-3 min-w-0 flex-wrap">
+								<span class="text-xs font-black tabular-nums text-neutral-500 shrink-0">{String(t.seed ?? '').padStart(2, '0')}</span>
+								<span class="text-sm shrink-0 {t.checkedIn ? 'text-black' : 'text-neutral-300'}" aria-hidden="true">{t.checkedIn ? '✓' : '○'}</span>
+								<span class="text-sm font-black truncate">{t.name}</span>
+								{#if t.checkedInAt}
+									<span class="text-xs text-neutral-400 font-bold shrink-0">{new Date(t.checkedInAt).toLocaleTimeString()}</span>
+								{/if}
+							</div>
+							<button
+								onclick={() => toggleCheckin(t.teamId)}
+								disabled={checkinToggling === t.teamId}
+								class="rounded-none font-sans font-bold border border-black px-3 py-1 text-xs transition-colors duration-150 active:opacity-70 disabled:opacity-50 {t.checkedIn
+									? 'bg-white text-accent hover:bg-neutral-100'
+									: 'bg-black text-white hover:bg-neutral-800'}"
+							>
+								{t.checkedIn ? '取消签到' : '标记到场'}
+							</button>
+						</div>
+					{/each}
+				</div>
+			{/if}
 		</div>
 	</div>
 

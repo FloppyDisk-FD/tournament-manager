@@ -42,6 +42,13 @@ export const PLAYER_ROLE_MAP: Record<string, string> = {
 	coach: '教练',
 };
 
+/** 报名状态 → 徽章 */
+export const REGISTRATION_STATUS_MAP: Record<string, StatusVariant> = {
+	pending: { label: '待审核', variant: 'bg-neutral-100 text-black' },
+	approved: { label: '已通过', variant: 'bg-black text-white' },
+	rejected: { label: '已拒绝', variant: 'bg-accent text-white' },
+};
+
 /** 赛事模板（内置预设，创建页一键填充表单） */
 export interface TournamentTemplate {
 	id: string;

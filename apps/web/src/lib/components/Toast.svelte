@@ -4,7 +4,7 @@
 
 	const variantMap = {
 		success: { box: 'bg-black text-white', icon: 'bg-white text-black', symbol: '✓' },
-		error: { box: 'bg-white text-black border-2 border-black', icon: 'bg-black text-white', symbol: '✕' },
+		error: { box: 'bg-white text-black border border-black', icon: 'bg-black text-white', symbol: '✕' },
 		info: { box: 'bg-white text-black border border-black', icon: 'bg-black text-white', symbol: '!' },
 	};
 

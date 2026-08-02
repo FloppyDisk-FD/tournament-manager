@@ -25,8 +25,8 @@ export async function login(username: string, password: string) {
 	return currentUser;
 }
 
-export async function register(username: string, password: string) {
-	currentUser = await api.post<{ id: string; username: string; role: string }>('/auth/register', { username, password });
+export async function register(username: string, password: string, role = 'user') {
+	currentUser = await api.post<{ id: string; username: string; role: string }>('/auth/register', { username, password, role });
 	return currentUser;
 }
 

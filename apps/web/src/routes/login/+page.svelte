@@ -7,20 +7,27 @@
 
 	let username = $state('');
 	let password = $state('');
+	let regRole = $state('user');
 	let error = $state('');
 	let loading = $state(false);
 	let isRegister = $state(false);
+
+	const roleOptions = [
+		{ value: 'tournament_manager', label: '赛事管理者', desc: '管理自己创建的赛事' },
+		{ value: 'team_manager', label: '队伍管理员', desc: '管理自己的队伍与队员' },
+		{ value: 'user', label: '普通用户', desc: '浏览赛事与报名' },
+	];
 
 	async function submit() {
 		error = '';
 		loading = true;
 		try {
 			if (isRegister) {
-				await register(username, password);
+				await register(username, password, regRole);
 			} else {
 				await login(username, password);
 			}
-			goto('/admin');
+			goto('/');
 		} catch (e: any) {
 			error = e.message || (isRegister ? '注册失败' : '登录失败');
 		} finally {
@@ -42,6 +49,24 @@
 			{/if}
 
 			<div class="space-y-4">
+				{#if isRegister}
+					<div>
+						<Label>选择角色</Label>
+						<div class="space-y-2">
+							{#each roleOptions as opt}
+								<label
+									class="flex items-center gap-3 border border-black px-3 py-2 cursor-pointer transition-colors duration-150 {regRole === opt.value ? 'bg-black text-white' : 'bg-white hover:bg-neutral-50'}"
+								>
+									<input type="radio" name="role" value={opt.value} bind:group={regRole} class="accent-white" />
+									<div>
+										<div class="text-sm font-bold">{opt.label}</div>
+										<div class="text-xs {regRole === opt.value ? 'text-white/70' : 'text-neutral-500'}">{opt.desc}</div>
+									</div>
+								</label>
+							{/each}
+						</div>
+					</div>
+				{/if}
 				<div>
 					<Label for="username">用户名</Label>
 					<Input id="username" type="text" bind:value={username} class="md:px-4 md:py-3" />

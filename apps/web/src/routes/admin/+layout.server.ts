@@ -30,9 +30,9 @@ export const load = async ({ cookies, fetch }) => {
 		throw redirect(302, '/login');
 	}
 
-	if (role !== 'admin') {
-		throw error(403, '需要管理员权限');
+	if (role !== 'admin' && role !== 'tournament_manager') {
+		throw error(403, '需要赛事管理者或系统管理员权限');
 	}
 
-	return { authenticated: true };
+	return { authenticated: true, role };
 };

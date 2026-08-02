@@ -5,7 +5,10 @@
 	import BackLink from '$lib/components/BackLink.svelte';
 	import EmptyState from '$lib/components/EmptyState.svelte';
 	import StatusBadge from '$lib/components/StatusBadge.svelte';
-	import { FORMAT_MAP, TOURNAMENT_STATUS_MAP } from '$lib/constants/tournament';
+	import Label from '$lib/components/Label.svelte';
+	import { FORMAT_MAP, TOURNAMENT_STATUS_MAP, REGISTRATION_STATUS_MAP } from '$lib/constants/tournament';
+	import { getUser } from '$lib/stores/auth.svelte';
+	import { success, error } from '$lib/stores/toast.svelte';
 
 	let { data } = $props();
 
@@ -14,6 +17,76 @@
 	let standings = $state<any[]>([]);
 	let loadingBracket = $state(false);
 	let loadingStandings = $state(false);
+
+	// 报名参赛（从我的队伍中选择）
+	let myRegistrations = $state<any[]>([]);
+	let myTeams = $state<any[]>([]);
+	let regLoaded = $state(false);
+	let showRegForm = $state(false);
+	let regTeamId = $state('');
+	let regSubmitting = $state(false);
+
+	async function loadMyRegistrations() {
+		if (!getUser()) return;
+		try {
+			const [regs, teams] = await Promise.all([
+				api.get<any[]>(`/tournaments/${data.tournament.id}/registrations/mine`),
+				api.get<any[]>('/teams/my/teams'),
+			]);
+			myRegistrations = Array.isArray(regs) ? regs : [];
+			myTeams = Array.isArray(teams) ? teams : [];
+			regLoaded = true;
+		} catch { /* 未登录时忽略 */ }
+	}
+
+	$effect(() => {
+		if (getUser() && !regLoaded) loadMyRegistrations();
+	});
+
+	const myReg = $derived(myRegistrations[0] ?? null);
+
+	async function submitRegistration() {
+		if (!regTeamId) { error('请选择队伍'); return; }
+		regSubmitting = true;
+		try {
+			await api.post(`/tournaments/${data.tournament.id}/registrations`, { team_id: regTeamId });
+			success('报名已提交，等待审核');
+			showRegForm = false;
+			regTeamId = '';
+			await loadMyRegistrations();
+		} catch (e: any) {
+			error(e.message || '报名失败');
+		} finally {
+			regSubmitting = false;
+		}
+	}
+
+	async function cancelRegistration() {
+		if (!confirm('确定取消报名？')) return;
+		try {
+			await api.del(`/tournaments/${data.tournament.id}/registrations/${myReg.id}`);
+			success('报名已取消');
+			await loadMyRegistrations();
+		} catch (e: any) {
+			error(e.message || '取消失败');
+		}
+	}
+
+	// 队长自助签到：我的队伍 ∩ 该赛事队伍
+	let myEntryTeams = $derived(
+		myTeams.filter((t) => (data.teams ?? []).some((dt: any) => dt.id === t.id)),
+	);
+	let checkinState = $state<Record<string, boolean>>({});
+
+	async function selfCheckin(teamId: string) {
+		try {
+			const res = await api.post<{ checkedIn: boolean }>(`/tournaments/${data.tournament.id}/checkins/self/${teamId}`);
+			checkinState[teamId] = res.checkedIn;
+			success(res.checkedIn ? '签到成功' : '已取消签到');
+		} catch (e: any) {
+			error(e.message || '签到失败');
+		}
+	}
 
 	const tabs = [
 		{ id: 'overview', label: '总览' },
@@ -107,6 +180,110 @@
 					</div>
 				{/each}
 			</div>
+
+			{#if t.status === 'draft'}
+				<div class="border border-black bg-white mb-8">
+					<div class="relative overflow-hidden flex items-center justify-between px-4 py-3 bg-black text-white">
+						<div class="flex items-center gap-2 relative z-10">
+							<span class="inline-block w-1 h-1 bg-accent shrink-0" aria-hidden="true"></span>
+							<span class="font-black text-base tracking-tight">报名参赛</span>
+						</div>
+						<span
+							class="pointer-events-none absolute right-2 top-1/2 -translate-y-1/2 text-4xl leading-none font-black uppercase tracking-widest whitespace-nowrap select-none text-white/15"
+							style="-webkit-mask-image: linear-gradient(to right, transparent, black); mask-image: linear-gradient(to right, transparent, black)"
+						>Register</span>
+					</div>
+					<div class="p-4">
+						{#if !getUser()}
+							<div class="flex items-center justify-between gap-3 flex-wrap">
+								<p class="text-sm text-neutral-500 font-bold">登录后可报名参赛</p>
+								<a href="/login?redirect=/tournaments/{data.tournament.id}" class="text-sm font-bold text-black border-b border-black hover:text-accent hover:border-accent transition-colors duration-150">去登录 →</a>
+							</div>
+						{:else if myReg}
+							<div class="flex items-center justify-between gap-3 flex-wrap">
+								<div class="flex items-center gap-3 flex-wrap">
+									<StatusBadge status={myReg.status} map={REGISTRATION_STATUS_MAP} />
+									<span class="text-sm font-black">{myReg.teamName}</span>
+									{#if myReg.status === 'rejected' && myReg.note}
+										<span class="text-xs text-neutral-500 font-bold">原因：{myReg.note}</span>
+									{/if}
+								</div>
+								{#if myReg.status === 'pending'}
+									<button onclick={cancelRegistration} class="text-sm font-bold text-accent border-b border-accent hover:opacity-70 transition-opacity duration-150">取消报名</button>
+								{/if}
+							</div>
+						{:else if teams.length >= t.maxTeams}
+							<p class="text-sm text-neutral-500 font-bold">赛事队伍名额已满</p>
+						{:else if !showRegForm}
+							{#if myTeams.length === 0}
+								<div class="flex items-center justify-between gap-3 flex-wrap">
+									<p class="text-sm text-neutral-500 font-bold">你还没有队伍，需以「队伍管理员」身份创建队伍后才能报名</p>
+									{#if getUser()?.role !== 'tournament_manager'}
+										<a href="/dashboard" class="text-sm font-bold text-black border-b border-black hover:text-accent hover:border-accent transition-colors duration-150">去我的后台 →</a>
+									{/if}
+								</div>
+							{:else}
+								<Button onclick={() => (showRegForm = true)} en="Register" class="rounded-none">报名参赛 →</Button>
+							{/if}
+						{:else}
+							<div class="space-y-4">
+								<div>
+									<Label for="regTeam">选择参赛队伍 *</Label>
+									<select id="regTeam" bind:value={regTeamId}
+										class="w-full rounded-none border border-black font-sans px-3 py-2 text-sm bg-white focus:outline-none focus:border-accent">
+										<option value="" disabled>请选择队伍</option>
+										{#each myTeams as tm}
+											<option value={tm.id}>{tm.name}（{tm.players?.length ?? 0} 名选手）</option>
+										{/each}
+									</select>
+									<p class="text-xs text-neutral-400 mt-1">报名通过后该队伍将加入赛事，队员可在「我的后台」维护。</p>
+								</div>
+								<div class="flex gap-2">
+									<Button onclick={submitRegistration} disabled={regSubmitting} en="Submit" class="rounded-none">
+										{regSubmitting ? '提交中...' : '提交报名'}
+									</Button>
+									<button type="button" onclick={() => (showRegForm = false)}
+										class="border border-black bg-white text-black px-4 py-2 text-sm font-bold hover:bg-neutral-100 transition-colors duration-150">取消</button>
+								</div>
+							</div>
+						{/if}
+					</div>
+				</div>
+			{/if}
+
+			{#if myEntryTeams.length > 0}
+				<div class="border border-black bg-white mb-8">
+					<div class="relative overflow-hidden flex items-center justify-between px-4 py-3 bg-black text-white">
+						<div class="flex items-center gap-2 relative z-10">
+							<span class="inline-block w-1 h-1 bg-accent shrink-0" aria-hidden="true"></span>
+							<span class="font-black text-base tracking-tight">队伍签到</span>
+						</div>
+						<span class="pointer-events-none absolute right-2 top-1/2 -translate-y-1/2 text-4xl leading-none font-black uppercase tracking-widest whitespace-nowrap select-none text-white/15"
+							style="-webkit-mask-image: linear-gradient(to right, transparent, black); mask-image: linear-gradient(to right, transparent, black)">Check-in</span>
+					</div>
+					<div class="p-4 space-y-2">
+						{#each myEntryTeams as t (t.id)}
+							<div class="flex items-center justify-between gap-3 border border-black px-3 py-2 flex-wrap">
+								<div class="flex items-center gap-2 min-w-0">
+									<span class="shrink-0">{t.logo_emoji || '🏆'}</span>
+									<span class="text-sm font-black truncate">{t.name}</span>
+									{#if checkinState[t.id]}
+										<span class="text-xs font-bold text-accent shrink-0">已签到</span>
+									{/if}
+								</div>
+								<button
+									onclick={() => selfCheckin(t.id)}
+									class="rounded-none font-sans font-bold border border-black px-3 py-1 text-xs transition-colors duration-150 active:opacity-70 {checkinState[t.id]
+										? 'bg-white text-accent hover:bg-neutral-100'
+										: 'bg-black text-white hover:bg-neutral-800'}"
+								>
+									{checkinState[t.id] ? '取消签到' : '我队签到'}
+								</button>
+							</div>
+						{/each}
+					</div>
+				</div>
+			{/if}
 
 			{#if teams.length > 0}
 				<h2 class="font-black text-lg md:text-xl tracking-tight mb-3">参赛队伍</h2>
