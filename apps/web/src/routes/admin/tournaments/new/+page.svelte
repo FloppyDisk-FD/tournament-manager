@@ -2,6 +2,11 @@
 	import { api } from '$lib/api/client';
 	import { goto } from '$app/navigation';
 	import Button from '$lib/components/Button.svelte';
+	import BackLink from '$lib/components/BackLink.svelte';
+	import Input from '$lib/components/Input.svelte';
+	import Label from '$lib/components/Label.svelte';
+	import Select from '$lib/components/Select.svelte';
+	import { TOURNAMENT_TEMPLATES, type TournamentTemplate } from '$lib/constants/tournament';
 	import { success, error } from '$lib/stores/toast.svelte';
 
 	let name = $state('');
@@ -14,6 +19,7 @@
 	let description = $state('');
 	let coverImage = $state('');
 	let loading = $state(false);
+	let selectedTemplate = $state<string | null>(null);
 
 	const formats = [
 		{ value: 'single_elim', label: '单败淘汰' },
@@ -21,6 +27,17 @@
 		{ value: 'round_robin', label: '循环联赛' },
 		{ value: 'swiss', label: '瑞士轮' },
 	];
+
+	/** 点击模板：填充表单（仍可修改后再创建） */
+	function applyTemplate(tpl: TournamentTemplate) {
+		name = tpl.name;
+		format = tpl.format;
+		maxTeams = tpl.maxTeams;
+		teamSize = tpl.teamSize;
+		boCount = tpl.boCount;
+		thirdPlace = tpl.thirdPlace;
+		selectedTemplate = tpl.id;
+	}
 
 	async function createTournament() {
 		loading = true;
@@ -48,45 +65,55 @@
 
 <div>
 	<div class="mb-6">
-		<a href="/admin/tournaments" class="text-sm font-bold text-black border-b border-black hover:text-accent hover:border-accent transition-colors duration-150">← 返回赛事列表</a>
+		<BackLink href="/admin/tournaments">← 返回赛事列表</BackLink>
 	</div>
 	<h1 class="font-black text-2xl md:text-4xl tracking-tight text-black mb-6">创建赛事</h1>
 
+	<!-- 快速模板 -->
+	<div class="mb-6">
+		<div class="text-xs font-bold uppercase tracking-widest text-neutral-500 mb-2">快速模板</div>
+		<div class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-0 border-l border-t border-black">
+			{#each TOURNAMENT_TEMPLATES as tpl}
+				<button
+					type="button"
+					onclick={() => applyTemplate(tpl)}
+					class="border-r border-b border-black p-3 text-left press transition-colors duration-150 {selectedTemplate === tpl.id
+						? 'bg-black text-white'
+						: 'bg-white hover:bg-neutral-50'}"
+				>
+					<div class="font-bold text-sm">{tpl.name}</div>
+					<div class="text-xs mt-0.5 {selectedTemplate === tpl.id ? 'text-white/70' : 'text-neutral-500'}">{tpl.description}</div>
+				</button>
+			{/each}
+		</div>
+		<p class="text-xs text-neutral-400 mt-2">点击模板自动填充下方表单，可修改后创建。</p>
+	</div>
+
 	<div class="max-w-lg space-y-4">
 		<div>
-			<label class="block text-sm font-bold text-black mb-1">赛事名称 *</label>
-			<input type="text" bind:value={name}
-				class="w-full border border-black font-sans px-3 py-2 text-sm bg-white focus:outline-none focus:border-accent" />
+			<Label for="name">赛事名称 *</Label>
+			<Input id="name" type="text" bind:value={name} />
 		</div>
 		<div>
-			<label class="block text-sm font-bold text-black mb-1">游戏</label>
-			<input type="text" bind:value={game}
-				class="w-full border border-black font-sans px-3 py-2 text-sm bg-white focus:outline-none focus:border-accent" />
+			<Label for="game">游戏</Label>
+			<Input id="game" type="text" bind:value={game} />
 		</div>
 		<div>
-			<label class="block text-sm font-bold text-black mb-1">赛制</label>
-			<select bind:value={format}
-				class="w-full border border-black font-sans px-3 py-2 text-sm bg-white focus:outline-none focus:border-accent">
-				{#each formats as f}
-					<option value={f.value}>{f.label}</option>
-				{/each}
-			</select>
+			<Label for="format">赛制</Label>
+			<Select id="format" bind:value={format} options={formats} />
 		</div>
 		<div class="grid grid-cols-3 gap-0 border-l border-t border-black">
 			<div class="border-r border-b border-black p-3">
-				<label class="block text-sm font-bold text-black mb-1">最大队伍数</label>
-				<input type="number" bind:value={maxTeams} min="2"
-					class="w-full border border-black font-sans px-3 py-2 text-sm bg-white focus:outline-none focus:border-accent" />
+				<Label for="maxTeams">最大队伍数</Label>
+				<Input id="maxTeams" type="number" bind:value={maxTeams} min="2" />
 			</div>
 			<div class="border-r border-b border-black p-3">
-				<label class="block text-sm font-bold text-black mb-1">每队人数</label>
-				<input type="number" bind:value={teamSize} min="1"
-					class="w-full border border-black font-sans px-3 py-2 text-sm bg-white focus:outline-none focus:border-accent" />
+				<Label for="teamSize">每队人数</Label>
+				<Input id="teamSize" type="number" bind:value={teamSize} min="1" />
 			</div>
 			<div class="border-r border-b border-black p-3">
-				<label class="block text-sm font-bold text-black mb-1">BO 局数</label>
-				<input type="number" bind:value={boCount} min="1" max="7"
-					class="w-full border border-black font-sans px-3 py-2 text-sm bg-white focus:outline-none focus:border-accent" />
+				<Label for="boCount">BO 局数</Label>
+				<Input id="boCount" type="number" bind:value={boCount} min="1" max="7" />
 			</div>
 		</div>
 		<div class="flex items-center gap-2">
@@ -100,9 +127,8 @@
 				class="w-full border border-black font-sans px-3 py-2 text-sm bg-white focus:outline-none focus:border-accent"></textarea>
 		</div>
 		<div>
-			<label class="block text-sm font-bold text-black mb-1">Banner 图片 URL（可选）</label>
-			<input type="url" bind:value={coverImage} placeholder="https://..."
-				class="w-full border border-black font-sans px-3 py-2 text-sm bg-white focus:outline-none focus:border-accent" />
+			<Label for="coverImage">Banner 图片 URL（可选）</Label>
+			<Input id="coverImage" type="url" bind:value={coverImage} placeholder="https://..." />
 			{#if coverImage}
 				<div class="mt-2 border border-black overflow-hidden">
 					<img src={coverImage} alt="banner preview" class="w-full h-32 object-cover" />
