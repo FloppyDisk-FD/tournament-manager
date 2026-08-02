@@ -6,7 +6,13 @@ import { tournamentRoutes } from './routes/tournaments';
 import { teamRoutes, globalTeamRoutes } from './routes/teams';
 import { bracketRoutes } from './routes/bracket';
 import { matchRoutes } from './routes/matches';
+import { registrationRoutes } from './routes/registrations';
+import { checkinRoutes } from './routes/checkins';
+import { notificationRoutes } from './routes/notifications';
 import { createDb, db, type Db } from './db';
+import { registrations, tournaments } from './db/schema';
+import { eq, desc } from 'drizzle-orm';
+import { authMiddleware, requireAuth } from './middleware/auth';
 
 /**
  * Workers 绑定类型
@@ -53,7 +59,7 @@ app.use('*', async (c, next) => {
 app.onError((err, c) => {
   console.error('[API Error]', err);
   if (err instanceof AppError) {
-    c.status(err.statusCode);
+    c.status(err.statusCode as any);
     return c.json({ error: { code: err.code, message: err.message } });
   }
   c.status(500);
@@ -73,6 +79,23 @@ app.route('/api/v1/tournaments', bracketRoutes);
 app.route('/api/v1/tournaments/:id/teams', teamRoutes);
 app.route('/api/v1/teams', globalTeamRoutes);
 app.route('/api/v1/matches', matchRoutes);
+app.route('/api/v1/tournaments', registrationRoutes);
+app.route('/api/v1/tournaments', checkinRoutes);
+app.route('/api/v1/notifications', notificationRoutes);
+
+// 我的全部报名（跨赛事，用户后台）
+app.get('/api/v1/registrations/mine', authMiddleware, requireAuth, async (c) => {
+  const user = c.get('user')!;
+  const rows = await c.get('db').select({
+    registration: registrations,
+    tournament: { id: tournaments.id, name: tournaments.name, status: tournaments.status },
+  })
+    .from(registrations)
+    .leftJoin(tournaments, eq(tournaments.id, registrations.tournamentId))
+    .where(eq(registrations.userId, user.id))
+    .orderBy(desc(registrations.createdAt));
+  return c.json(rows.map((r) => ({ ...r.registration, tournament: r.tournament })));
+});
 
 // 健康检查
 app.get('/api/v1/health', (c) => c.json({ status: 'ok' }));

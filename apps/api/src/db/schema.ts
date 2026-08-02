@@ -5,7 +5,7 @@ import {
 import { relations, InferSelectModel } from 'drizzle-orm';
 
 // Enums
-export const roleEnum = pgEnum('role', ['admin', 'user']);
+export const roleEnum = pgEnum('role', ['admin', 'tournament_manager', 'team_manager', 'user']);
 export const tournamentStatusEnum = pgEnum('tournament_status', ['draft', 'ongoing', 'completed', 'cancelled']);
 export const tournamentFormatEnum = pgEnum('tournament_format', ['single_elim', 'double_elim', 'swiss', 'round_robin']);
 export const teamStatusEnum = pgEnum('team_status', ['active', 'eliminated', 'withdrawn']);
@@ -19,6 +19,8 @@ export const users = pgTable('users', {
   passwordHash: varchar('password_hash').notNull(),
   role: roleEnum('role').notNull().default('user'),
   avatarUrl: varchar('avatar_url'),
+  displayName: varchar('display_name', { length: 50 }),
+  bio: text('bio'),
   createdAt: timestamp('created_at').notNull().defaultNow(),
 });
 
@@ -61,6 +63,7 @@ export const tournamentsRelations = relations(tournaments, ({ one, many }) => ({
 export const teams = pgTable('teams', {
   id: uuid('id').primaryKey().defaultRandom(),
   tournamentId: uuid('tournament_id').references(() => tournaments.id),
+  ownerId: uuid('owner_id').references(() => users.id),
   name: varchar('name', { length: 100 }).notNull(),
   seed: integer('seed'),
   logoUrl: varchar('logo_url'),
@@ -82,6 +85,8 @@ export const tournamentTeams = pgTable('tournament_teams', {
   seed: integer('seed'),
   status: teamStatusEnum('status').notNull().default('active'),
   groupLabel: varchar('group_label', { length: 20 }),
+  checkedIn: boolean('checked_in').notNull().default(false),
+  checkedInAt: timestamp('checked_in_at'),
 });
 
 export const tournamentTeamsRelations = relations(tournamentTeams, ({ one }) => ({
@@ -197,3 +202,42 @@ export type Stage = InferSelectModel<typeof stages>;
 export type Match = InferSelectModel<typeof matches>;
 export type Game = InferSelectModel<typeof games>;
 export type Standing = InferSelectModel<typeof standings>;
+
+// Registrations — 选手自助报名（登录后提交，主办方审核）
+export const registrationStatusEnum = pgEnum('registration_status', ['pending', 'approved', 'rejected']);
+
+export const registrations = pgTable('registrations', {
+  id: uuid('id').primaryKey().defaultRandom(),
+  tournamentId: uuid('tournament_id').notNull().references(() => tournaments.id),
+  userId: uuid('user_id').notNull().references(() => users.id),
+  teamId: uuid('team_id').references(() => teams.id),
+  teamName: varchar('team_name', { length: 100 }).notNull(),
+  logoEmoji: varchar('logo_emoji', { length: 10 }),
+  logoUrl: varchar('logo_url', { length: 500 }),
+  players: jsonb('players').notNull().default([]),
+  status: registrationStatusEnum('status').notNull().default('pending'),
+  note: text('note'),
+  createdAt: timestamp('created_at').notNull().defaultNow(),
+  reviewedAt: timestamp('reviewed_at'),
+});
+
+export const registrationsRelations = relations(registrations, ({ one }) => ({
+  tournament: one(tournaments, { fields: [registrations.tournamentId], references: [tournaments.id] }),
+  user: one(users, { fields: [registrations.userId], references: [users.id] }),
+}));
+
+// Notifications — 站内通知（报名状态变化等）
+export const notifications = pgTable('notifications', {
+  id: uuid('id').primaryKey().defaultRandom(),
+  userId: uuid('user_id').notNull().references(() => users.id),
+  type: varchar('type', { length: 30 }).notNull(),
+  title: varchar('title', { length: 100 }).notNull(),
+  message: text('message').notNull().default(''),
+  link: varchar('link', { length: 200 }),
+  read: boolean('read').notNull().default(false),
+  createdAt: timestamp('created_at').notNull().defaultNow(),
+});
+
+export const notificationsRelations = relations(notifications, ({ one }) => ({
+  user: one(users, { fields: [notifications.userId], references: [users.id] }),
+}));

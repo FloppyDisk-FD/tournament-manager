@@ -1,0 +1,41 @@
+{
+	"version": "7",
+	"dialect": "postgresql",
+	"entries": [
+		{
+			"idx": 0,
+			"version": "7",
+			"when": 1783000000000,
+			"tag": "0000_registrations_notifications",
+			"breakpoints": true
+		},
+		{
+			"idx": 1,
+			"version": "7",
+			"when": 1783000100000,
+			"tag": "0001_role_and_team_owner",
+			"breakpoints": true
+		},
+		{
+			"idx": 2,
+			"version": "7",
+			"when": 1783000200000,
+			"tag": "0002_registration_team",
+			"breakpoints": true
+		},
+		{
+			"idx": 3,
+			"version": "7",
+			"when": 1783000300000,
+			"tag": "0003_users_profile",
+			"breakpoints": true
+		},
+		{
+			"idx": 4,
+			"version": "7",
+			"when": 1783000400000,
+			"tag": "0004_checkin",
+			"breakpoints": true
+		}
+	]
+}
