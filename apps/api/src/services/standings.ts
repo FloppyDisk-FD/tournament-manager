@@ -49,9 +49,29 @@ export async function updateStandings(db: Db, tournamentId: string, stageId: str
     }
   }
 
-  // Update ranks
+  // Update ranks — T.Lets 规则：积分 → 胜负场次差 → 净胜分 → 对战胜负 (head-to-head)
+  // 构建对战矩阵：h2h[a][b] > 0 表示 a 在对阵 b 的比赛中净胜场次占优
+  const h2h = new Map<string, Map<string, number>>();
+  for (const m of stageMatches) {
+    if (m.status !== 'completed' && m.status !== 'walkthrough') continue;
+    if (!m.team1Id || !m.team2Id || !m.winnerId) continue; // 轮空不算对战胜负
+    const winner = m.winnerId;
+    const loser = m.team1Id === winner ? m.team2Id : m.team1Id;
+    if (!h2h.has(winner)) h2h.set(winner, new Map());
+    if (!h2h.has(loser)) h2h.set(loser, new Map());
+    h2h.get(winner)!.set(loser, (h2h.get(winner)!.get(loser) ?? 0) + 1);
+    h2h.get(loser)!.set(winner, (h2h.get(loser)!.get(winner) ?? 0) - 1);
+  }
+
   const allStandings = await db.select().from(standings).where(eq(standings.stageId, stageId));
-  allStandings.sort((a, b) => b.points - a.points || b.gameDifference - a.gameDifference);
+  allStandings.sort((a, b) => {
+    if (b.points !== a.points) return b.points - a.points;
+    const winDiff = (b.wins - b.losses) - (a.wins - a.losses);
+    if (winDiff !== 0) return winDiff;
+    if (b.gameDifference !== a.gameDifference) return b.gameDifference - a.gameDifference;
+    // 对战胜负：a 对 b 净胜为正 → a 排前
+    return -((h2h.get(a.teamId)?.get(b.teamId) ?? 0) || 0);
+  });
   for (let i = 0; i < allStandings.length; i++) {
     await db.update(standings).set({ rank: i + 1 }).where(eq(standings.id, allStandings[i].id));
   }
