@@ -2,6 +2,8 @@
 	import { api } from '$lib/api/client';
 	import { ArrowRight, Users } from 'lucide-svelte';
 	import Button from '$lib/components/Button.svelte';
+	import EmptyState from '$lib/components/EmptyState.svelte';
+	import PageHeader from '$lib/components/PageHeader.svelte';
 	import { success, error } from '$lib/stores/toast.svelte';
 
 	interface Player {
@@ -171,12 +173,11 @@
 </script>
 
 <div>
-	<div class="flex items-center justify-between mb-6">
-		<h1 class="font-black text-2xl md:text-4xl tracking-tight text-black">队伍库管理</h1>
+	<PageHeader title="队伍库管理">
 		<Button onclick={() => (showCreate = !showCreate)} en="New Team">
 			{showCreate ? '取消' : '新建队伍 →'}
 		</Button>
-	</div>
+	</PageHeader>
 
 	{#if showCreate}
 		<div class="rounded-none border border-black bg-white p-4 md:p-6 mb-6">
@@ -239,10 +240,7 @@
 	{/if}
 
 	{#if teams.length === 0}
-		<div class="rounded-none border border-black bg-white text-center py-12 text-sm text-neutral-500">
-			<Users size={32} strokeWidth={1.5} class="mx-auto text-neutral-300 mb-3" aria-hidden="true" />
-			暂无队伍，点击「新建队伍」开始
-		</div>
+		<EmptyState icon={Users} title="暂无队伍" description="点击「新建队伍」开始" />
 	{:else}
 		<div class="space-y-0 border-t border-l border-black">
 			{#each teams as team (team.id)}
