@@ -33,7 +33,8 @@ export async function register(username: string, password: string, role = 'user'
 export async function logout() {
 	await api.post('/auth/logout');
 	currentUser = null;
-	goto('/login');
+	// invalidateAll 强制重跑所有 load，刷新导航的登录态（避免旧 data 残留）
+	await goto('/', { invalidateAll: true });
 }
 
 export function isLoggedIn() {

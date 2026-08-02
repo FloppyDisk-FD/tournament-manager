@@ -27,7 +27,8 @@
 			} else {
 				await login(username, password);
 			}
-			goto('/');
+			// invalidateAll 强制重跑所有 load，刷新导航/页面登录态
+			await goto('/', { invalidateAll: true });
 		} catch (e: any) {
 			error = e.message || (isRegister ? '注册失败' : '登录失败');
 		} finally {

@@ -181,8 +181,9 @@
 				{/each}
 			</div>
 
-			{#if t.status === 'draft'}
-				<div class="border border-black bg-white mb-8">
+			<div class="grid grid-cols-1 lg:grid-cols-2 gap-4 mb-8">
+				{#if t.status === 'draft'}
+					<div class="border border-black bg-white">
 					<div class="relative overflow-hidden flex items-center justify-between px-4 py-3 bg-black text-white">
 						<div class="flex items-center gap-2 relative z-10">
 							<span class="inline-block w-1 h-1 bg-accent shrink-0" aria-hidden="true"></span>
@@ -251,8 +252,8 @@
 				</div>
 			{/if}
 
-			{#if myEntryTeams.length > 0}
-				<div class="border border-black bg-white mb-8">
+				{#if myEntryTeams.length > 0}
+					<div class="border border-black bg-white">
 					<div class="relative overflow-hidden flex items-center justify-between px-4 py-3 bg-black text-white">
 						<div class="flex items-center gap-2 relative z-10">
 							<span class="inline-block w-1 h-1 bg-accent shrink-0" aria-hidden="true"></span>
@@ -284,6 +285,7 @@
 					</div>
 				</div>
 			{/if}
+			</div>
 
 			{#if teams.length > 0}
 				<h2 class="font-black text-lg md:text-xl tracking-tight mb-3">参赛队伍</h2>
