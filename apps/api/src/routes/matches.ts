@@ -3,7 +3,8 @@ import { eq, and, inArray } from 'drizzle-orm';
 import type { Db } from '../db';
 import { matches, games, teams, stages, tournaments } from '../db/schema';
 import { AppError } from '../middleware/error';
-import { authMiddleware, requireAdmin } from '../middleware/auth';
+import { authMiddleware } from '../middleware/auth';
+import { canManageTournament } from '../services/perm';
 import { updateStandings } from '../services/standings';
 
 /** 检查赛事是否全部比赛结束，若是则将赛事状态更新为 completed */
@@ -31,8 +32,20 @@ matchRoutes.get('/:id', async (c) => {
   return c.json({ ...match, games: matchGames });
 });
 
-// ========== 管理员路由 ==========
-matchRoutes.use('*', requireAdmin);
+// ========== 管理路由（赛事管理者或系统管理员） ==========
+// 校验当前用户对该比赛所属赛事有管理权
+matchRoutes.use('/:id/*', async (c, next) => {
+  const id = c.req.param('id');
+  const db = c.get('db');
+  const [match] = await db.select().from(matches).where(eq(matches.id, id)).limit(1);
+  if (!match) throw new AppError('NOT_FOUND', '比赛不存在', 404);
+  const [stage] = await db.select().from(stages).where(eq(stages.id, match.stageId)).limit(1);
+  const [tournament] = stage
+    ? await db.select().from(tournaments).where(eq(tournaments.id, stage.tournamentId)).limit(1)
+    : [];
+  if (!canManageTournament(c.get('user'), tournament)) throw new AppError('FORBIDDEN', '无权管理该赛事', 403);
+  await next();
+});
 
 matchRoutes.put('/:id/score', async (c) => {
   const id = c.req.param('id');

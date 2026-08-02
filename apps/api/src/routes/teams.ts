@@ -3,13 +3,16 @@ import { eq, and, inArray, isNull } from 'drizzle-orm';
 import type { Db } from '../db';
 import { teams, teamPlayers, tournaments, tournamentTeams } from '../db/schema';
 import { AppError, requireUuid } from '../middleware/error';
-import { authMiddleware, requireAdmin } from '../middleware/auth';
+import { authMiddleware, requireAuth } from '../middleware/auth';
+import { isAdmin, canManageTeam, canManageTournament, canCreateTeam } from '../services/perm';
 
 // 全局队伍库路由（/api/v1/teams）
 export const globalTeamRoutes = new Hono<{ Variables: { user: any | null; db: Db } }>();
-globalTeamRoutes.use('*', authMiddleware, requireAdmin);
+globalTeamRoutes.use('*', authMiddleware, requireAuth);
 
 globalTeamRoutes.get('/', async (c) => {
+  const user = c.get('user')!;
+  if (!isAdmin(user)) throw new AppError('FORBIDDEN', '需要系统管理员权限', 403);
   const allTeams = await c.get('db').select().from(teams).where(isNull(teams.tournamentId));
   const teamIds = allTeams.map((t) => t.id);
   if (teamIds.length === 0) return c.json([]);
@@ -23,13 +26,33 @@ globalTeamRoutes.get('/', async (c) => {
   return c.json(allTeams.map((t) => ({ ...t, players: playersByTeam.get(t.id) ?? [] })));
 });
 
+// 我的队伍（登录用户拥有，供报名选择/后台管理）
+globalTeamRoutes.get('/my/teams', async (c) => {
+  const user = c.get('user')!;
+  const myTeams = await c.get('db').select().from(teams)
+    .where(and(eq(teams.ownerId, user.id), isNull(teams.tournamentId)));
+  const teamIds = myTeams.map((t) => t.id);
+  if (teamIds.length === 0) return c.json([]);
+  const players = await c.get('db').select().from(teamPlayers).where(inArray(teamPlayers.teamId, teamIds));
+  const playersByTeam = new Map<string, typeof players>();
+  for (const p of players) {
+    const arr = playersByTeam.get(p.teamId) ?? [];
+    arr.push(p);
+    playersByTeam.set(p.teamId, arr);
+  }
+  return c.json(myTeams.map((t) => ({ ...t, players: playersByTeam.get(t.id) ?? [] })));
+});
+
 globalTeamRoutes.post('/', async (c) => {
+  const user = c.get('user')!;
+  if (!canCreateTeam(user)) throw new AppError('FORBIDDEN', '创建队伍需要队伍管理员或系统管理员权限', 403);
   const data = await c.req.json();
   const [team] = await c.get('db').insert(teams).values({
     name: data.name,
     logoUrl: data.logo_url,
     logoEmoji: data.logo_emoji,
     tournamentId: null as any,
+    ownerId: user.id,
   }).returning();
 
   if (data.players && Array.isArray(data.players) && data.players.length > 0) {
@@ -50,12 +73,15 @@ globalTeamRoutes.post('/', async (c) => {
 
 globalTeamRoutes.put('/:teamId', async (c) => {
   const teamId = c.req.param('teamId');
+  const [team] = await c.get('db').select().from(teams)
+    .where(and(eq(teams.id, teamId), isNull(teams.tournamentId))).limit(1);
+  if (!canManageTeam(c.get('user'), team)) throw new AppError('FORBIDDEN', '无权管理该队伍', 403);
   const data = await c.req.json();
   const [updated] = await c.get('db').update(teams).set({
     name: data.name,
     logoUrl: data.logo_url,
     logoEmoji: data.logo_emoji,
-  }).where(and(eq(teams.id, teamId), isNull(teams.tournamentId))).returning();
+  }).where(eq(teams.id, teamId)).returning();
   if (!updated) throw new AppError('NOT_FOUND', '队伍不存在', 404);
 
   // 选手更新：全量替换
@@ -81,6 +107,7 @@ globalTeamRoutes.delete('/:teamId', async (c) => {
   const teamId = c.req.param('teamId');
   const [existing] = await c.get('db').select().from(teams).where(and(eq(teams.id, teamId), isNull(teams.tournamentId))).limit(1);
   if (!existing) throw new AppError('NOT_FOUND', '队伍不存在', 404);
+  if (!canManageTeam(c.get('user'), existing)) throw new AppError('FORBIDDEN', '无权管理该队伍', 403);
   await c.get('db').delete(teamPlayers).where(eq(teamPlayers.teamId, teamId));
   await c.get('db').delete(tournamentTeams).where(eq(tournamentTeams.teamId, teamId));
   await c.get('db').delete(teams).where(eq(teams.id, teamId));
@@ -91,11 +118,11 @@ globalTeamRoutes.delete('/:teamId', async (c) => {
 export const teamRoutes = new Hono<{ Variables: { user: any | null; db: Db } }>();
 teamRoutes.use('*', authMiddleware);
 // 校验赛事 ID 为合法 UUID，避免非 UUID 字符串触发 DB 语法错误返回 500
-teamRoutes.use('*', async (c, next) => { requireUuid(c.req.param('id'), '赛事'); await next(); });
+teamRoutes.use('*', async (c, next) => { requireUuid(c.req.param('id')! ?? '', '赛事'); await next(); });
 
 // 列出赛事队伍（公开）
 teamRoutes.get('/', async (c) => {
-  const id = c.req.param('id');
+  const id = c.req.param('id')!;
   const rows = await c.get('db').select({
     entry: tournamentTeams,
     team: teams,
@@ -125,11 +152,17 @@ teamRoutes.get('/', async (c) => {
   })));
 });
 
-// 以下为管理员路由
-teamRoutes.use('*', requireAdmin);
+// 以下为管理员路由（赛事管理者或系统管理员）
+teamRoutes.use('*', async (c, next) => {
+  const id = c.req.param('id')!;
+  const user = c.get('user')!;
+  const [tournament] = await c.get('db').select().from(tournaments).where(eq(tournaments.id, id)).limit(1);
+  if (!canManageTournament(user, tournament)) throw new AppError('FORBIDDEN', '无权管理该赛事', 403);
+  await next();
+});
 
 teamRoutes.post('/import', async (c) => {
-  const id = c.req.param('id');
+  const id = c.req.param('id')!;
   const [tournament] = await c.get('db').select().from(tournaments).where(eq(tournaments.id, id)).limit(1);
   if (!tournament) throw new AppError('NOT_FOUND', '赛事不存在', 404);
   if (tournament.status !== 'draft') throw new AppError('TOURNAMENT_ALREADY_STARTED', '赛事已开始');
@@ -170,7 +203,7 @@ teamRoutes.post('/import', async (c) => {
 });
 
 teamRoutes.post('/', async (c) => {
-  const id = c.req.param('id');
+  const id = c.req.param('id')!;
   const [tournament] = await c.get('db').select().from(tournaments).where(eq(tournaments.id, id)).limit(1);
   if (!tournament) throw new AppError('NOT_FOUND', '赛事不存在', 404);
   if (tournament.status !== 'draft') throw new AppError('TOURNAMENT_ALREADY_STARTED', '赛事已开始');
@@ -209,7 +242,7 @@ teamRoutes.post('/', async (c) => {
 });
 
 teamRoutes.post('/batch', async (c) => {
-  const id = c.req.param('id');
+  const id = c.req.param('id')!;
   const [tournament] = await c.get('db').select().from(tournaments).where(eq(tournaments.id, id)).limit(1);
   if (!tournament) throw new AppError('NOT_FOUND', '赛事不存在', 404);
   if (tournament.status !== 'draft') throw new AppError('TOURNAMENT_ALREADY_STARTED', '赛事已开始');
@@ -240,7 +273,7 @@ teamRoutes.post('/batch', async (c) => {
 });
 
 teamRoutes.put('/:teamId', async (c) => {
-  const id = c.req.param('id');
+  const id = c.req.param('id')!;
   const teamId = c.req.param('teamId');
   const data = await c.req.json();
   const [updated] = await c.get('db').update(teams).set({
@@ -277,7 +310,7 @@ teamRoutes.put('/:teamId', async (c) => {
 });
 
 teamRoutes.delete('/:teamId', async (c) => {
-  const id = c.req.param('id');
+  const id = c.req.param('id')!;
   const teamId = c.req.param('teamId');
   const [entry] = await c.get('db').select().from(tournamentTeams)
     .where(and(eq(tournamentTeams.teamId, teamId), eq(tournamentTeams.tournamentId, id))).limit(1);

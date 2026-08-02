@@ -4,7 +4,8 @@ import { alias } from 'drizzle-orm/pg-core';
 import type { Db } from '../db';
 import { tournaments, teams, stages, matches, games, standings, tournamentTeams } from '../db/schema';
 import { AppError, requireUuid } from '../middleware/error';
-import { authMiddleware, requireAdmin } from '../middleware/auth';
+import { authMiddleware } from '../middleware/auth';
+import { canManageTournament } from '../services/perm';
 import { SingleElimGenerator } from '../generators/single-elimination';
 import { DoubleElimGenerator } from '../generators/double-elimination';
 import { SwissGenerator } from '../generators/swiss';
@@ -216,10 +217,11 @@ bracketRoutes.get('/:id/standings/:groupLabel', async (c) => {
 });
 
 // ========== 管理员路由 ==========
-bracketRoutes.post('/:id/reset', requireAdmin, async (c) => {
+bracketRoutes.post('/:id/reset', async (c) => {
   const id = c.req.param('id');
   const [tournament] = await c.get('db').select().from(tournaments).where(eq(tournaments.id, id)).limit(1);
   if (!tournament) throw new AppError('NOT_FOUND', '赛事不存在', 404);
+  if (!canManageTournament(c.get('user'), tournament)) throw new AppError('FORBIDDEN', '无权管理该赛事', 403);
   const stageRows = await c.get('db').select({ id: stages.id }).from(stages).where(eq(stages.tournamentId, id));
   if (stageRows.length > 0) {
     const stageIds = stageRows.map((s) => s.id);
@@ -238,11 +240,12 @@ bracketRoutes.post('/:id/reset', requireAdmin, async (c) => {
   return c.json({ message: '赛程已重置' });
 });
 
-bracketRoutes.post('/:id/generate', requireAdmin, async (c) => {
+bracketRoutes.post('/:id/generate', async (c) => {
   const id = c.req.param('id');
   const user = c.get('user')!;
   const [tournament] = await c.get('db').select().from(tournaments).where(eq(tournaments.id, id)).limit(1);
   if (!tournament) throw new AppError('NOT_FOUND', '赛事不存在', 404);
+  if (!canManageTournament(user, tournament)) throw new AppError('FORBIDDEN', '无权管理该赛事', 403);
   if (tournament.status !== 'draft') throw new AppError('BRACKET_ALREADY_GENERATED', '赛程已生成');
 
   const tournamentTeamsRows = await c.get('db').select({
@@ -262,6 +265,7 @@ bracketRoutes.post('/:id/generate', requireAdmin, async (c) => {
     seed: r.entry.seed,
     status: r.entry.status,
     tournamentId: id,
+    ownerId: r.team.ownerId,
   }));
 
   const body = await c.req.json().catch(() => ({}));
@@ -416,10 +420,11 @@ bracketRoutes.post('/:id/generate', requireAdmin, async (c) => {
   return c.json({ message: '赛程生成成功', stagesCount: result.stages.length, matchesCount: result.matches.length });
 });
 
-bracketRoutes.post('/:id/generate-next-round', requireAdmin, async (c) => {
+bracketRoutes.post('/:id/generate-next-round', async (c) => {
   const id = c.req.param('id');
   const [tournament] = await c.get('db').select().from(tournaments).where(eq(tournaments.id, id)).limit(1);
   if (!tournament) throw new AppError('NOT_FOUND', '赛事不存在', 404);
+  if (!canManageTournament(c.get('user'), tournament)) throw new AppError('FORBIDDEN', '无权管理该赛事', 403);
   if (tournament.format !== 'swiss') throw new AppError('INVALID_FORMAT', '仅瑞士轮支持逐轮生成');
 
   const tournamentTeamsRows = await c.get('db').select({ team: teams })

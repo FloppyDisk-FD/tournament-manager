@@ -3,7 +3,8 @@ import { eq, ilike, and, sql, inArray } from 'drizzle-orm';
 import type { Db } from '../db';
 import { tournaments, stages, matches, games, standings, tournamentTeams } from '../db/schema';
 import { AppError, requireUuid } from '../middleware/error';
-import { authMiddleware, requireAdmin } from '../middleware/auth';
+import { authMiddleware } from '../middleware/auth';
+import { canCreateTournament, canManageTournament } from '../services/perm';
 
 export const tournamentRoutes = new Hono<{ Variables: { user: any | null; db: Db } }>();
 
@@ -13,6 +14,7 @@ tournamentRoutes.use('*', authMiddleware);
 // ========== 公开路由 ==========
 tournamentRoutes.get('/', async (c) => {
   const query = c.req.query();
+  const user = c.get('user');
   const page = Number(query.page) || 1;
   const limit = Math.min(Number(query.limit) || 20, 100);
   const offset = (page - 1) * limit;
@@ -20,6 +22,10 @@ tournamentRoutes.get('/', async (c) => {
   const conditions = [];
   if (query.status) conditions.push(eq(tournaments.status, query.status as any));
   if (query.game) conditions.push(ilike(tournaments.game, `%${query.game}%`));
+  // 我的赛事：赛事管理者只看自己创建的（admin 看全部）
+  if (query.mine === '1' && user && user.role !== 'admin') {
+    conditions.push(eq(tournaments.createdBy, user.id));
+  }
 
   const where = conditions.length > 0 ? and(...conditions) : undefined;
 
@@ -46,9 +52,12 @@ tournamentRoutes.get('/:id', async (c) => {
 });
 
 // ========== 管理员路由 ==========
-tournamentRoutes.post('/', requireAdmin, async (c) => {
-  const data = await c.req.json();
+tournamentRoutes.post('/', async (c) => {
   const user = c.get('user')!;
+  if (!canCreateTournament(user)) {
+    throw new AppError('FORBIDDEN', '需要赛事管理者或系统管理员权限', 403);
+  }
+  const data = await c.req.json();
   const [tournament] = await c.get('db').insert(tournaments).values({
     name: data.name,
     description: data.description || '',
@@ -71,11 +80,14 @@ tournamentRoutes.post('/', requireAdmin, async (c) => {
   return c.json(tournament);
 });
 
-tournamentRoutes.put('/:id', requireAdmin, async (c) => {
+tournamentRoutes.put('/:id', async (c) => {
   const id = c.req.param('id');
   const [existing] = await c.get('db').select().from(tournaments).where(eq(tournaments.id, id)).limit(1);
   if (!existing) {
     throw new AppError('NOT_FOUND', '赛事不存在', 404);
+  }
+  if (!canManageTournament(c.get('user'), existing)) {
+    throw new AppError('FORBIDDEN', '无权管理该赛事', 403);
   }
   if (existing.status !== 'draft') {
     throw new AppError('TOURNAMENT_ALREADY_STARTED', '赛事已开始，无法修改');
@@ -105,11 +117,14 @@ tournamentRoutes.put('/:id', requireAdmin, async (c) => {
   return c.json(updated);
 });
 
-tournamentRoutes.delete('/:id', requireAdmin, async (c) => {
+tournamentRoutes.delete('/:id', async (c) => {
   const id = c.req.param('id');
   const [existing] = await c.get('db').select().from(tournaments).where(eq(tournaments.id, id)).limit(1);
   if (!existing) {
     throw new AppError('NOT_FOUND', '赛事不存在', 404);
+  }
+  if (!canManageTournament(c.get('user'), existing)) {
+    throw new AppError('FORBIDDEN', '无权管理该赛事', 403);
   }
   if (existing.status !== 'draft') {
     throw new AppError('TOURNAMENT_ALREADY_STARTED', '赛事已开始，无法删除');
