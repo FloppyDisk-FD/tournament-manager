@@ -12,5 +12,6 @@ export { default as PageHeader } from './PageHeader.svelte';
 export { default as StatCard } from './StatCard.svelte';
 export { default as BackLink } from './BackLink.svelte';
 export { default as SeedRankingPanel } from './SeedRankingPanel.svelte';
+export { default as PlayerEditCard } from './PlayerEditCard.svelte';
 export { default as Skeleton } from './Skeleton.svelte';
 export { default as Toast } from './Toast.svelte';

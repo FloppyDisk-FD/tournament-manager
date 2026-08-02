@@ -4,6 +4,7 @@
 	import Button from '$lib/components/Button.svelte';
 	import EmptyState from '$lib/components/EmptyState.svelte';
 	import PageHeader from '$lib/components/PageHeader.svelte';
+	import PlayerEditCard from '$lib/components/PlayerEditCard.svelte';
 	import { success, error } from '$lib/stores/toast.svelte';
 
 	interface Player {
@@ -318,10 +319,13 @@
 						<div class="border-t border-black p-3 md:p-4 bg-neutral-50">
 							{#if isEditing}
 								<!-- 队伍信息 -->
-								<div class="mb-5">
-									<div class="text-[10px] font-bold uppercase tracking-widest text-neutral-500 mb-2">队伍信息</div>
-									<div class="grid grid-cols-1 md:grid-cols-2 gap-0 border border-black bg-white">
-										<div class="border-b md:border-b-0 md:border-r border-black p-3">
+								<div class="mb-4">
+									<div class="flex items-center gap-2 mb-2">
+										<span class="inline-block w-1 h-3.5 bg-black" aria-hidden="true"></span>
+										<span class="text-xs font-bold uppercase tracking-widest text-neutral-700">队伍信息</span>
+									</div>
+									<div class="space-y-3">
+										<div>
 											<label class="block text-xs font-bold text-neutral-600 mb-1">Logo Emoji</label>
 											<input
 												type="text"
@@ -343,7 +347,7 @@
 												{/each}
 											</div>
 										</div>
-										<div class="p-3">
+										<div>
 											<label class="block text-xs font-bold text-neutral-600 mb-1">Logo URL（可选）</label>
 											<input
 												type="text"
@@ -356,10 +360,11 @@
 								</div>
 
 								<!-- 选手管理 -->
-								<div class="mb-5">
-									<div class="flex items-center justify-between mb-3">
-										<div class="flex items-baseline gap-2">
-											<div class="text-[10px] font-bold uppercase tracking-widest text-neutral-500">选手管理</div>
+								<div class="mb-4">
+									<div class="flex items-center justify-between mb-2">
+										<div class="flex items-center gap-2">
+											<span class="inline-block w-1 h-3.5 bg-black" aria-hidden="true"></span>
+											<div class="text-xs font-bold uppercase tracking-widest text-neutral-700">选手管理</div>
 											<span class="text-xs font-black tabular-nums text-neutral-400">{editDraft!.players.length} 名</span>
 										</div>
 										<Button
@@ -374,97 +379,15 @@
 									</div>
 
 									{#if editDraft!.players.length === 0}
-										<div class="rounded-none border border-black bg-white p-8 text-center">
+										<div class="rounded-none border border-black bg-white p-6 text-center">
 											<div class="text-2xl mb-2">👥</div>
 											<p class="text-sm text-neutral-500 font-bold">暂无选手</p>
 											<p class="text-xs text-neutral-400 mt-1">点击右上角「添加选手」录入第一位选手</p>
 										</div>
 									{:else}
-										<div class="space-y-3">
+										<div class="grid grid-cols-1 md:grid-cols-2 gap-2">
 											{#each editDraft!.players as p, i}
-												<div class="rounded-none border border-black bg-white">
-													<!-- 卡片头：序号 + 姓名 + 队长 + 操作 -->
-													<div class="flex items-center justify-between gap-3 border-b border-black px-3 py-2 bg-neutral-50">
-														<div class="flex items-center gap-2 min-w-0">
-															<span class="text-xs font-black tabular-nums text-neutral-400 shrink-0">{String(i + 1).padStart(2, '0')}</span>
-															<span class="text-sm font-black text-black truncate">{p.player_name || '未命名选手'}</span>
-															{#if p.is_captain}
-																<span class="text-accent text-xs shrink-0" title="队长">★</span>
-															{/if}
-														</div>
-														<div class="shrink-0 flex gap-1">
-															<button
-																type="button"
-																onclick={() => setCaptain(i)}
-																class="rounded-none font-sans font-bold border border-black bg-white px-2 py-1 text-xs transition-colors duration-150 active:opacity-70 hover:bg-neutral-100 {p.is_captain ? 'bg-black text-white hover:bg-black' : ''}"
-																title="设为队长"
-															>
-																{p.is_captain ? '★' : '☆'}
-															</button>
-															<button
-																type="button"
-																onclick={() => removePlayer(i)}
-																class="rounded-none font-sans font-bold border border-black bg-white text-accent px-2 py-1 text-xs transition-colors duration-150 active:opacity-70 hover:bg-neutral-100"
-																title="删除选手"
-															>
-																×
-															</button>
-														</div>
-													</div>
-													<!-- 卡片体：头像 + 字段 -->
-													<div class="p-3 flex items-start gap-3">
-														<div class="shrink-0 w-16 h-16 border border-black bg-neutral-100 flex items-center justify-center overflow-hidden">
-															{#if p.avatar_url}
-																<img src={p.avatar_url} alt={p.player_name || '选手'} class="w-full h-full object-cover" />
-															{:else}
-																<span class="font-black text-xl text-neutral-400">{p.player_name?.charAt(0) || '?'}</span>
-															{/if}
-														</div>
-
-														<!-- 字段 -->
-														<div class="flex-1 min-w-0 grid grid-cols-1 md:grid-cols-2 gap-2">
-															<div>
-																<label class="block text-[10px] font-bold uppercase tracking-wider text-neutral-500 mb-1">选手名</label>
-																<input
-																	type="text"
-																	bind:value={p.player_name}
-																	placeholder="选手名"
-																	class="w-full rounded-none border border-black font-sans px-2 py-1.5 text-sm bg-white focus:outline-none"
-																/>
-															</div>
-															<div>
-																<label class="block text-[10px] font-bold uppercase tracking-wider text-neutral-500 mb-1">角色</label>
-																<select
-																	bind:value={p.player_role}
-																	class="w-full rounded-none border border-black font-sans px-2 py-1.5 text-sm bg-white focus:outline-none"
-																>
-																	<option value="member">队员</option>
-																	<option value="captain">队长</option>
-																	<option value="substitute">替补</option>
-																	<option value="coach">教练</option>
-																</select>
-															</div>
-															<div>
-																<label class="block text-[10px] font-bold uppercase tracking-wider text-neutral-500 mb-1">游戏 ID</label>
-																<input
-																	type="text"
-																	bind:value={p.game_id}
-																	placeholder="游戏内 ID"
-																	class="w-full rounded-none border border-black font-sans px-2 py-1.5 text-sm bg-white focus:outline-none"
-																/>
-															</div>
-															<div>
-																<label class="block text-[10px] font-bold uppercase tracking-wider text-neutral-500 mb-1">头像 URL</label>
-																<input
-																	type="url"
-																	bind:value={p.avatar_url}
-																	placeholder="https://..."
-																	class="w-full rounded-none border border-black font-sans px-2 py-1.5 text-sm bg-white focus:outline-none"
-																/>
-															</div>
-														</div>
-													</div>
-												</div>
+												<PlayerEditCard player={p} index={i} onSetCaptain={setCaptain} onRemovePlayer={removePlayer} />
 											{/each}
 										</div>
 									{/if}
@@ -490,7 +413,10 @@
 							{:else}
 								<!-- 只读模式：选手列表 -->
 								<div>
-									<div class="text-[10px] font-bold uppercase tracking-widest text-neutral-500 mb-2">选手名单</div>
+									<div class="flex items-center gap-2 mb-2">
+									<span class="inline-block w-1 h-3.5 bg-black" aria-hidden="true"></span>
+									<span class="text-xs font-bold uppercase tracking-widest text-neutral-700">选手名单</span>
+								</div>
 									{#if team.players?.length > 0}
 										<div class="grid grid-cols-1 md:grid-cols-2 gap-3">
 											{#each team.players as p, i}
