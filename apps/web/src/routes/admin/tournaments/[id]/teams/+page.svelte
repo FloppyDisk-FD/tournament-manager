@@ -1,6 +1,10 @@
 <script lang="ts">
 	import { api } from '$lib/api/client';
 	import Button from '$lib/components/Button.svelte';
+	import BackLink from '$lib/components/BackLink.svelte';
+	import EmptyState from '$lib/components/EmptyState.svelte';
+	import PageHeader from '$lib/components/PageHeader.svelte';
+	import SeedRankingPanel from '$lib/components/SeedRankingPanel.svelte';
 	import { success, error } from '$lib/stores/toast.svelte';
 
 	interface TournamentTeam {
@@ -25,6 +29,7 @@
 
 	let { data } = $props();
 	let teams = $state<TournamentTeam[]>(data.teams ?? []);
+	let seedPanelOpen = $state(false);
 
 	// 快速创建
 	let newName = $state('');
@@ -197,15 +202,19 @@
 </script>
 
 <div>
-	<div class="mb-6">
-		<a
-			href="/admin/tournaments/{t.id}"
-			class="text-sm font-bold text-black border-b border-black hover:text-accent hover:border-accent transition-colors duration-150"
-		>
-			← 返回赛事
-		</a>
-	</div>
-	<h1 class="font-black text-2xl md:text-4xl tracking-tight text-black mb-6">队伍管理 — {t.name}</h1>
+	<BackLink href="/admin/tournaments/{t.id}">← 返回赛事</BackLink>
+	<PageHeader title="队伍管理" subtitle={t.name}>
+		{#if t.status === 'draft' && teams.length >= 2}
+			<button onclick={() => (seedPanelOpen = !seedPanelOpen)}
+				class="border border-black bg-white text-black font-bold px-4 py-2 text-sm transition-colors duration-150 active:opacity-70 press">
+				种子排位
+			</button>
+		{/if}
+	</PageHeader>
+
+	{#if seedPanelOpen}
+		<SeedRankingPanel teams={teams} tournamentId={t.id} onclose={() => (seedPanelOpen = false)} />
+	{/if}
 
 	{#if t.status === 'draft'}
 		<div class="mb-6 space-y-3">
@@ -398,6 +407,6 @@
 			</table>
 		</div>
 	{:else}
-		<div class="text-center py-12 text-sm text-neutral-500">暂无队伍</div>
+		<EmptyState title="暂无队伍" />
 	{/if}
 </div>
