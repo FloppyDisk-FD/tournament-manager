@@ -1,33 +1,21 @@
 <script lang="ts">
 	import { api } from '$lib/api/client';
-	import { cn } from '$lib/utils';
 	import Button from '$lib/components/Button.svelte';
+	import EmptyState from '$lib/components/EmptyState.svelte';
+	import StatusBadge from '$lib/components/StatusBadge.svelte';
+	import { FORMAT_MAP } from '$lib/constants/tournament';
 	import { success, error } from '$lib/stores/toast.svelte';
 
 	let { data } = $props();
 	let tournaments = $state(data.tournaments ?? []);
 	let deleting = $state<string | null>(null);
 
-	const statusMap: Record<string, { label: string; variant: string }> = {
-		draft: { label: '未开始', variant: 'bg-neutral-100 text-black' },
-		ongoing: { label: '进行中', variant: 'bg-black text-white' },
-		completed: { label: '已结束', variant: 'bg-accent text-white' },
-		cancelled: { label: '已取消', variant: 'bg-white text-neutral-500 line-through border border-black' },
-	};
-
-	const formatMap: Record<string, string> = {
-		single_elim: '单败淘汰',
-		double_elim: '双败淘汰',
-		round_robin: '循环联赛',
-		swiss: '瑞士轮',
-	};
-
 	async function deleteTournament(id: string) {
 		if (!confirm('确定删除此赛事？此操作不可撤销。')) return;
 		deleting = id;
 		try {
 			await api.del(`/tournaments/${id}`);
-			tournaments = tournaments.filter(t => t.id !== id);
+			tournaments = tournaments.filter((t: any) => t.id !== id);
 			success('赛事已删除');
 		} catch (e: any) {
 			error(e.message || '删除失败');
@@ -49,10 +37,7 @@
 	</div>
 
 	{#if tournaments.length === 0}
-		<div class="border border-black bg-neutral-50 p-12 text-center">
-			<p class="text-sm text-neutral-500 font-bold mb-1">暂无赛事</p>
-			<p class="text-xs text-neutral-400">点击右上角"创建赛事"开始</p>
-		</div>
+		<EmptyState title="暂无赛事" description="点击右上角「创建赛事」开始" class="bg-neutral-50 p-12" />
 	{:else}
 		<div class="border border-black overflow-hidden">
 			<table class="w-full text-sm">
@@ -70,11 +55,9 @@
 						<tr class="border-t border-black/20 hover:bg-neutral-50 transition-colors duration-150 animate-enter" style="animation-delay:{Math.min(i * 30, 240)}ms">
 							<td class="px-4 py-3 font-bold">{t.name}</td>
 							<td class="px-4 py-3 text-neutral-600">{t.game}</td>
-							<td class="px-4 py-3 text-neutral-600">{formatMap[t.format] ?? t.format}</td>
+							<td class="px-4 py-3 text-neutral-600">{FORMAT_MAP[t.format] ?? t.format}</td>
 							<td class="px-4 py-3">
-								<span class={cn('px-2 py-0.5 text-xs font-bold', statusMap[t.status]?.variant)}>
-									{statusMap[t.status]?.label ?? t.status}
-								</span>
+								<StatusBadge status={t.status} />
 							</td>
 							<td class="px-4 py-3">
 								<div class="flex gap-3">

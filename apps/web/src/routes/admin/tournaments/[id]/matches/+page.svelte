@@ -2,6 +2,10 @@
 	import { api } from '$lib/api/client';
 	import { ArrowRight, ClipboardList } from 'lucide-svelte';
 	import Button from '$lib/components/Button.svelte';
+	import BackLink from '$lib/components/BackLink.svelte';
+	import EmptyState from '$lib/components/EmptyState.svelte';
+	import Input from '$lib/components/Input.svelte';
+	import PageHeader from '$lib/components/PageHeader.svelte';
 	import { success, error } from '$lib/stores/toast.svelte';
 
 	let { data } = $props();
@@ -112,14 +116,9 @@
 
 <div class="animate-enter">
 	<div class="mb-6">
-		<a href="/admin/tournaments/{t.id}" class="text-sm font-bold text-black border-b border-black hover:text-accent hover:border-accent transition-colors duration-150 link-underline">
-			← 返回赛事
-		</a>
+		<BackLink href="/admin/tournaments/{t.id}">← 返回赛事</BackLink>
 	</div>
-	<div class="flex items-baseline justify-between mb-6 flex-wrap gap-2">
-		<h1 class="font-black text-2xl md:text-4xl tracking-tight text-black">比赛管理</h1>
-		<span class="text-sm font-bold text-neutral-500 truncate max-w-[60%]">{t.name}</span>
-	</div>
+	<PageHeader title="比赛管理" subtitle={t.name} />
 
 	{#if canGenerateNextRound}
 		<div class="mb-6 border border-black bg-neutral-50 p-4 flex items-center justify-between animate-enter-scale">
@@ -134,11 +133,7 @@
 	{/if}
 
 	{#if matches.length === 0}
-		<div class="text-center py-16 border border-black bg-neutral-50">
-			<ClipboardList size={32} strokeWidth={1.5} class="mx-auto text-neutral-300 mb-3" aria-hidden="true" />
-			<p class="text-sm text-neutral-500 font-bold">尚未生成赛程</p>
-			<p class="text-xs text-neutral-400 mt-1">请先返回赛事页面生成赛程</p>
-		</div>
+		<EmptyState icon={ClipboardList} title="尚未生成赛程" description="请先返回赛事页面生成赛程" class="py-16 bg-neutral-50" />
 	{:else}
 		{#each grouped() as group, gi}
 			<div class="mb-8 animate-enter" style="animation-delay:{gi * 60}ms">
@@ -189,11 +184,9 @@
 										{#each Object.entries(gameScores) as [idx, score]}
 											<div class="flex items-center gap-4">
 												<span class="text-xs text-neutral-500 font-bold w-12">第 {Number(idx) + 1} 局</span>
-												<input type="number" bind:value={gameScores[Number(idx)].home} min="0"
-													class="w-16 border border-black font-sans px-2 py-1 text-sm text-center bg-white focus:outline-none focus:border-accent transition-colors duration-150" />
+												<Input type="number" bind:value={gameScores[Number(idx)].home} min="0" class="w-16 px-2 py-1 text-center" />
 												<span class="text-xs text-neutral-500 font-bold">:</span>
-												<input type="number" bind:value={gameScores[Number(idx)].away} min="0"
-													class="w-16 border border-black font-sans px-2 py-1 text-sm text-center bg-white focus:outline-none focus:border-accent transition-colors duration-150" />
+												<Input type="number" bind:value={gameScores[Number(idx)].away} min="0" class="w-16 px-2 py-1 text-center" />
 											</div>
 										{/each}
 									</div>

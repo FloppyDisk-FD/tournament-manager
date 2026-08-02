@@ -1,5 +1,8 @@
 <script lang="ts">
   import { cn } from '$lib/utils';
+  import BackLink from '$lib/components/BackLink.svelte';
+  import StatusBadge from '$lib/components/StatusBadge.svelte';
+  import { PLAYER_ROLE_MAP } from '$lib/constants/tournament';
 
   let { data } = $props();
 
@@ -26,19 +29,6 @@
     return false;
   }
 
-  const statusMap: Record<string, { label: string; variant: string }> = {
-    active: { label: '活跃', variant: 'bg-black text-white' },
-    eliminated: { label: '已淘汰', variant: 'bg-accent text-white' },
-    withdrawn: { label: '已退出', variant: 'bg-neutral-200 text-black' },
-  };
-
-  const roleMap: Record<string, string> = {
-    captain: '队长',
-    member: '成员',
-    substitute: '替补',
-    coach: '教练',
-  };
-
   const tabs = [
     { id: 'players' as const, label: '参赛选手' },
     { id: 'matches' as const, label: '比赛记录' },
@@ -49,10 +39,7 @@
 <div class="max-w-7xl mx-auto px-4 md:px-8 lg:px-16 py-8 md:py-12 animate-enter">
   <!-- 返回链接 -->
   <div class="mb-6">
-    <a href="/tournaments/{data.tournamentId}"
-      class="text-sm font-bold text-black border-b border-black hover:text-accent hover:border-accent transition-colors duration-150 link-underline">
-      ← 返回赛事
-    </a>
+    <BackLink href="/tournaments/{data.tournamentId}">← 返回赛事</BackLink>
   </div>
 
   {#if !t}
@@ -75,9 +62,7 @@
         <div class="min-w-0">
           <div class="flex items-center gap-3 mb-1 flex-wrap">
             <h1 class="font-black text-2xl md:text-4xl tracking-tight text-black">{t.name}</h1>
-            <span class={cn('px-2 py-0.5 text-xs font-bold', statusMap[t.status ?? 'active']?.variant)}>
-              {statusMap[t.status ?? 'active']?.label ?? t.status}
-            </span>
+            <StatusBadge status={t.status ?? 'active'} kind="team" />
           </div>
           {#if t.seed}
             <p class="text-sm text-neutral-600">种子 #{t.seed}{#if t.group_label} · 分组 {t.group_label}{/if}</p>
@@ -156,7 +141,7 @@
                       </div>
                     </td>
                     <td class="px-4 py-3 text-neutral-600 hidden md:table-cell font-mono text-xs">{p.game_id || '—'}</td>
-                    <td class="px-4 py-3 text-neutral-600">{roleMap[p.player_role] ?? p.player_role}</td>
+                    <td class="px-4 py-3 text-neutral-600">{PLAYER_ROLE_MAP[p.player_role] ?? p.player_role}</td>
                   </tr>
                 {/each}
               </tbody>

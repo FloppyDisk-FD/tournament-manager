@@ -1,22 +1,11 @@
 <script lang="ts">
 	import { cn } from '$lib/utils';
 	import { goto } from '$app/navigation';
+	import EmptyState from '$lib/components/EmptyState.svelte';
+	import StatusBadge from '$lib/components/StatusBadge.svelte';
+	import { FORMAT_MAP } from '$lib/constants/tournament';
 
 	let { data } = $props();
-
-	const statusMap: Record<string, { label: string; variant: string }> = {
-		draft: { label: '未开始', variant: 'bg-neutral-100 text-black' },
-		ongoing: { label: '进行中', variant: 'bg-black text-white' },
-		completed: { label: '已结束', variant: 'bg-accent text-white' },
-		cancelled: { label: '已取消', variant: 'bg-white text-neutral-500 line-through border border-black' },
-	};
-
-	const formatMap: Record<string, string> = {
-		single_elim: '单败淘汰',
-		double_elim: '双败淘汰',
-		round_robin: '循环联赛',
-		swiss: '瑞士轮',
-	};
 
 	const filters = [
 		{ value: '', label: '全部' },
@@ -78,10 +67,7 @@
 
 		{#if tournaments.length === 0}
 			<div class="py-20 text-center">
-				<div class="inline-block border border-black bg-neutral-50 px-8 py-6">
-					<p class="text-sm text-neutral-500 mb-1 font-bold">暂无赛事</p>
-					<p class="text-xs text-neutral-400">请前往管理后台创建</p>
-				</div>
+				<EmptyState title="暂无赛事" description="请前往管理后台创建" class="bg-neutral-50 px-8 py-6" />
 			</div>
 		{:else}
 			<div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-0 border-l border-t border-black">
@@ -98,10 +84,8 @@
 					{/if}
 						<div class="p-4 md:p-6">
 							<div class="flex items-center gap-2 mb-3">
-								<span class={cn('px-2 py-0.5 text-xs font-bold', statusMap[t.status]?.variant)}>
-									{statusMap[t.status]?.label ?? t.status}
-								</span>
-								<span class="text-xs text-neutral-500 font-bold">{formatMap[t.format] ?? t.format}</span>
+								<StatusBadge status={t.status} />
+								<span class="text-xs text-neutral-500 font-bold">{FORMAT_MAP[t.format] ?? t.format}</span>
 							</div>
 							<h3 class="font-black text-lg md:text-xl tracking-tight text-black mb-1">{t.name}</h3>
 							{#if t.game}

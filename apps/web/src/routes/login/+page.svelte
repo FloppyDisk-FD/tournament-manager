@@ -2,6 +2,8 @@
 	import { login, register } from '$lib/stores/auth.svelte';
 	import { goto } from '$app/navigation';
 	import Button from '$lib/components/Button.svelte';
+	import Input from '$lib/components/Input.svelte';
+	import Label from '$lib/components/Label.svelte';
 
 	let username = $state('');
 	let password = $state('');
@@ -41,15 +43,12 @@
 
 			<div class="space-y-4">
 				<div>
-					<label class="block text-sm font-bold text-black mb-1">用户名</label>
-					<input type="text" bind:value={username}
-						class="w-full border border-black font-sans px-3 py-2 md:px-4 md:py-3 text-sm bg-white focus:outline-none focus:border-accent" />
+					<Label for="username">用户名</Label>
+					<Input id="username" type="text" bind:value={username} class="md:px-4 md:py-3" />
 				</div>
 				<div>
-					<label class="block text-sm font-bold text-black mb-1">密码</label>
-					<input type="password" bind:value={password}
-						onkeydown={(e) => e.key === 'Enter' && submit()}
-						class="w-full border border-black font-sans px-3 py-2 md:px-4 md:py-3 text-sm bg-white focus:outline-none focus:border-accent" />
+					<Label for="password">密码</Label>
+					<Input id="password" type="password" bind:value={password} onkeydown={(e: KeyboardEvent) => e.key === 'Enter' && submit()} class="md:px-4 md:py-3" />
 				</div>
 				<Button onclick={submit} disabled={loading} en={isRegister ? 'Register' : 'Sign In'} class="w-full md:px-6 md:py-3">
 					{loading ? (isRegister ? '注册中...' : '登录中...') : (isRegister ? '注册 →' : '登录 →')}

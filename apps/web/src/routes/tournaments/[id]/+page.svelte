@@ -2,6 +2,10 @@
 	import { api } from '$lib/api/client';
 	import { cn } from '$lib/utils';
 	import Button from '$lib/components/Button.svelte';
+	import BackLink from '$lib/components/BackLink.svelte';
+	import EmptyState from '$lib/components/EmptyState.svelte';
+	import StatusBadge from '$lib/components/StatusBadge.svelte';
+	import { FORMAT_MAP, TOURNAMENT_STATUS_MAP } from '$lib/constants/tournament';
 
 	let { data } = $props();
 
@@ -10,19 +14,6 @@
 	let standings = $state<any[]>([]);
 	let loadingBracket = $state(false);
 	let loadingStandings = $state(false);
-
-	const formatMap: Record<string, string> = {
-		single_elim: '单败淘汰',
-		double_elim: '双败淘汰',
-		round_robin: '循环联赛',
-		swiss: '瑞士轮',
-	};
-
-	const statusMap: Record<string, { label: string; variant: string }> = {
-		draft: { label: '未开始', variant: 'bg-neutral-100 text-black' },
-		ongoing: { label: '进行中', variant: 'bg-black text-white' },
-		completed: { label: '已结束', variant: 'bg-accent text-white' },
-	};
 
 	const tabs = [
 		{ id: 'overview', label: '总览' },
@@ -63,9 +54,7 @@
 
 <div class="max-w-7xl mx-auto px-4 md:px-8 lg:px-16 py-8 md:py-12 animate-enter">
 	<div class="mb-6">
-		<a href="/" class="text-sm font-bold text-black border-b border-black hover:text-accent hover:border-accent transition-colors duration-150 link-underline">
-			← 返回首页
-		</a>
+		<BackLink href="/">← 返回首页</BackLink>
 	</div>
 
 	{#if t.coverImage ?? t.cover_image}
@@ -78,11 +67,9 @@
 		<div class="min-w-0 flex-1">
 			<div class="flex items-center gap-3 mb-1 flex-wrap">
 				<h1 class="font-black text-2xl md:text-4xl tracking-tight text-black">{t.name}</h1>
-				<span class={cn('px-2 py-0.5 text-xs font-bold', statusMap[t.status]?.variant)}>
-					{statusMap[t.status]?.label ?? t.status}
-				</span>
+				<StatusBadge status={t.status} />
 			</div>
-			<p class="text-sm text-neutral-600">{t.game} · {formatMap[t.format]} · {teams.length}/{t.maxTeams} 队</p>
+			<p class="text-sm text-neutral-600">{t.game} · {FORMAT_MAP[t.format]} · {teams.length}/{t.maxTeams} 队</p>
 		</div>
 		<Button href="/tournaments/{t.id}/bracket" en="Bracket" class="whitespace-nowrap">
 			全屏赛程图 →
@@ -113,7 +100,7 @@
 	{#if activeTab === 'overview'}
 		<div class="animate-enter">
 			<div class="grid grid-cols-2 md:grid-cols-4 gap-0 border-l border-t border-black mb-8">
-				{#each [{ label: '赛制', value: formatMap[t.format] }, { label: '队伍', value: `${teams.length}/${t.maxTeams}` }, { label: '局数', value: `BO${t.boCount}` }, { label: '状态', value: statusMap[t.status]?.label ?? t.status }] as stat, i}
+				{#each [{ label: '赛制', value: FORMAT_MAP[t.format] }, { label: '队伍', value: `${teams.length}/${t.maxTeams}` }, { label: '局数', value: `BO${t.boCount}` }, { label: '状态', value: TOURNAMENT_STATUS_MAP[t.status]?.label ?? t.status }] as stat, i}
 					<div class="border-r border-b border-black bg-white p-4 lift animate-enter" style="animation-delay:{i * 50}ms">
 						<div class="text-xs text-neutral-500 font-bold uppercase tracking-wider">{stat.label}</div>
 						<div class="font-black text-lg mt-1">{stat.value}</div>
@@ -178,7 +165,7 @@
 					{/each}
 				</div>
 			{:else}
-				<div class="text-center py-12 text-sm text-neutral-500 border border-black bg-neutral-50">暂无赛程数据</div>
+				<EmptyState title="暂无赛程数据" class="bg-neutral-50 py-12" />
 			{/if}
 		</div>
 	{:else}
@@ -215,7 +202,7 @@
 					</table>
 				</div>
 			{:else}
-				<div class="text-center py-12 text-sm text-neutral-500 border border-black bg-neutral-50">暂无积分数据</div>
+				<EmptyState title="暂无积分数据" class="bg-neutral-50 py-12" />
 			{/if}
 		</div>
 	{/if}
