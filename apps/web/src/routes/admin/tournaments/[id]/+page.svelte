@@ -251,8 +251,9 @@
 		</div>
 	</div>
 
-	{#if t.status === 'draft'}
-		<div class="border border-black bg-white mb-6">
+	<div class="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
+		{#if t.status === 'draft'}
+		<div class="border border-black bg-white">
 			<div class="relative overflow-hidden flex items-center justify-between px-4 py-3 bg-black text-white">
 				<div class="flex items-center gap-2 relative z-10">
 					<span class="inline-block w-1 h-1 bg-accent shrink-0" aria-hidden="true"></span>
@@ -300,9 +301,9 @@
 				{/if}
 			</div>
 		</div>
-	{/if}
+		{/if}
 
-	<div class="border border-black bg-white mb-6">
+		<div class="border border-black bg-white {t.status === 'draft' ? '' : 'lg:col-span-2'}">
 		<div class="relative overflow-hidden flex items-center justify-between px-4 py-3 bg-black text-white">
 			<div class="flex items-center gap-2 relative z-10">
 				<span class="inline-block w-1 h-1 bg-accent shrink-0" aria-hidden="true"></span>
@@ -370,6 +371,7 @@
 				{/if}
 			{/if}
 		</div>
+	</div>
 	</div>
 
 	<div class="grid grid-cols-3 gap-0 border-l border-t border-black">
