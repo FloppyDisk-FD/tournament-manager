@@ -10,6 +10,7 @@
     "deploy": "wrangler deploy",
     "db:generate": "drizzle-kit generate",
     "db:migrate": "bun run src/db/migrate.ts",
+    "gen:vapid": "bun run scripts/gen-vapid.ts",
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {

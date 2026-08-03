@@ -9,6 +9,7 @@ import { matchRoutes } from './routes/matches';
 import { registrationRoutes } from './routes/registrations';
 import { checkinRoutes } from './routes/checkins';
 import { notificationRoutes } from './routes/notifications';
+import { pushRoutes } from './routes/push';
 import { createDb, db, type Db } from './db';
 import { registrations, tournaments } from './db/schema';
 import { eq, desc } from 'drizzle-orm';
@@ -22,6 +23,9 @@ import { authMiddleware, requireAuth } from './middleware/auth';
 type Bindings = {
   HYPERDRIVE: { connectionString: string };
   JWT_SECRET: string;
+  VAPID_PUBLIC_KEY?: string;
+  VAPID_PRIVATE_KEY?: string;
+  VAPID_SUBJECT?: string;
 };
 
 const app = new Hono<{ Bindings: Bindings; Variables: { db: Db } }>();
@@ -82,6 +86,7 @@ app.route('/api/v1/matches', matchRoutes);
 app.route('/api/v1/tournaments', registrationRoutes);
 app.route('/api/v1/tournaments', checkinRoutes);
 app.route('/api/v1/notifications', notificationRoutes);
+app.route('/api/v1/push', pushRoutes);
 
 // 我的全部报名（跨赛事，用户后台）
 app.get('/api/v1/registrations/mine', authMiddleware, requireAuth, async (c) => {

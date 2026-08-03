@@ -5,6 +5,8 @@
 	import { api } from '$lib/api/client';
 	import { fetchUser, getUser, logout } from '$lib/stores/auth.svelte';
 	import Toast from '$lib/components/Toast.svelte';
+	import { success, error, info } from '$lib/stores/toast.svelte';
+	import { isPushSupported, getPushSubscription, enablePush, disablePush } from '$lib/push';
 
 	let { children, data } = $props();
 
@@ -34,12 +36,46 @@
 		} catch { /* ignore */ }
 	}
 
+	// 系统通知（Web Push）
+	let pushSupported = $state(false);
+	let pushEnabled = $state(false);
+	let pushToggling = $state(false);
+
+	async function initPush() {
+		if (!isPushSupported()) return;
+		pushSupported = true;
+		pushEnabled = !!(await getPushSubscription());
+	}
+
+	async function togglePush() {
+		if (pushToggling) return;
+		pushToggling = true;
+		try {
+			if (pushEnabled) {
+				await disablePush();
+				pushEnabled = false;
+				info('已关闭系统通知');
+			} else {
+				const ok = await enablePush();
+				if (ok) {
+					pushEnabled = true;
+					success('系统通知已开启');
+				} else {
+					error('无法开启：浏览器未授权或服务端未配置 VAPID');
+				}
+			}
+		} finally {
+			pushToggling = false;
+		}
+	}
+
 	onMount(() => {
 		if (data.authenticated && !getUser()) {
 			fetchUser();
 		}
 		if (data.authenticated) {
 			loadNotifications();
+			initPush();
 		}
 	});
 </script>
@@ -103,6 +139,23 @@
 									{/each}
 								{/if}
 							</div>
+						</div>
+						<div class="border-t border-black px-3 py-2.5 flex items-center justify-between gap-3 bg-neutral-50">
+							<div class="min-w-0">
+								<p class="text-xs font-bold text-black">系统通知</p>
+								<p class="text-[10px] text-neutral-400 font-bold">浏览器桌面推送提醒</p>
+							</div>
+							{#if !pushSupported}
+								<span class="text-[10px] text-neutral-400 font-bold shrink-0">浏览器不支持</span>
+							{:else}
+								<button
+									onclick={togglePush}
+									disabled={pushToggling}
+									class="text-xs font-bold border border-black px-3 py-1 transition-colors duration-150 active:opacity-70 disabled:opacity-50 {pushEnabled ? 'bg-black text-white' : 'bg-white text-black hover:bg-neutral-100'}"
+								>
+									{pushEnabled ? '已开启' : '开启'}
+								</button>
+							{/if}
 						</div>
 					{/if}
 				</div>

@@ -74,7 +74,7 @@ registrationRoutes.post('/:id/registrations', async (c) => {
   }).returning();
 
   await notify(db, user.id, 'registration', '报名已提交',
-    `《${tournament.name}》报名已提交，队伍「${team.name}」等待主办方审核。`, `/tournaments/${id}`);
+    `《${tournament.name}》报名已提交，队伍「${team.name}」等待主办方审核。`, `/tournaments/${id}`, c.env);
 
   c.status(201);
   return c.json(reg);
@@ -182,7 +182,7 @@ registrationRoutes.post('/:id/registrations/:rid/approve', async (c) => {
   });
 
   await notify(db, reg.userId, 'registration', '报名已通过',
-    `《${tournament.name}》报名已通过，队伍「${team.name}」已加入赛事。`, `/tournaments/${id}`);
+    `《${tournament.name}》报名已通过，队伍「${team.name}」已加入赛事。`, `/tournaments/${id}`, c.env);
 
   return c.json({ message: '报名已通过', teamId: reg.teamId });
 });
@@ -206,7 +206,7 @@ registrationRoutes.post('/:id/registrations/:rid/reject', async (c) => {
   }).where(eq(registrations.id, rid));
 
   await notify(db, reg.userId, 'registration', '报名被拒绝',
-    `《${reg.teamName}》报名未通过${body.note ? `：${body.note}` : ''}。`, `/tournaments/${id}`);
+    `《${reg.teamName}》报名未通过${body.note ? `：${body.note}` : ''}。`, `/tournaments/${id}`, c.env);
 
   return c.json({ message: '报名已拒绝' });
 });
