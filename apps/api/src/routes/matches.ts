@@ -84,8 +84,9 @@ matchRoutes.put('/:id/score', async (c) => {
     }
   }
 
-  const team1Wins = data.games.filter((g) => g.winner_id === match.team1Id).length;
-  const team2Wins = data.games.filter((g) => g.winner_id === match.team2Id).length;
+  const allGames = await c.get('db').select().from(games).where(eq(games.matchId, id));
+  const team1Wins = allGames.filter((g) => g.winnerId === match.team1Id).length;
+  const team2Wins = allGames.filter((g) => g.winnerId === match.team2Id).length;
   const winsNeeded = Math.ceil(tournament.boCount / 2);
 
   const updates: any = { team1Score: team1Wins, team2Score: team2Wins };
@@ -123,6 +124,9 @@ matchRoutes.put('/:id/score', async (c) => {
 
     // 更新积分榜
     await updateStandings(c.get('db'), tournament.id, match.stageId);
+  } else if (data.games.length > 0) {
+    // 已录入比分但未决出胜负 → 比赛进行中
+    updates.status = 'in_progress';
   }
 
   await c.get('db').update(matches).set(updates).where(eq(matches.id, id));
