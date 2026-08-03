@@ -14,6 +14,11 @@
 	let { data } = $props();
 
 	const liveUrlValue = $derived(data.tournament?.liveUrl ?? data.tournament?.live_url ?? '');
+	function livePlatformLabel(url: string): string {
+		if (url.includes('youtube.com') || url.includes('youtu.be')) return 'YouTube';
+		if (url.includes('twitch.tv')) return 'Twitch';
+		return '原平台';
+	}
 	let liveInfo = $state<LiveEmbed | null>(null);
 	$effect(() => {
 		liveInfo = liveUrlValue
@@ -188,10 +193,10 @@
 							<span class="inline-block w-1 h-1 bg-accent shrink-0" aria-hidden="true"></span>
 							<span class="font-black text-base tracking-tight">直播</span>
 						</div>
-						{#if liveInfo?.kind === 'link'}
-							<a href={liveUrlValue} target="_blank" rel="noopener noreferrer"
+						{#if liveInfo}
+							<a href={liveInfo.url} target="_blank" rel="noopener noreferrer"
 								class="relative z-10 text-xs font-bold text-white/80 border-b border-white/50 hover:text-white transition-colors duration-150">
-								新窗口观看 →
+								{liveInfo.kind === 'iframe' ? `在 ${livePlatformLabel(liveInfo.url)} 观看` : '新窗口观看'} →
 							</a>
 						{/if}
 					</div>
