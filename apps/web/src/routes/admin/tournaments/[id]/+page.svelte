@@ -191,6 +191,16 @@
 
 	const t = $derived(data.tournament);
 	const teams = $derived(data.teams);
+
+	// 数据统计
+	let stats = $state<any>(null);
+	$effect(() => {
+		if (!stats) {
+			api.get<any>(`/tournaments/${data.tournament.id}/stats`)
+				.then((s) => { stats = s; })
+				.catch(() => { stats = null; });
+		}
+	});
 </script>
 
 <div>
@@ -294,6 +304,51 @@
 					</div>
 				</div>
 			{/if}
+		</div>
+
+		<div class="border border-black bg-white mb-6">
+			<div class="flex items-center justify-between px-4 py-3 border-b border-black">
+				<div class="flex items-center gap-2">
+					<span class="inline-block w-1 h-1 bg-accent"></span>
+					<span class="font-black text-sm tracking-tight">数据统计与导出</span>
+				</div>
+			</div>
+			<div class="p-4">
+				{#if stats}
+					<div class="grid grid-cols-2 md:grid-cols-4 gap-0 border-l border-t border-black mb-4">
+						<div class="border-r border-b border-black p-3">
+							<div class="text-xs text-neutral-500 font-bold">报名</div>
+							<div class="text-xl font-black">{stats.registrations.total}</div>
+							<div class="text-[11px] text-neutral-400 font-bold">通过 {stats.registrations.approved} · 待审 {stats.registrations.pending} · 拒绝 {stats.registrations.rejected}</div>
+						</div>
+						<div class="border-r border-b border-black p-3">
+							<div class="text-xs text-neutral-500 font-bold">签到</div>
+							<div class="text-xl font-black">{stats.teams.checkedIn}<span class="text-sm text-neutral-400 font-bold">/{stats.teams.total}</span></div>
+							<div class="text-[11px] text-neutral-400 font-bold">已到 / 参赛队伍</div>
+						</div>
+						<div class="border-r border-b border-black p-3">
+							<div class="text-xs text-neutral-500 font-bold">比赛</div>
+							<div class="text-xl font-black">{stats.matches.completed}<span class="text-sm text-neutral-400 font-bold">/{stats.matches.total}</span></div>
+							<div class="text-[11px] text-neutral-400 font-bold">已结束 / 全部</div>
+						</div>
+						<div class="border-r border-b border-black p-3">
+							<div class="text-xs text-neutral-500 font-bold">收款</div>
+							<div class="text-xl font-black">¥{stats.payments.amount}</div>
+							<div class="text-[11px] text-neutral-400 font-bold">{stats.payments.paid} 笔已支付</div>
+						</div>
+					</div>
+					<div class="flex flex-wrap gap-2">
+						<a href={`/api/v1/tournaments/${data.tournament.id}/export/registrations.csv`}
+							class="border border-black bg-black text-white font-bold px-3 py-2 text-sm hover:bg-neutral-800 transition-colors duration-150">导出报名名单</a>
+						<a href={`/api/v1/tournaments/${data.tournament.id}/export/bracket.csv`}
+							class="border border-black bg-black text-white font-bold px-3 py-2 text-sm hover:bg-neutral-800 transition-colors duration-150">导出赛程</a>
+						<a href={`/api/v1/tournaments/${data.tournament.id}/export/standings.csv`}
+							class="border border-black bg-black text-white font-bold px-3 py-2 text-sm hover:bg-neutral-800 transition-colors duration-150">导出积分榜</a>
+					</div>
+				{:else}
+					<div class="text-xs text-neutral-400 font-bold">统计加载中...</div>
+				{/if}
+			</div>
 		</div>
 
 	<div class="flex items-start justify-between mb-6">

@@ -8,6 +8,7 @@ import { bracketRoutes } from './routes/bracket';
 import { matchRoutes } from './routes/matches';
 import { registrationRoutes } from './routes/registrations';
 import { checkinRoutes } from './routes/checkins';
+import { exportRoutes } from './routes/exports';
 import { paymentRoutes } from './routes/payments';
 import { notificationRoutes } from './routes/notifications';
 import { pushRoutes } from './routes/push';
@@ -87,6 +88,7 @@ app.route('/api/v1/matches', matchRoutes);
 app.route('/api/v1/tournaments', registrationRoutes);
 app.route('/api/v1/payments', paymentRoutes);
 app.route('/api/v1/tournaments', checkinRoutes);
+app.route('/api/v1/tournaments', exportRoutes);
 app.route('/api/v1/notifications', notificationRoutes);
 app.route('/api/v1/push', pushRoutes);
 
