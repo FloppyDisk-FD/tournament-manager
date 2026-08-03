@@ -106,14 +106,17 @@ exportRoutes.get('/:id/export/registrations.csv', async (c) => {
     .where(eq(registrations.tournamentId, id))
     .orderBy(registrations.createdAt);
 
+  const customFields = (tournament.customFields ?? []) as { key: string; label: string }[];
+
   const csv = [
-    ['队伍', '申请人', '状态', '报名时间', '备注'],
+    ['队伍', '申请人', '状态', '报名时间', '备注', ...customFields.map((f) => f.label)],
     ...rows.map((r) => [
       r.reg.teamName,
       r.user?.username ?? '',
       REG_STATUS_LABEL[r.reg.status] ?? r.reg.status,
       r.reg.createdAt ? r.reg.createdAt.toISOString().slice(0, 16).replace('T', ' ') : '',
       r.reg.note ?? '',
+      ...customFields.map((f) => (r.reg.answers as Record<string, unknown> | null)?.[f.key] ?? ''),
     ]),
   ];
   return csvResponse(`${tournament.name}-报名名单.csv`, csv);

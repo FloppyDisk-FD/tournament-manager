@@ -5,6 +5,7 @@
 	import Button from '$lib/components/Button.svelte';
 	import BackLink from '$lib/components/BackLink.svelte';
 	import Input from '$lib/components/Input.svelte';
+	import Label from '$lib/components/Label.svelte';
 	import SeedRankingPanel from '$lib/components/SeedRankingPanel.svelte';
 	import { FORMAT_MAP, TOURNAMENT_STATUS_MAP, REGISTRATION_STATUS_MAP } from '$lib/constants/tournament';
 	import StatusBadge from '$lib/components/StatusBadge.svelte';
@@ -189,6 +190,44 @@
 		}
 	}
 
+	// 报名表单自定义字段
+	let customFields = $state<any[]>(Array.isArray(data.tournament?.customFields) ? data.tournament.customFields : []);
+	let customPanelOpen = $state(false);
+	let customSaving = $state(false);
+	let newField = $state({ key: '', label: '', type: 'text', required: false, options: '' });
+	const FIELD_TYPES: Record<string, string> = { text: '文本', number: '数字', select: '下拉选择', textarea: '多行文本' };
+
+	function addField() {
+		const label = newField.label.trim();
+		if (!label) return error('请填写字段名称');
+		const key = newField.key.trim() || label.toLowerCase().replace(/[^a-z0-9]+/g, '_').replace(/^_+|_+$/g, '').slice(0, 32);
+		if (!key) return error('字段标识无效');
+		if (customFields.some((f) => f.key === key)) return error('字段标识已存在');
+		customFields.push({
+			key,
+			label,
+			type: newField.type,
+			required: newField.required,
+			options: newField.type === 'select' ? newField.options.split(/[,，]/).map((s: string) => s.trim()).filter(Boolean) : undefined,
+		});
+		newField = { key: '', label: '', type: 'text', required: false, options: '' };
+	}
+
+	async function saveCustomFields() {
+		customSaving = true;
+		try {
+			const updated = await api.put<any>(`/tournaments/${data.tournament.id}/custom-fields`, { fields: customFields });
+			customFields = Array.isArray(updated?.customFields) ? updated.customFields : [];
+			data.tournament = { ...data.tournament, ...updated };
+			customPanelOpen = false;
+			success('报名表单已保存');
+		} catch (e: any) {
+			error(e.message || '保存失败');
+		} finally {
+			customSaving = false;
+		}
+	}
+
 	const t = $derived(data.tournament);
 	const teams = $derived(data.teams);
 
@@ -301,6 +340,78 @@
 					<p class="text-xs text-neutral-500 mt-1 font-bold">元为单位，0 = 免费。报名时自动生成支付订单，支付成功后才可审核通过；赛事开始后不可修改。</p>
 					<div class="mt-3 flex gap-2">
 						<Button onclick={saveFee} disabled={feeSaving} en="Save" class="px-4">{feeSaving ? '保存中...' : '保存'}</Button>
+					</div>
+				</div>
+			{/if}
+		</div>
+
+		<div class="border border-black bg-white mb-6">
+			<div class="flex items-center justify-between px-4 py-3 border-b border-black">
+				<div class="flex items-center gap-2">
+					<span class="inline-block w-1 h-1 bg-accent"></span>
+					<span class="font-black text-sm tracking-tight">报名表单</span>
+					{#if customFields.length > 0}
+						<span class="text-xs font-black bg-black text-white px-1.5 py-0.5">{customFields.length} 个字段</span>
+					{/if}
+				</div>
+				{#if t.status === 'draft'}
+					<button onclick={() => (customPanelOpen = !customPanelOpen)}
+						class="text-xs font-bold border border-black px-2.5 py-1 bg-white hover:bg-neutral-100 transition-colors duration-150">
+						{customPanelOpen ? '收起' : customFields.length > 0 ? '编辑' : '+ 配置报名表单'}
+					</button>
+				{/if}
+			</div>
+			{#if customPanelOpen && t.status === 'draft'}
+				<div class="p-4 space-y-3">
+					{#if customFields.length > 0}
+						<div class="border border-black divide-y divide-black">
+							{#each customFields as f, i (f.key)}
+								<div class="flex items-center justify-between gap-2 px-3 py-2">
+									<div class="flex items-center gap-2 min-w-0 flex-wrap">
+										<span class="font-black text-sm truncate">{f.label}</span>
+										{#if f.required}<span class="text-[10px] font-black bg-accent text-white px-1">必填</span>{/if}
+										<span class="text-[10px] font-bold text-neutral-400 border border-black px-1">{FIELD_TYPES[f.type] ?? f.type}</span>
+										{#if f.type === 'select' && f.options?.length}
+											<span class="text-[11px] text-neutral-500 font-bold truncate">选项：{f.options.join(' / ')}</span>
+										{/if}
+									</div>
+									<button onclick={() => customFields.splice(i, 1)} aria-label={`删除字段 ${f.label}`}
+										class="text-accent text-xs font-bold border border-black px-1.5 py-0.5 bg-white hover:bg-neutral-100 shrink-0">删除</button>
+								</div>
+							{/each}
+						</div>
+					{:else}
+						<p class="text-sm text-neutral-500 font-bold">尚未配置自定义字段。可添加联系方式、游戏ID、段位等，报名时选手需填写。</p>
+					{/if}
+					<div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-2 items-end">
+						<div>
+							<Label for="cfLabel">字段名称</Label>
+							<Input id="cfLabel" bind:value={newField.label} placeholder="如：QQ号" />
+						</div>
+						<div>
+							<Label for="cfType">类型</Label>
+							<select id="cfType" bind:value={newField.type}
+								class="w-full rounded-none border border-black font-sans px-3 py-2 text-sm bg-white focus:outline-none focus:border-accent">
+								<option value="text">文本</option>
+								<option value="number">数字</option>
+								<option value="select">下拉选择</option>
+								<option value="textarea">多行文本</option>
+							</select>
+						</div>
+						<div>
+							<Label for="cfOptions">选项（逗号分隔）</Label>
+							<Input id="cfOptions" bind:value={newField.options} placeholder="青铜/白银/黄金" disabled={newField.type !== 'select'} />
+						</div>
+						<div class="flex items-center gap-3 pb-1">
+							<label class="flex items-center gap-1.5 text-sm font-bold cursor-pointer select-none">
+								<input type="checkbox" bind:checked={newField.required} class="accent-black" /> 必填
+							</label>
+							<button onclick={addField}
+								class="border border-black bg-black text-white px-3 py-2 text-sm font-bold hover:opacity-80 transition-opacity duration-150">+ 添加字段</button>
+						</div>
+					</div>
+					<div class="flex gap-2 pt-1">
+						<Button onclick={saveCustomFields} disabled={customSaving} en="Save" class="px-4">{customSaving ? '保存中...' : '保存表单'}</Button>
 					</div>
 				</div>
 			{/if}
@@ -444,6 +555,13 @@
 											<span>原因：{reg.note}</span>
 										{/if}
 									</div>
+									{#if reg.answers && Object.keys(reg.answers).length > 0}
+										<div class="mt-1 flex items-center gap-2 text-[11px] text-neutral-500 font-bold flex-wrap">
+											{#each Object.entries(reg.answers) as [k, v]}
+												<span class="border border-black/30 px-1 py-0.5 bg-neutral-50">{(customFields.find((f) => f.key === k)?.label ?? k)}：{v}</span>
+											{/each}
+										</div>
+									{/if}
 								</div>
 								<div class="flex items-center justify-end gap-1 px-3 py-2.5">
 									{#if reg.status === 'pending'}

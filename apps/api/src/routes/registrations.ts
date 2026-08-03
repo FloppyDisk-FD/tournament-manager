@@ -6,6 +6,8 @@ import { AppError, requireUuid } from '../middleware/error';
 import { authMiddleware, requireAuth } from '../middleware/auth';
 import { canManageTournament } from '../services/perm';
 import { notify } from '../services/notify';
+import { validateAnswers } from '../types/custom-field';
+import type { CustomField } from '../types/custom-field';
 
 /** 选手自助报名路由（/api/v1/tournaments/:id/registrations） */
 export const registrationRoutes = new Hono<{ Variables: { user: any | null; db: Db } }>();
@@ -34,7 +36,7 @@ registrationRoutes.post('/:id/registrations', async (c) => {
   if (!tournament) throw new AppError('NOT_FOUND', '赛事不存在', 404);
   if (tournament.status !== 'draft') throw new AppError('TOURNAMENT_CLOSED', '赛事不在报名期', 400);
 
-  const body = await c.req.json() as { team_id?: string };
+  const body = await c.req.json() as { team_id?: string; answers?: unknown };
   const teamId = body.team_id;
   if (!teamId) throw new AppError('INVALID_INPUT', '请选择队伍', 400);
 
@@ -63,6 +65,9 @@ registrationRoutes.post('/:id/registrations', async (c) => {
   }
 
   const players = await db.select().from(teamPlayers).where(eq(teamPlayers.teamId, teamId));
+  // 自定义表单校验（必填/选项）
+  const customFields = (tournament.customFields ?? []) as CustomField[];
+  const answers = validateAnswers(customFields, body.answers);
   const [reg] = await db.insert(registrations).values({
     tournamentId: id,
     userId: user.id,
@@ -71,6 +76,7 @@ registrationRoutes.post('/:id/registrations', async (c) => {
     logoEmoji: team.logoEmoji,
     logoUrl: team.logoUrl,
     players: players as any,
+    answers: answers as any,
   }).returning();
 
   // 报名费 > 0：同步生成支付订单（模拟网关，provider='mock'）

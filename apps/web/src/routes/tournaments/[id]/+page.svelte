@@ -5,6 +5,7 @@
 	import BackLink from '$lib/components/BackLink.svelte';
 	import EmptyState from '$lib/components/EmptyState.svelte';
 	import StatusBadge from '$lib/components/StatusBadge.svelte';
+	import Input from '$lib/components/Input.svelte';
 	import Label from '$lib/components/Label.svelte';
 	import { FORMAT_MAP, TOURNAMENT_STATUS_MAP, REGISTRATION_STATUS_MAP } from '$lib/constants/tournament';
 	import { getUser } from '$lib/stores/auth.svelte';
@@ -39,6 +40,8 @@
 	let showRegForm = $state(false);
 	let regTeamId = $state('');
 	let regSubmitting = $state(false);
+	let regAnswers = $state<Record<string, string>>({});
+	const customFields = $derived(Array.isArray(data.tournament?.customFields) ? data.tournament.customFields : []);
 	let payOrder = $state<any>(null);
 	let paying = $state(false);
 
@@ -65,9 +68,10 @@
 		if (!regTeamId) { error('请选择队伍'); return; }
 		regSubmitting = true;
 		try {
-			const res = await api.post<any>(`/tournaments/${data.tournament.id}/registrations`, { team_id: regTeamId });
+			const res = await api.post<any>(`/tournaments/${data.tournament.id}/registrations`, { team_id: regTeamId, answers: regAnswers });
 			showRegForm = false;
 			regTeamId = '';
+			regAnswers = {};
 			await loadMyRegistrations();
 			if (res?.payment) {
 				payOrder = res.payment;
@@ -318,6 +322,29 @@
 									</select>
 									<p class="text-xs text-neutral-400 mt-1">报名通过后该队伍将加入赛事，队员可在「我的后台」维护。</p>
 								</div>
+								{#if customFields.length > 0}
+									<div class="space-y-3">
+										{#each customFields as f (f.key)}
+											<div>
+												<Label for={`cf-${f.key}`}>{f.label}{f.required ? ' *' : ''}</Label>
+												{#if f.type === 'select'}
+													<select id={`cf-${f.key}`} bind:value={regAnswers[f.key]}
+														class="w-full rounded-none border border-black font-sans px-3 py-2 text-sm bg-white focus:outline-none focus:border-accent">
+														<option value="" disabled>请选择</option>
+														{#each f.options ?? [] as opt}
+															<option value={opt}>{opt}</option>
+														{/each}
+													</select>
+												{:else if f.type === 'textarea'}
+													<textarea id={`cf-${f.key}`} bind:value={regAnswers[f.key]} rows="3"
+														class="w-full rounded-none border border-black font-sans px-3 py-2 text-sm bg-white focus:outline-none focus:border-accent"></textarea>
+												{:else}
+													<Input id={`cf-${f.key}`} type={f.type === 'number' ? 'number' : 'text'} bind:value={regAnswers[f.key]} placeholder={f.placeholder ?? ''} />
+												{/if}
+											</div>
+										{/each}
+									</div>
+								{/if}
 								<div class="flex gap-2">
 									<Button onclick={submitRegistration} disabled={regSubmitting} en="Submit" class="rounded-none">
 										{regSubmitting ? '提交中...' : '提交报名'}

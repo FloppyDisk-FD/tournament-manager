@@ -51,6 +51,7 @@ export const tournaments = pgTable('tournaments', {
   swissRounds: integer('swiss_rounds'),
   liveUrl: varchar('live_url', { length: 500 }),
   entryFee: integer('entry_fee').notNull().default(0),
+  customFields: jsonb('custom_fields').notNull().default([]),
   formatConfig: jsonb('format_config'),
 });
 
@@ -221,6 +222,7 @@ export const registrations = pgTable('registrations', {
   players: jsonb('players').notNull().default([]),
   status: registrationStatusEnum('status').notNull().default('pending'),
   note: text('note'),
+  answers: jsonb('answers').notNull().default({}),
   createdAt: timestamp('created_at').notNull().defaultNow(),
   reviewedAt: timestamp('reviewed_at'),
 });

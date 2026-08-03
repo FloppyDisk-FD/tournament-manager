@@ -5,6 +5,7 @@ import { tournaments, stages, matches, games, standings, tournamentTeams } from 
 import { AppError, requireUuid } from '../middleware/error';
 import { authMiddleware } from '../middleware/auth';
 import { canCreateTournament, canManageTournament } from '../services/perm';
+import { validateCustomFields } from '../types/custom-field';
 
 export const tournamentRoutes = new Hono<{ Variables: { user: any | null; db: Db } }>();
 
@@ -75,6 +76,7 @@ tournamentRoutes.post('/', async (c) => {
     coverImage: data.cover_image || data.coverImage,
     liveUrl: data.live_url,
     entryFee: data.entry_fee ?? 0,
+    customFields: validateCustomFields(data.custom_fields ?? data.customFields ?? []),
     createdBy: user.id,
   }).returning();
 
@@ -150,6 +152,21 @@ tournamentRoutes.put('/:id/fee', async (c) => {
   if (!Number.isFinite(fee) || fee < 0) throw new AppError('INVALID_INPUT', '报名费无效', 400);
   const [updated] = await c.get('db').update(tournaments)
     .set({ entryFee: Math.round(fee) })
+    .where(eq(tournaments.id, id)).returning();
+  return c.json(updated);
+});
+
+// 报名表单自定义字段（仅 draft 期可改，报名开始后锁定）
+tournamentRoutes.put('/:id/custom-fields', async (c) => {
+  const id = c.req.param('id');
+  const [existing] = await c.get('db').select().from(tournaments).where(eq(tournaments.id, id)).limit(1);
+  if (!existing) throw new AppError('NOT_FOUND', '赛事不存在', 404);
+  if (!canManageTournament(c.get('user'), existing)) throw new AppError('FORBIDDEN', '无权管理该赛事', 403);
+  if (existing.status !== 'draft') throw new AppError('TOURNAMENT_ALREADY_STARTED', '赛事已开始，报名表单不可修改', 400);
+  const data = await c.req.json();
+  const fields = validateCustomFields(data.fields);
+  const [updated] = await c.get('db').update(tournaments)
+    .set({ customFields: fields })
     .where(eq(tournaments.id, id)).returning();
   return c.json(updated);
 });
