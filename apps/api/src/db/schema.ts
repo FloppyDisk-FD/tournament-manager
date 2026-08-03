@@ -50,6 +50,7 @@ export const tournaments = pgTable('tournaments', {
   thirdPlace: boolean('third_place').notNull().default(false),
   swissRounds: integer('swiss_rounds'),
   liveUrl: varchar('live_url', { length: 500 }),
+  entryFee: integer('entry_fee').notNull().default(0),
   formatConfig: jsonb('format_config'),
 });
 
@@ -207,6 +208,8 @@ export type Standing = InferSelectModel<typeof standings>;
 // Registrations — 选手自助报名（登录后提交，主办方审核）
 export const registrationStatusEnum = pgEnum('registration_status', ['pending', 'approved', 'rejected']);
 
+export const paymentStatusEnum = pgEnum('payment_status', ['pending', 'paid', 'failed', 'refunded']);
+
 export const registrations = pgTable('registrations', {
   id: uuid('id').primaryKey().defaultRandom(),
   tournamentId: uuid('tournament_id').notNull().references(() => tournaments.id),
@@ -225,6 +228,26 @@ export const registrations = pgTable('registrations', {
 export const registrationsRelations = relations(registrations, ({ one }) => ({
   tournament: one(tournaments, { fields: [registrations.tournamentId], references: [tournaments.id] }),
   user: one(users, { fields: [registrations.userId], references: [users.id] }),
+}));
+
+// Payments — 报名费订单（provider = 'mock' 为模拟支付，后续可换微信/支付宝适配层）
+export const payments = pgTable('payments', {
+  id: uuid('id').primaryKey().defaultRandom(),
+  registrationId: uuid('registration_id').notNull().references(() => registrations.id, { onDelete: 'cascade' }),
+  tournamentId: uuid('tournament_id').notNull().references(() => tournaments.id),
+  userId: uuid('user_id').notNull().references(() => users.id),
+  amount: integer('amount').notNull(),
+  status: paymentStatusEnum('status').notNull().default('pending'),
+  provider: varchar('provider', { length: 20 }).notNull().default('mock'),
+  providerOrderId: varchar('provider_order_id', { length: 100 }),
+  paidAt: timestamp('paid_at'),
+  createdAt: timestamp('created_at').notNull().defaultNow(),
+});
+
+export const paymentsRelations = relations(payments, ({ one }) => ({
+  registration: one(registrations, { fields: [payments.registrationId], references: [registrations.id] }),
+  tournament: one(tournaments, { fields: [payments.tournamentId], references: [tournaments.id] }),
+  user: one(users, { fields: [payments.userId], references: [users.id] }),
 }));
 
 // Notifications — 站内通知（报名状态变化等）

@@ -74,6 +74,7 @@ tournamentRoutes.post('/', async (c) => {
     formatConfig: data.format_config,
     coverImage: data.cover_image || data.coverImage,
     liveUrl: data.live_url,
+    entryFee: data.entry_fee ?? 0,
     createdBy: user.id,
   }).returning();
 
@@ -111,6 +112,7 @@ tournamentRoutes.put('/:id', async (c) => {
     formatConfig: data.format_config,
     coverImage: data.cover_image,
     liveUrl: data.live_url,
+    entryFee: data.entry_fee,
     startDate: data.start_date,
     endDate: data.end_date,
     status: data.status,
@@ -133,6 +135,22 @@ tournamentRoutes.put('/:id/live', async (c) => {
     .set({ liveUrl: data.live_url ?? null })
     .where(eq(tournaments.id, id))
     .returning();
+  return c.json(updated);
+});
+
+// 报名费设置（仅 draft 期可改，报名开始后锁定）
+tournamentRoutes.put('/:id/fee', async (c) => {
+  const id = c.req.param('id');
+  const [existing] = await c.get('db').select().from(tournaments).where(eq(tournaments.id, id)).limit(1);
+  if (!existing) throw new AppError('NOT_FOUND', '赛事不存在', 404);
+  if (!canManageTournament(c.get('user'), existing)) throw new AppError('FORBIDDEN', '无权管理该赛事', 403);
+  if (existing.status !== 'draft') throw new AppError('TOURNAMENT_ALREADY_STARTED', '赛事已开始，报名费不可修改', 400);
+  const data = await c.req.json();
+  const fee = Number(data.entry_fee ?? 0);
+  if (!Number.isFinite(fee) || fee < 0) throw new AppError('INVALID_INPUT', '报名费无效', 400);
+  const [updated] = await c.get('db').update(tournaments)
+    .set({ entryFee: Math.round(fee) })
+    .where(eq(tournaments.id, id)).returning();
   return c.json(updated);
 });
 

@@ -170,6 +170,25 @@
 		await saveLive();
 	}
 
+	// 报名费
+	let feeInput = $state(data.tournament?.entryFee ?? data.tournament?.entry_fee ?? 0);
+	const entryFeeValue = $derived(data.tournament?.entryFee ?? data.tournament?.entry_fee ?? 0);
+	let feePanelOpen = $state(false);
+	let feeSaving = $state(false);
+	async function saveFee() {
+		feeSaving = true;
+		try {
+			const updated = await api.put<any>(`/tournaments/${data.tournament.id}/fee`, { entry_fee: feeInput });
+			data.tournament = { ...data.tournament, ...updated };
+			feePanelOpen = false;
+			success('报名费已保存');
+		} catch (e: any) {
+			error(e.message);
+		} finally {
+			feeSaving = false;
+		}
+	}
+
 	const t = $derived(data.tournament);
 	const teams = $derived(data.teams);
 </script>
@@ -243,6 +262,35 @@
 						{#if liveUrlValue}
 							<button onclick={clearLive} class="border border-black bg-white text-accent font-bold px-3 py-2 text-sm hover:bg-neutral-100">移除直播</button>
 						{/if}
+					</div>
+				</div>
+			{/if}
+		</div>
+
+		<div class="border border-black bg-white mb-6">
+			<div class="flex items-center justify-between px-4 py-3 border-b border-black">
+				<div class="flex items-center gap-2">
+					<span class="inline-block w-1 h-1 bg-accent"></span>
+					<span class="font-black text-sm tracking-tight">报名费</span>
+					{#if entryFeeValue > 0}
+						<span class="text-xs font-black bg-black text-white px-1.5 py-0.5">¥{entryFeeValue}</span>
+					{:else}
+						<span class="text-xs text-neutral-400 font-bold">免费</span>
+					{/if}
+				</div>
+				{#if t.status === 'draft'}
+					<button onclick={() => feePanelOpen = !feePanelOpen}
+						class="text-xs font-bold border border-black px-2.5 py-1 bg-white hover:bg-neutral-100 transition-colors duration-150">
+						{feePanelOpen ? '收起' : entryFeeValue > 0 ? '修改' : '+ 设置报名费'}
+					</button>
+				{/if}
+			</div>
+			{#if feePanelOpen && t.status === 'draft'}
+				<div class="p-4">
+					<Input type="number" bind:value={feeInput} min="0" />
+					<p class="text-xs text-neutral-500 mt-1 font-bold">元为单位，0 = 免费。报名时自动生成支付订单，支付成功后才可审核通过；赛事开始后不可修改。</p>
+					<div class="mt-3 flex gap-2">
+						<Button onclick={saveFee} disabled={feeSaving} en="Save" class="px-4">{feeSaving ? '保存中...' : '保存'}</Button>
 					</div>
 				</div>
 			{/if}
@@ -325,6 +373,13 @@
 								<div class="px-3 py-2.5 border-b sm:border-b-0 sm:border-r border-black/20 min-w-0">
 									<div class="flex items-center gap-2 flex-wrap">
 										<StatusBadge status={reg.status} map={REGISTRATION_STATUS_MAP} />
+										{#if reg.payment}
+											{#if reg.payment.status === 'paid'}
+												<span class="text-xs font-bold bg-black text-white px-1.5 py-0.5">已支付 ¥{reg.payment.amount}</span>
+											{:else}
+												<span class="text-xs font-bold bg-neutral-100 border border-black px-1.5 py-0.5">待支付 ¥{reg.payment.amount}</span>
+											{/if}
+										{/if}
 										<span class="text-sm font-black truncate">{reg.teamName}</span>
 									</div>
 									<div class="mt-1 flex items-center gap-3 text-xs text-neutral-500 font-bold flex-wrap">

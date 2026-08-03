@@ -1,7 +1,7 @@
 import { Hono } from 'hono';
 import { eq, and, inArray, sql } from 'drizzle-orm';
 import type { Db } from '../db';
-import { registrations, tournaments, teams, teamPlayers, tournamentTeams, users } from '../db/schema';
+import { registrations, tournaments, teams, teamPlayers, tournamentTeams, users, payments } from '../db/schema';
 import { AppError, requireUuid } from '../middleware/error';
 import { authMiddleware, requireAuth } from '../middleware/auth';
 import { canManageTournament } from '../services/perm';
@@ -73,11 +73,23 @@ registrationRoutes.post('/:id/registrations', async (c) => {
     players: players as any,
   }).returning();
 
+  // 报名费 > 0：同步生成支付订单（模拟网关，provider='mock'）
+  let payment = null;
+  if (tournament.entryFee > 0) {
+    [payment] = await db.insert(payments).values({
+      registrationId: reg.id,
+      tournamentId: id,
+      userId: user.id,
+      amount: tournament.entryFee,
+      provider: 'mock',
+    }).returning();
+  }
+
   await notify(db, user.id, 'registration', '报名已提交',
-    `《${tournament.name}》报名已提交，队伍「${team.name}」等待主办方审核。`, `/tournaments/${id}`, c.env);
+    `《${tournament.name}》报名已提交，队伍「${team.name}」${payment ? '请完成支付后等待审核。' : '等待主办方审核。'}`, `/tournaments/${id}`, c.env);
 
   c.status(201);
-  return c.json(reg);
+  return c.json({ ...reg, payment });
 });
 
 // 报名列表：赛事管理者/系统管理员看全部，普通用户仅自己的
@@ -93,16 +105,19 @@ registrationRoutes.get('/:id/registrations', async (c) => {
 
   const rows = await db.select({
     registration: registrations,
+    payment: payments,
     user: { id: users.id, username: users.username },
   })
     .from(registrations)
     .leftJoin(users, eq(users.id, registrations.userId))
+    .leftJoin(payments, eq(payments.registrationId, registrations.id))
     .where(where)
     .orderBy(registrations.createdAt);
 
   return c.json(rows.map((r) => ({
     ...r.registration,
     applicant: r.user ? { id: r.user.id, username: r.user.username } : null,
+    payment: r.payment ?? null,
   })));
 });
 
@@ -110,10 +125,12 @@ registrationRoutes.get('/:id/registrations', async (c) => {
 registrationRoutes.get('/:id/registrations/mine', async (c) => {
   const id = requireUuid(c.req.param('id'), '赛事');
   const user = c.get('user')!;
-  const rows = await c.get('db').select().from(registrations)
+  const rows = await c.get('db').select({ registration: registrations, payment: payments })
+    .from(registrations)
+    .leftJoin(payments, eq(payments.registrationId, registrations.id))
     .where(and(eq(registrations.tournamentId, id), eq(registrations.userId, user.id)))
     .orderBy(registrations.createdAt);
-  return c.json(rows);
+  return c.json(rows.map((r) => ({ ...r.registration, payment: r.payment ?? null })));
 });
 
 // 取消报名（本人，仅 pending）
@@ -127,6 +144,10 @@ registrationRoutes.delete('/:id/registrations/:rid', async (c) => {
     .limit(1);
   if (!reg) throw new AppError('NOT_FOUND', '报名不存在', 404);
   if (reg.status !== 'pending') throw new AppError('CANNOT_CANCEL', '仅待审核的报名可取消', 400);
+
+  // 已支付报名需先退款，禁止直接取消
+  const [pay] = await c.get('db').select().from(payments).where(eq(payments.registrationId, rid)).limit(1);
+  if (pay && pay.status === 'paid') throw new AppError('PAYMENT_PAID', '该报名已支付，取消请联系主办方', 400);
 
   await c.get('db').delete(registrations).where(eq(registrations.id, rid));
   return c.json({ message: '报名已取消' });
@@ -151,6 +172,10 @@ registrationRoutes.post('/:id/registrations/:rid/approve', async (c) => {
     .where(and(eq(registrations.id, rid), eq(registrations.tournamentId, id))).limit(1);
   if (!reg) throw new AppError('NOT_FOUND', '报名不存在', 404);
   if (reg.status !== 'pending') throw new AppError('ALREADY_REVIEWED', '该报名已处理', 400);
+
+  // 收费赛事：未完成支付不可通过
+  const [pay] = await db.select().from(payments).where(eq(payments.registrationId, rid)).limit(1);
+  if (pay && pay.status !== 'paid') throw new AppError('PAYMENT_REQUIRED', '该报名尚未完成支付', 400);
 
   const [tournament] = await db.select().from(tournaments).where(eq(tournaments.id, id)).limit(1);
   if (!tournament) throw new AppError('NOT_FOUND', '赛事不存在', 404);

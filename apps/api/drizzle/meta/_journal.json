@@ -50,6 +50,13 @@
       "when": 1785744717935,
       "tag": "0006_faulty_iceman",
       "breakpoints": true
+    },
+    {
+      "idx": 7,
+      "version": "7",
+      "when": 1785748888461,
+      "tag": "0007_watery_living_lightning",
+      "breakpoints": true
     }
   ]
 }

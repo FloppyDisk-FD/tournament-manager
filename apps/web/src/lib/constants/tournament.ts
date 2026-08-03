@@ -60,6 +60,7 @@ export interface TournamentTemplate {
 	boCount: number;
 	thirdPlace: boolean;
 	swissRounds?: number;
+	entryFee?: number;
 }
 
 export const TOURNAMENT_TEMPLATES: TournamentTemplate[] = [

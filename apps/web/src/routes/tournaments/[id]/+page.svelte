@@ -39,6 +39,8 @@
 	let showRegForm = $state(false);
 	let regTeamId = $state('');
 	let regSubmitting = $state(false);
+	let payOrder = $state<any>(null);
+	let paying = $state(false);
 
 	async function loadMyRegistrations() {
 		if (!getUser()) return;
@@ -63,16 +65,40 @@
 		if (!regTeamId) { error('请选择队伍'); return; }
 		regSubmitting = true;
 		try {
-			await api.post(`/tournaments/${data.tournament.id}/registrations`, { team_id: regTeamId });
-			success('报名已提交，等待审核');
+			const res = await api.post<any>(`/tournaments/${data.tournament.id}/registrations`, { team_id: regTeamId });
 			showRegForm = false;
 			regTeamId = '';
 			await loadMyRegistrations();
+			if (res?.payment) {
+				payOrder = res.payment;
+				success('报名已提交，请完成支付');
+			} else {
+				success('报名已提交，等待审核');
+			}
 		} catch (e: any) {
 			error(e.message || '报名失败');
 		} finally {
 			regSubmitting = false;
 		}
+	}
+
+	async function payOrderPay() {
+		if (!payOrder) return;
+		paying = true;
+		try {
+			await api.post(`/payments/${payOrder.id}/pay`);
+			success('支付成功，报名等待审核');
+			payOrder = null;
+			await loadMyRegistrations();
+		} catch (e: any) {
+			error(e.message || '支付失败');
+		} finally {
+			paying = false;
+		}
+	}
+
+	async function retryPay(p: any) {
+		payOrder = p;
 	}
 
 	async function cancelRegistration() {
@@ -246,12 +272,18 @@
 							<div class="flex items-center justify-between gap-3 flex-wrap">
 								<div class="flex items-center gap-3 flex-wrap">
 									<StatusBadge status={myReg.status} map={REGISTRATION_STATUS_MAP} />
+									{#if myReg.payment?.status === 'paid'}
+										<span class="text-xs font-bold bg-black text-white px-1.5 py-0.5">已支付 ¥{myReg.payment.amount}</span>
+									{/if}
 									<span class="text-sm font-black">{myReg.teamName}</span>
 									{#if myReg.status === 'rejected' && myReg.note}
 										<span class="text-xs text-neutral-500 font-bold">原因：{myReg.note}</span>
 									{/if}
 								</div>
-								{#if myReg.status === 'pending'}
+								{#if myReg.payment && myReg.payment.status !== 'paid'}
+									<button onclick={() => retryPay(myReg.payment)} class="text-sm font-bold text-accent border-b border-accent hover:opacity-70 transition-opacity duration-150">去支付</button>
+								{/if}
+								{#if myReg.status === 'pending' && myReg.payment?.status !== 'paid'}
 									<button onclick={cancelRegistration} class="text-sm font-bold text-accent border-b border-accent hover:opacity-70 transition-opacity duration-150">取消报名</button>
 								{/if}
 							</div>
@@ -266,7 +298,12 @@
 									{/if}
 								</div>
 							{:else}
-								<Button onclick={() => (showRegForm = true)} en="Register" class="rounded-none">报名参赛 →</Button>
+								<div class="flex items-center gap-3 flex-wrap">
+									{#if t.entryFee > 0}
+										<span class="text-xs font-black bg-neutral-100 border border-black px-1.5 py-0.5">报名费 ¥{t.entryFee}</span>
+									{/if}
+									<Button onclick={() => (showRegForm = true)} en="Register" class="rounded-none">报名参赛 →</Button>
+								</div>
 							{/if}
 						{:else}
 							<div class="space-y-4">
@@ -292,6 +329,27 @@
 						{/if}
 					</div>
 				</div>
+
+				{#if payOrder}
+					<div class="mt-4 border border-black">
+						<div class="px-4 py-2.5 bg-black text-white flex items-center gap-2">
+							<span class="inline-block w-1 h-1 bg-accent"></span>
+							<span class="font-black text-sm tracking-tight">支付报名费</span>
+						</div>
+						<div class="p-4 space-y-3">
+							<div class="flex justify-between text-sm font-bold"><span class="text-neutral-500">队伍</span><span>{myReg?.teamName ?? '—'}</span></div>
+							<div class="flex justify-between text-sm font-bold"><span class="text-neutral-500">订单号</span><span class="font-mono">{payOrder.id.slice(0, 8).toUpperCase()}</span></div>
+							<div class="flex justify-between text-sm font-black"><span>应付金额</span><span class="text-accent">¥{payOrder.amount}</span></div>
+							<p class="text-xs text-neutral-500 font-bold">当前为模拟支付环境，点击按钮即视为支付成功。</p>
+							<div class="flex gap-2">
+								<Button onclick={payOrderPay} disabled={paying} en="Pay" class="rounded-none">
+									{paying ? '支付中...' : `确认支付 ¥${payOrder.amount}`}
+								</Button>
+								<button onclick={() => (payOrder = null)} class="border border-black bg-white text-black px-4 py-2 text-sm font-bold hover:bg-neutral-100 transition-colors duration-150">稍后支付</button>
+							</div>
+						</div>
+					</div>
+				{/if}
 			{/if}
 
 				{#if myEntryTeams.length > 0}

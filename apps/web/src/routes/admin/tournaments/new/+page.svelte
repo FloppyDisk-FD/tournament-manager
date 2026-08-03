@@ -19,6 +19,7 @@
 	let description = $state('');
 	let coverImage = $state('');
 	let liveUrl = $state('');
+	let entryFee = $state(0);
 	let loading = $state(false);
 	let selectedTemplate = $state<string | null>(null);
 
@@ -34,6 +35,7 @@
 		name = tpl.name;
 		format = tpl.format;
 		maxTeams = tpl.maxTeams;
+		entryFee = tpl.entryFee ?? 0;
 		teamSize = tpl.teamSize;
 		boCount = tpl.boCount;
 		thirdPlace = tpl.thirdPlace;
@@ -54,6 +56,7 @@
 				description,
 				cover_image: coverImage || undefined,
 				live_url: liveUrl || undefined,
+				entry_fee: entryFee,
 			});
 			success('赛事创建成功');
 			goto(`/admin/tournaments/${tournament.id}`);
@@ -136,6 +139,11 @@
 					<img src={coverImage} alt="banner preview" class="w-full h-32 object-cover" />
 				</div>
 			{/if}
+		</div>
+		<div>
+			<Label for="entryFee">报名费（元，0 = 免费）</Label>
+			<Input id="entryFee" type="number" bind:value={entryFee} min="0" />
+			<p class="text-xs text-neutral-500 mt-1 font-bold">报名时生成支付订单，支付成功后才可审核通过</p>
 		</div>
 		<div>
 			<Label for="liveUrl">直播地址（可选）</Label>
