@@ -1,6 +1,6 @@
 <script lang="ts">
 	import { api } from '$lib/api/client';
-	import { ArrowRight, Check, Circle, QrCode } from 'lucide-svelte';
+	import { ArrowRight, Check, Circle, QrCode, Image as ImageIcon, Video as VideoIcon, Ticket as TicketIcon, Handshake as HandshakeIcon, ClipboardList as ClipboardListIcon, ScrollText as ScrollTextIcon } from 'lucide-svelte';
 	import QRCode from 'qrcode';
 	import Button from '$lib/components/Button.svelte';
 	import BackLink from '$lib/components/BackLink.svelte';
@@ -13,7 +13,8 @@
 
 	let { data } = $props();
 	let generating = $state(false);
-	let editingBanner = $state(false);
+	let bannerOpen = $state(false);
+	let settingsCard = $state<HTMLDivElement>();
 	let bannerUrl = $state(data.tournament?.coverImage ?? data.tournament?.cover_image ?? '');
 
 	// 报名审核
@@ -144,7 +145,7 @@
 			const payload = { ...data.tournament, cover_image: bannerUrl, coverImage: bannerUrl };
 			const updated = await api.put<any>(`/tournaments/${data.tournament.id}`, payload);
 			data.tournament = { ...data.tournament, ...updated };
-			editingBanner = false;
+			bannerOpen = false;
 			success('Banner 已更新');
 		} catch (e: any) {
 			error(e.message);
@@ -304,271 +305,303 @@
 		<BackLink href="/admin/tournaments">← 返回赛事列表</BackLink>
 	</div>
 
-	<!-- Banner -->
+	<!-- Banner 预览 -->
 	{#if t.coverImage ?? t.cover_image}
 		<div class="relative border border-black overflow-hidden mb-6 group">
 			<img src={t.coverImage ?? t.cover_image} alt={t.name} class="w-full h-40 md:h-56 object-cover" />
 			{#if t.status === 'draft'}
-				<button onclick={() => editingBanner = !editingBanner}
+				<button onclick={() => { bannerOpen = true; settingsCard?.scrollIntoView({ behavior: 'smooth', block: 'start' }); }}
 					class="absolute top-2 right-2 bg-white border border-black px-2 py-1 text-xs font-bold opacity-0 group-hover:opacity-100 transition-opacity duration-150">
 					编辑 Banner
 				</button>
 			{/if}
 		</div>
-	{:else if t.status === 'draft'}
-		<div class="border border-black bg-neutral-50 p-4 mb-6 text-center">
-			<button onclick={() => editingBanner = !editingBanner}
-				class="text-sm font-bold text-neutral-600 hover:text-black transition-colors duration-150">
-				+ 添加赛事 Banner
-			</button>
-		</div>
 	{/if}
 
-	{#if editingBanner && t.status === 'draft'}
-		<div class="border border-black bg-white p-4 mb-6">
-			<label class="block text-sm font-bold text-black mb-2">Banner 图片 URL</label>
-			<div class="flex gap-0">
-				<Input type="url" bind:value={bannerUrl} placeholder="https://..." class="flex-1" />
-				<Button onclick={saveBanner} en="Save" class="px-4">
-					保存
-				</Button>
-				<button onclick={() => { editingBanner = false; bannerUrl = t.coverImage ?? t.cover_image ?? ''; }}
-					class="border border-l-0 border-black bg-white text-black font-bold px-4 py-2 text-sm hover:bg-neutral-100 transition-colors duration-150">
-					取消
-				</button>
+	<!-- 赛事设置 -->
+	<div class="border border-black bg-white mb-6" bind:this={settingsCard}>
+		<div class="relative overflow-hidden flex items-center justify-between px-4 py-3 bg-black text-white">
+			<div class="flex items-center gap-2">
+				<span class="inline-block w-1 h-1 bg-accent"></span>
+				<span class="font-black text-sm tracking-tight">赛事设置</span>
 			</div>
-			{#if bannerUrl}
-				<div class="mt-2 border border-black overflow-hidden">
-					<img src={bannerUrl} alt="preview" class="w-full h-32 object-cover" />
-				</div>
-			{/if}
+			<span class="hidden md:block text-[10px] font-bold text-neutral-400 uppercase tracking-wider">Banner · 直播 · 报名费 · 赞助商 · 表单 · 规则</span>
 		</div>
-	{/if}
-
-		<div class="border border-black bg-white mb-6">
-			<div class="flex items-center justify-between px-4 py-3 border-b border-black">
-				<div class="flex items-center gap-2">
-					<span class="inline-block w-1 h-1 bg-accent"></span>
-					<span class="font-black text-sm tracking-tight">直播嵌入</span>
-					{#if liveUrlValue}
-						<span class="text-xs text-neutral-400 font-bold">已配置</span>
-					{/if}
-				</div>
-				<button onclick={() => livePanelOpen = !livePanelOpen}
-					class="text-xs font-bold border border-black px-2.5 py-1 bg-white hover:bg-neutral-100 transition-colors duration-150">
-					{livePanelOpen ? '收起' : liveUrlValue ? '编辑' : '+ 配置直播'}
-				</button>
-			</div>
-			{#if livePanelOpen}
-				<div class="p-4">
-					<Input type="url" bind:value={liveInput} placeholder="https://live.bilibili.com/... 或 YouTube/Twitch 链接" />
-					<p class="text-xs text-neutral-500 mt-1 font-bold">支持 YouTube / Twitch 页内嵌入；B 站等受限平台将显示为外链按钮</p>
-					<div class="mt-3 flex gap-2">
-						<Button onclick={saveLive} en="Save" class="px-4">保存</Button>
-						{#if liveUrlValue}
-							<button onclick={clearLive} class="border border-black bg-white text-accent font-bold px-3 py-2 text-sm hover:bg-neutral-100">移除直播</button>
+		<div class="divide-y divide-black">
+			<!-- Banner -->
+			<div class="border-b border-black">
+				<button onclick={() => (bannerOpen = !bannerOpen)}
+					class="w-full flex items-center justify-between gap-3 px-4 py-3 bg-white hover:bg-neutral-50 transition-colors duration-150 text-left">
+					<div class="flex items-center gap-2.5 min-w-0">
+						<ImageIcon size={15} class="shrink-0" aria-hidden="true" />
+						<span class="font-black text-sm tracking-tight shrink-0">Banner</span>
+						{#if t.coverImage ?? t.cover_image}
+							<span class="text-xs font-black bg-black text-white px-1.5 py-0.5 shrink-0">已设置</span>
+						{:else}
+							<span class="text-xs text-neutral-400 font-bold">未设置</span>
 						{/if}
 					</div>
-				</div>
-			{/if}
-		</div>
-
-		<div class="border border-black bg-white mb-6">
-			<div class="flex items-center justify-between px-4 py-3 border-b border-black">
-				<div class="flex items-center gap-2">
-					<span class="inline-block w-1 h-1 bg-accent"></span>
-					<span class="font-black text-sm tracking-tight">报名费</span>
-					{#if entryFeeValue > 0}
-						<span class="text-xs font-black bg-black text-white px-1.5 py-0.5">¥{entryFeeValue}</span>
-					{:else}
-						<span class="text-xs text-neutral-400 font-bold">免费</span>
+					{#if t.status === 'draft'}
+						<span class="text-xs font-bold border border-black px-2.5 py-1 bg-white hover:bg-neutral-100 transition-colors duration-150 shrink-0">
+							{bannerOpen ? '收起' : (t.coverImage ?? t.cover_image) ? '编辑' : '配置'}
+						</span>
 					{/if}
-				</div>
-				{#if t.status === 'draft'}
-					<button onclick={() => feePanelOpen = !feePanelOpen}
-						class="text-xs font-bold border border-black px-2.5 py-1 bg-white hover:bg-neutral-100 transition-colors duration-150">
-						{feePanelOpen ? '收起' : entryFeeValue > 0 ? '修改' : '+ 设置报名费'}
-					</button>
-				{/if}
-			</div>
-			{#if feePanelOpen && t.status === 'draft'}
-				<div class="p-4">
-					<Input type="number" bind:value={feeInput} min="0" />
-					<p class="text-xs text-neutral-500 mt-1 font-bold">元为单位，0 = 免费。报名时自动生成支付订单，支付成功后才可审核通过；赛事开始后不可修改。</p>
-					<div class="mt-3 flex gap-2">
-						<Button onclick={saveFee} disabled={feeSaving} en="Save" class="px-4">{feeSaving ? '保存中...' : '保存'}</Button>
-					</div>
-				</div>
-			{/if}
-		</div>
-
-		<!-- 赞助商与 Banner 广告位 -->
-		<div class="border border-black bg-white mb-6">
-			<div class="flex items-center justify-between px-4 py-3 border-b border-black">
-				<div class="flex items-center gap-2">
-					<span class="inline-block w-1 h-1 bg-accent"></span>
-					<span class="font-black text-sm tracking-tight">赞助商与 Banner 广告位</span>
-					{#if bannerUrlValue || sponsorCount > 0}
-						<span class="text-xs text-neutral-400 font-bold">已配置</span>
-					{/if}
-				</div>
-				<button onclick={() => sponsorPanelOpen = !sponsorPanelOpen}
-					class="text-xs font-bold border border-black px-2.5 py-1 bg-white hover:bg-neutral-100 transition-colors duration-150">
-					{sponsorPanelOpen ? '收起' : bannerUrlValue || sponsorCount > 0 ? '编辑' : '+ 配置'}
 				</button>
-			</div>
-			{#if sponsorPanelOpen}
-				<div class="p-4 space-y-4">
-					<div>
-						<label class="block text-sm font-bold text-black mb-2">Banner 广告位图片 URL</label>
-						<Input type="url" bind:value={bannerInput} placeholder="https://... 赛事页顶部展示的横幅图" />
-						{#if bannerInput}
+				{#if bannerOpen && t.status === 'draft'}
+					<div class="px-4 pb-4">
+						<label class="block text-sm font-bold text-black mb-2">Banner 图片 URL</label>
+						<div class="flex gap-0">
+							<Input type="url" bind:value={bannerUrl} placeholder="https://..." class="flex-1" />
+							<Button onclick={saveBanner} en="Save" class="px-4">保存</Button>
+							<button onclick={() => { bannerOpen = false; bannerUrl = t.coverImage ?? t.cover_image ?? ''; }}
+								class="border border-l-0 border-black bg-white text-black font-bold px-4 py-2 text-sm hover:bg-neutral-100 transition-colors duration-150">取消</button>
+						</div>
+						{#if bannerUrl}
 							<div class="mt-2 border border-black overflow-hidden">
-								<img src={bannerInput} alt="banner preview" class="w-full h-28 object-cover" />
+								<img src={bannerUrl} alt="preview" class="w-full h-32 object-cover" />
 							</div>
 						{/if}
 					</div>
-					<div>
-						<div class="flex items-center justify-between mb-2">
-							<label class="block text-sm font-bold text-black">赞助商 Logo 墙</label>
-							<button onclick={addSponsor}
-								class="text-xs font-bold border border-black px-2.5 py-1 bg-white hover:bg-neutral-100 transition-colors duration-150">
-								+ 添加赞助商
-							</button>
-						</div>
-						{#if sponsorsInput.length === 0}
-							<p class="text-xs text-neutral-400 font-bold py-2">暂无赞助商，点击右上角添加</p>
+				{/if}
+			</div>
+			<!-- 直播 -->
+			<div class="border-b border-black">
+				<button onclick={() => (livePanelOpen = !livePanelOpen)}
+					class="w-full flex items-center justify-between gap-3 px-4 py-3 bg-white hover:bg-neutral-50 transition-colors duration-150 text-left">
+					<div class="flex items-center gap-2.5 min-w-0">
+						<VideoIcon size={15} class="shrink-0" aria-hidden="true" />
+						<span class="font-black text-sm tracking-tight shrink-0">直播嵌入</span>
+						{#if liveUrlValue}
+							<span class="text-xs text-neutral-400 font-bold truncate">{liveUrlValue}</span>
 						{:else}
-							<div class="space-y-2">
-								{#each sponsorsInput as s, i}
-									<div class="border border-black p-2.5 flex flex-col md:flex-row gap-2">
-										<Input type="text" bind:value={s.name} placeholder="赞助商名称" class="flex-1" />
-										<Input type="url" bind:value={s.logoUrl} placeholder="Logo 图片 URL" class="flex-1" />
-										<Input type="url" bind:value={s.url} placeholder="官网链接（可选）" class="flex-1" />
-										<button onclick={() => removeSponsor(i)}
-											class="border border-black bg-white text-accent font-bold px-3 py-2 text-sm hover:bg-neutral-100 shrink-0">
-											删除
-										</button>
+							<span class="text-xs text-neutral-400 font-bold">未配置</span>
+						{/if}
+					</div>
+					<span class="text-xs font-bold border border-black px-2.5 py-1 bg-white hover:bg-neutral-100 transition-colors duration-150 shrink-0">
+						{livePanelOpen ? '收起' : liveUrlValue ? '编辑' : '+ 配置'}
+					</span>
+				</button>
+				{#if livePanelOpen}
+					<div class="px-4 pb-4">
+						<Input type="url" bind:value={liveInput} placeholder="https://live.bilibili.com/... 或 YouTube/Twitch 链接" />
+						<p class="text-xs text-neutral-500 mt-1 font-bold">支持 YouTube / Twitch 页内嵌入；B 站等受限平台将显示为外链按钮</p>
+						<div class="mt-3 flex gap-2">
+							<Button onclick={saveLive} en="Save" class="px-4">保存</Button>
+							{#if liveUrlValue}
+								<button onclick={clearLive} class="border border-black bg-white text-accent font-bold px-3 py-2 text-sm hover:bg-neutral-100">移除直播</button>
+							{/if}
+						</div>
+					</div>
+				{/if}
+			</div>
+			<!-- 报名费 -->
+			<div class="border-b border-black">
+				<button onclick={() => (feePanelOpen = !feePanelOpen)}
+					class="w-full flex items-center justify-between gap-3 px-4 py-3 bg-white hover:bg-neutral-50 transition-colors duration-150 text-left">
+					<div class="flex items-center gap-2.5 min-w-0">
+						<TicketIcon size={15} class="shrink-0" aria-hidden="true" />
+						<span class="font-black text-sm tracking-tight shrink-0">报名费</span>
+						{#if entryFeeValue > 0}
+							<span class="text-xs font-black bg-black text-white px-1.5 py-0.5 shrink-0">¥{entryFeeValue}</span>
+						{:else}
+							<span class="text-xs text-neutral-400 font-bold">免费</span>
+						{/if}
+					</div>
+					{#if t.status === 'draft'}
+						<span class="text-xs font-bold border border-black px-2.5 py-1 bg-white hover:bg-neutral-100 transition-colors duration-150 shrink-0">
+							{feePanelOpen ? '收起' : entryFeeValue > 0 ? '修改' : '+ 设置'}
+						</span>
+					{:else}
+						<span class="text-[10px] font-bold text-neutral-400 uppercase tracking-wider shrink-0">已锁定</span>
+					{/if}
+				</button>
+				{#if feePanelOpen && t.status === 'draft'}
+					<div class="px-4 pb-4">
+						<Input type="number" bind:value={feeInput} min="0" />
+						<p class="text-xs text-neutral-500 mt-1 font-bold">元为单位，0 = 免费。报名时自动生成支付订单，支付成功后才可审核通过；赛事开始后不可修改。</p>
+						<div class="mt-3 flex gap-2">
+							<Button onclick={saveFee} disabled={feeSaving} en="Save" class="px-4">{feeSaving ? '保存中...' : '保存'}</Button>
+						</div>
+					</div>
+				{/if}
+			</div>
+			<!-- 赞助商与 Banner 广告位 -->
+			<div class="border-b border-black">
+				<button onclick={() => (sponsorPanelOpen = !sponsorPanelOpen)}
+					class="w-full flex items-center justify-between gap-3 px-4 py-3 bg-white hover:bg-neutral-50 transition-colors duration-150 text-left">
+					<div class="flex items-center gap-2.5 min-w-0">
+						<HandshakeIcon size={15} class="shrink-0" aria-hidden="true" />
+						<span class="font-black text-sm tracking-tight shrink-0">赞助商与 Banner 广告位</span>
+						{#if bannerUrlValue || sponsorCount > 0}
+							<span class="text-xs font-black bg-black text-white px-1.5 py-0.5 shrink-0">{sponsorCount} 家赞助商</span>
+						{:else}
+							<span class="text-xs text-neutral-400 font-bold">未配置</span>
+						{/if}
+					</div>
+					<span class="text-xs font-bold border border-black px-2.5 py-1 bg-white hover:bg-neutral-100 transition-colors duration-150 shrink-0">
+						{sponsorPanelOpen ? '收起' : bannerUrlValue || sponsorCount > 0 ? '编辑' : '+ 配置'}
+					</span>
+				</button>
+				{#if sponsorPanelOpen}
+					<div class="px-4 pb-4 space-y-4">
+						<div>
+							<label class="block text-sm font-bold text-black mb-2">Banner 广告位图片 URL</label>
+							<Input type="url" bind:value={bannerInput} placeholder="https://... 赛事页顶部展示的横幅图" />
+							{#if bannerInput}
+								<div class="mt-2 border border-black overflow-hidden">
+									<img src={bannerInput} alt="banner preview" class="w-full h-28 object-cover" />
+								</div>
+							{/if}
+						</div>
+						<div>
+							<div class="flex items-center justify-between mb-2">
+								<label class="block text-sm font-bold text-black">赞助商 Logo 墙</label>
+								<button onclick={addSponsor}
+									class="text-xs font-bold border border-black px-2.5 py-1 bg-white hover:bg-neutral-100 transition-colors duration-150">
+									+ 添加赞助商
+								</button>
+							</div>
+							{#if sponsorsInput.length === 0}
+								<p class="text-xs text-neutral-400 font-bold py-2">暂无赞助商，点击右上角添加</p>
+							{:else}
+								<div class="space-y-2">
+									{#each sponsorsInput as s, i}
+										<div class="border border-black p-2.5 flex flex-col md:flex-row gap-2">
+											<Input type="text" bind:value={s.name} placeholder="赞助商名称" class="flex-1" />
+											<Input type="url" bind:value={s.logoUrl} placeholder="Logo 图片 URL" class="flex-1" />
+											<Input type="url" bind:value={s.url} placeholder="官网链接（可选）" class="flex-1" />
+											<button onclick={() => removeSponsor(i)}
+												class="border border-black bg-white text-accent font-bold px-3 py-2 text-sm hover:bg-neutral-100 shrink-0">
+												删除
+											</button>
+										</div>
+									{/each}
+								</div>
+							{/if}
+						</div>
+						<div class="flex gap-2 pt-1">
+							<Button onclick={saveSponsors} en="Save" class="px-4">保存</Button>
+							{#if bannerUrlValue || sponsorCount > 0}
+								<button onclick={clearSponsors} class="border border-black bg-white text-accent font-bold px-3 py-2 text-sm hover:bg-neutral-100">清空</button>
+							{/if}
+						</div>
+					</div>
+				{/if}
+			</div>
+			<!-- 报名表单 -->
+			<div class="border-b border-black">
+				<button onclick={() => (customPanelOpen = !customPanelOpen)}
+					class="w-full flex items-center justify-between gap-3 px-4 py-3 bg-white hover:bg-neutral-50 transition-colors duration-150 text-left">
+					<div class="flex items-center gap-2.5 min-w-0">
+						<ClipboardListIcon size={15} class="shrink-0" aria-hidden="true" />
+						<span class="font-black text-sm tracking-tight shrink-0">报名表单</span>
+						{#if customFields.length > 0}
+							<span class="text-xs font-black bg-black text-white px-1.5 py-0.5 shrink-0">{customFields.length} 个字段</span>
+						{:else}
+							<span class="text-xs text-neutral-400 font-bold">默认表单</span>
+						{/if}
+					</div>
+					{#if t.status === 'draft'}
+						<span class="text-xs font-bold border border-black px-2.5 py-1 bg-white hover:bg-neutral-100 transition-colors duration-150 shrink-0">
+							{customPanelOpen ? '收起' : customFields.length > 0 ? '编辑' : '+ 配置'}
+						</span>
+					{:else}
+						<span class="text-[10px] font-bold text-neutral-400 uppercase tracking-wider shrink-0">已锁定</span>
+					{/if}
+				</button>
+				{#if customPanelOpen && t.status === 'draft'}
+					<div class="px-4 pb-4 space-y-3">
+						{#if customFields.length > 0}
+							<div class="border border-black divide-y divide-black">
+								{#each customFields as f, i (f.key)}
+									<div class="flex items-center justify-between gap-2 px-3 py-2">
+										<div class="flex items-center gap-2 min-w-0 flex-wrap">
+											<span class="font-black text-sm truncate">{f.label}</span>
+											{#if f.required}<span class="text-[10px] font-black bg-accent text-white px-1">必填</span>{/if}
+											<span class="text-[10px] font-bold text-neutral-400 border border-black px-1">{FIELD_TYPES[f.type] ?? f.type}</span>
+											{#if f.type === 'select' && f.options?.length}
+												<span class="text-[11px] text-neutral-500 font-bold truncate">选项：{f.options.join(' / ')}</span>
+											{/if}
+										</div>
+										<button onclick={() => customFields.splice(i, 1)} aria-label={`删除字段 ${f.label}`}
+											class="text-accent text-xs font-bold border border-black px-1.5 py-0.5 bg-white hover:bg-neutral-100 shrink-0">删除</button>
 									</div>
 								{/each}
 							</div>
+						{:else}
+							<p class="text-sm text-neutral-500 font-bold">尚未配置自定义字段。可添加联系方式、游戏ID、段位等，报名时选手需填写。</p>
 						{/if}
+						<div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-2 items-end">
+							<div>
+								<Label for="cfLabel">字段名称</Label>
+								<Input id="cfLabel" bind:value={newField.label} placeholder="如：QQ号" />
+							</div>
+							<div>
+								<Label for="cfType">类型</Label>
+								<select id="cfType" bind:value={newField.type}
+									class="w-full rounded-none border border-black font-sans px-3 py-2 text-sm bg-white focus:outline-none focus:border-accent">
+									<option value="text">文本</option>
+									<option value="number">数字</option>
+									<option value="select">下拉选择</option>
+									<option value="textarea">多行文本</option>
+								</select>
+							</div>
+							<div>
+								<Label for="cfOptions">选项（逗号分隔）</Label>
+								<Input id="cfOptions" bind:value={newField.options} placeholder="青铜/白银/黄金" disabled={newField.type !== 'select'} />
+							</div>
+							<div class="flex items-center gap-3 pb-1">
+								<label class="flex items-center gap-1.5 text-sm font-bold cursor-pointer select-none">
+									<input type="checkbox" bind:checked={newField.required} class="accent-black" /> 必填
+								</label>
+								<button onclick={addField}
+									class="border border-black bg-black text-white px-3 py-2 text-sm font-bold hover:opacity-80 transition-opacity duration-150">+ 添加字段</button>
+							</div>
+						</div>
+						<div class="flex gap-2 pt-1">
+							<Button onclick={saveCustomFields} disabled={customSaving} en="Save" class="px-4">{customSaving ? '保存中...' : '保存表单'}</Button>
+						</div>
 					</div>
-					<div class="flex gap-2 pt-1">
-						<Button onclick={saveSponsors} en="Save" class="px-4">保存</Button>
-						{#if bannerUrlValue || sponsorCount > 0}
-							<button onclick={clearSponsors} class="border border-black bg-white text-accent font-bold px-3 py-2 text-sm hover:bg-neutral-100">清空</button>
-						{/if}
-					</div>
-				</div>
-			{/if}
-		</div>
-
-		<div class="border border-black bg-white mb-6">
-			<div class="flex items-center justify-between px-4 py-3 border-b border-black">
-				<div class="flex items-center gap-2">
-					<span class="inline-block w-1 h-1 bg-accent"></span>
-					<span class="font-black text-sm tracking-tight">报名表单</span>
-					{#if customFields.length > 0}
-						<span class="text-xs font-black bg-black text-white px-1.5 py-0.5">{customFields.length} 个字段</span>
-					{/if}
-				</div>
-				{#if t.status === 'draft'}
-					<button onclick={() => (customPanelOpen = !customPanelOpen)}
-						class="text-xs font-bold border border-black px-2.5 py-1 bg-white hover:bg-neutral-100 transition-colors duration-150">
-						{customPanelOpen ? '收起' : customFields.length > 0 ? '编辑' : '+ 配置报名表单'}
-					</button>
 				{/if}
 			</div>
-			{#if customPanelOpen && t.status === 'draft'}
-				<div class="p-4 space-y-3">
-					{#if customFields.length > 0}
-						<div class="border border-black divide-y divide-black">
-							{#each customFields as f, i (f.key)}
-								<div class="flex items-center justify-between gap-2 px-3 py-2">
-									<div class="flex items-center gap-2 min-w-0 flex-wrap">
-										<span class="font-black text-sm truncate">{f.label}</span>
-										{#if f.required}<span class="text-[10px] font-black bg-accent text-white px-1">必填</span>{/if}
-										<span class="text-[10px] font-bold text-neutral-400 border border-black px-1">{FIELD_TYPES[f.type] ?? f.type}</span>
-										{#if f.type === 'select' && f.options?.length}
-											<span class="text-[11px] text-neutral-500 font-bold truncate">选项：{f.options.join(' / ')}</span>
-										{/if}
-									</div>
-									<button onclick={() => customFields.splice(i, 1)} aria-label={`删除字段 ${f.label}`}
-										class="text-accent text-xs font-bold border border-black px-1.5 py-0.5 bg-white hover:bg-neutral-100 shrink-0">删除</button>
-								</div>
-							{/each}
-						</div>
-					{:else}
-						<p class="text-sm text-neutral-500 font-bold">尚未配置自定义字段。可添加联系方式、游戏ID、段位等，报名时选手需填写。</p>
-					{/if}
-					<div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-2 items-end">
-						<div>
-							<Label for="cfLabel">字段名称</Label>
-							<Input id="cfLabel" bind:value={newField.label} placeholder="如：QQ号" />
-						</div>
-						<div>
-							<Label for="cfType">类型</Label>
-							<select id="cfType" bind:value={newField.type}
-								class="w-full rounded-none border border-black font-sans px-3 py-2 text-sm bg-white focus:outline-none focus:border-accent">
-								<option value="text">文本</option>
-								<option value="number">数字</option>
-								<option value="select">下拉选择</option>
-								<option value="textarea">多行文本</option>
-							</select>
-						</div>
-						<div>
-							<Label for="cfOptions">选项（逗号分隔）</Label>
-							<Input id="cfOptions" bind:value={newField.options} placeholder="青铜/白银/黄金" disabled={newField.type !== 'select'} />
-						</div>
-						<div class="flex items-center gap-3 pb-1">
-							<label class="flex items-center gap-1.5 text-sm font-bold cursor-pointer select-none">
-								<input type="checkbox" bind:checked={newField.required} class="accent-black" /> 必填
-							</label>
-							<button onclick={addField}
-								class="border border-black bg-black text-white px-3 py-2 text-sm font-bold hover:opacity-80 transition-opacity duration-150">+ 添加字段</button>
-						</div>
-					</div>
-					<div class="flex gap-2 pt-1">
-						<Button onclick={saveCustomFields} disabled={customSaving} en="Save" class="px-4">{customSaving ? '保存中...' : '保存表单'}</Button>
-					</div>
-				</div>
-			{/if}
-		</div>
-
-		<div class="border border-black bg-white mb-6">
-			<div class="flex items-center justify-between px-4 py-3 border-b border-black">
-				<div class="flex items-center gap-2">
-					<span class="inline-block w-1 h-1 bg-accent"></span>
-					<span class="font-black text-sm tracking-tight">赛事规则</span>
-					<span class="text-[10px] font-bold text-neutral-400 border border-black px-1">Markdown</span>
-				</div>
+			<!-- 赛事规则 -->
+			<div class="border-b border-black">
 				<button onclick={() => (rulesPanelOpen = !rulesPanelOpen)}
-					class="text-xs font-bold border border-black px-2.5 py-1 bg-white hover:bg-neutral-100 transition-colors duration-150">
-					{rulesPanelOpen ? '收起' : t.rules ? '编辑' : '+ 添加规则'}
-				</button>
-			</div>
-			{#if !rulesPanelOpen}
-				{#if t.rules}
-					<div class="px-4 py-3 text-sm font-bold text-neutral-600 whitespace-pre-line">{t.rules.slice(0, 200)}{t.rules.length > 200 ? '…' : ''}</div>
-				{:else}
-					<p class="px-4 py-3 text-sm text-neutral-400 font-bold">尚未添加规则，公开页不显示规则区块。</p>
-				{/if}
-			{:else}
-				<div class="p-4 space-y-3">
-					<textarea bind:value={rulesInput} rows="10"
-						class="w-full rounded-none border border-black font-mono px-3 py-2 text-sm bg-white focus:outline-none focus:border-accent"
-						placeholder="支持 Markdown：## 标题、- 列表、**加粗**、[链接](url)&#10;&#10;## 赛制&#10;- 单败淘汰 BO3，每队 5 人&#10;&#10;## 奖品&#10;- 冠军：¥500 + 奖杯&#10;&#10;## 联系方式&#10;- QQ 群：123456&#10;- 邮箱：contact@example.com"></textarea>
-					<div class="flex items-center gap-3">
-						<Button onclick={saveRules} disabled={rulesSaving} en="Save" class="px-4">{rulesSaving ? '保存中...' : '保存规则'}</Button>
-						<span class="text-xs text-neutral-400 font-bold">保存后公开页立即展示</span>
+					class="w-full flex items-center justify-between gap-3 px-4 py-3 bg-white hover:bg-neutral-50 transition-colors duration-150 text-left">
+					<div class="flex items-center gap-2.5 min-w-0">
+						<ScrollTextIcon size={15} class="shrink-0" aria-hidden="true" />
+						<span class="font-black text-sm tracking-tight shrink-0">赛事规则</span>
+						<span class="text-[10px] font-bold text-neutral-400 border border-black px-1 shrink-0">Markdown</span>
+						{#if t.rules}
+							<span class="text-xs font-black bg-black text-white px-1.5 py-0.5 shrink-0">已添加</span>
+						{:else}
+							<span class="text-xs text-neutral-400 font-bold">未添加</span>
+						{/if}
 					</div>
-				</div>
-			{/if}
+					<span class="text-xs font-bold border border-black px-2.5 py-1 bg-white hover:bg-neutral-100 transition-colors duration-150 shrink-0">
+						{rulesPanelOpen ? '收起' : t.rules ? '编辑' : '+ 添加'}
+					</span>
+				</button>
+				{#if rulesPanelOpen}
+					<div class="px-4 pb-4 space-y-3">
+						{#if !t.rules}
+							<p class="text-sm text-neutral-400 font-bold">尚未添加规则，公开页不显示规则区块。</p>
+						{/if}
+						<textarea bind:value={rulesInput} rows="10"
+							class="w-full rounded-none border border-black font-mono px-3 py-2 text-sm bg-white focus:outline-none focus:border-accent"
+							placeholder="支持 Markdown：## 标题、- 列表、**加粗**、[链接](url)&#10;&#10;## 赛制&#10;- 单败淘汰 BO3，每队 5 人&#10;&#10;## 奖品&#10;- 冠军：¥500 + 奖杯&#10;&#10;## 联系方式&#10;- QQ 群：123456&#10;- 邮箱：contact@example.com"></textarea>
+						<div class="flex items-center gap-3">
+							<Button onclick={saveRules} disabled={rulesSaving} en="Save" class="px-4">{rulesSaving ? '保存中...' : '保存规则'}</Button>
+							<span class="text-xs text-neutral-400 font-bold">保存后公开页立即展示</span>
+						</div>
+					</div>
+				{/if}
+			</div>
 		</div>
+	</div>
 
 		<div class="border border-black bg-white mb-6">
-			<div class="flex items-center justify-between px-4 py-3 border-b border-black">
+			<div class="relative overflow-hidden flex items-center justify-between px-4 py-3 bg-black text-white">
 				<div class="flex items-center gap-2">
 					<span class="inline-block w-1 h-1 bg-accent"></span>
 					<span class="font-black text-sm tracking-tight">数据统计与导出</span>
