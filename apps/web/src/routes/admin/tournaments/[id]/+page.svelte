@@ -1,6 +1,7 @@
 <script lang="ts">
 	import { api } from '$lib/api/client';
-	import { ArrowRight } from 'lucide-svelte';
+	import { ArrowRight, Check, Circle, QrCode } from 'lucide-svelte';
+	import QRCode from 'qrcode';
 	import Button from '$lib/components/Button.svelte';
 	import BackLink from '$lib/components/BackLink.svelte';
 	import Input from '$lib/components/Input.svelte';
@@ -47,6 +48,17 @@
 	$effect(() => {
 		if (data.tournament && !checkinLoaded) loadCheckins();
 	});
+
+	// 签到二维码（单码：所有队伍扫同一个码）
+	let qrOpen = $state(false);
+	let qrUrl = $state('');
+
+	async function showQr() {
+		const url = `${window.location.origin}/tournaments/${data.tournament.id}/checkin`;
+		const dataUrl = await QRCode.toDataURL(url, { width: 220, margin: 1 });
+		qrUrl = dataUrl;
+		qrOpen = true;
+	}
 
 	// 手动种子排位（面板组件化）
 	let seedPanelOpen = $state(false);
@@ -295,6 +307,14 @@
 				<span class="font-black text-base tracking-tight">签到管理</span>
 				<span class="text-xs font-black text-white/70">{checkins.stats.checked}/{checkins.stats.total}</span>
 			</div>
+			<button
+				onclick={showQr}
+				class="text-xs font-bold text-white/80 border-b border-white/50 hover:text-white hover:border-white transition-colors duration-150 relative z-10 inline-flex items-center gap-1"
+				title="展示赛事签到二维码"
+			>
+				<QrCode size={13} class="shrink-0" aria-hidden="true" />
+				签到二维码
+			</button>
 			<span class="pointer-events-none absolute right-2 top-1/2 -translate-y-1/2 text-4xl leading-none font-black uppercase tracking-widest whitespace-nowrap select-none text-white/15"
 				style="-webkit-mask-image: linear-gradient(to right, transparent, black); mask-image: linear-gradient(to right, transparent, black)">Check-in</span>
 		</div>
@@ -311,7 +331,9 @@
 						<div class="flex items-center justify-between gap-3 border border-black bg-white px-3 py-2 flex-wrap">
 							<div class="flex items-center gap-3 min-w-0 flex-wrap">
 								<span class="text-xs font-black tabular-nums text-neutral-500 shrink-0">{String(t.seed ?? '').padStart(2, '0')}</span>
-								<span class="text-sm shrink-0 {t.checkedIn ? 'text-black' : 'text-neutral-300'}" aria-hidden="true">{t.checkedIn ? '✓' : '○'}</span>
+								<span class="text-sm shrink-0 {t.checkedIn ? 'text-accent' : 'text-neutral-300'}" aria-hidden="true">
+					{#if t.checkedIn}<Check size={14} class="shrink-0" />{:else}<Circle size={14} class="shrink-0" />{/if}
+				</span>
 								<span class="text-sm font-black truncate">{t.name}</span>
 								{#if t.checkedInAt}
 									<span class="text-xs text-neutral-400 font-bold shrink-0">{new Date(t.checkedInAt).toLocaleTimeString()}</span>
@@ -329,6 +351,19 @@
 						</div>
 					{/each}
 				</div>
+				{#if qrOpen}
+					<div class="border border-black bg-white p-4 text-center mt-2">
+						{#if qrUrl}
+							<img src={qrUrl} alt="签到二维码" class="w-44 h-44 mx-auto border border-black" />
+							<p class="text-sm font-bold text-black mt-3">赛事签到二维码</p>
+							<p class="text-xs text-neutral-400 font-bold mt-1">所有队伍扫码后登录，按身份匹配队伍签到</p>
+							<button
+								onclick={() => { qrOpen = false; qrUrl = ''; }}
+								class="mt-3 rounded-none font-sans font-bold border border-black px-4 py-1.5 text-xs bg-black text-white hover:bg-neutral-800 transition-colors duration-150"
+							>关闭</button>
+						{/if}
+					</div>
+				{/if}
 			{/if}
 		</div>
 	</div>

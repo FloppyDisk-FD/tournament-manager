@@ -47,6 +47,29 @@ checkinRoutes.get('/:id/checkins', async (c) => {
   });
 });
 
+// 我的参赛队伍 + 签到状态（扫码签到页用，后端按登录身份鉴权）
+checkinRoutes.get('/:id/checkins/mine', async (c) => {
+  const id = requireUuid(c.req.param('id'), '赛事');
+  const user = c.get('user')!;
+  const db = c.get('db');
+  const rows = await db.select({
+    entry: tournamentTeams,
+    team: { id: teams.id, name: teams.name, logoUrl: teams.logoUrl, logoEmoji: teams.logoEmoji },
+  })
+    .from(tournamentTeams)
+    .innerJoin(teams, eq(teams.id, tournamentTeams.teamId))
+    .where(and(eq(tournamentTeams.tournamentId, id), eq(teams.ownerId, user.id)));
+  return c.json(rows.map((r) => ({
+    teamId: r.team.id,
+    name: r.team.name,
+    logoUrl: r.team.logoUrl,
+    logoEmoji: r.team.logoEmoji,
+    seed: r.entry.seed,
+    checkedIn: r.entry.checkedIn,
+    checkedInAt: r.entry.checkedInAt,
+  })));
+});
+
 // 主办方标记/取消签到（toggle）
 checkinRoutes.post('/:id/checkins/team/:teamId', async (c) => {
   const id = requireUuid(c.req.param('id'), '赛事');
