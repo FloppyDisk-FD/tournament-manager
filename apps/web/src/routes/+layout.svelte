@@ -36,6 +36,18 @@
 		} catch { /* ignore */ }
 	}
 
+	function formatTime(iso?: string): string {
+		if (!iso) return '';
+		const t = new Date(iso).getTime();
+		if (Number.isNaN(t)) return '';
+		const diff = Date.now() - t;
+		if (diff < 60_000) return '刚刚';
+		if (diff < 3_600_000) return `${Math.floor(diff / 60_000)} 分钟前`;
+		if (diff < 86_400_000) return `${Math.floor(diff / 3_600_000)} 小时前`;
+		const d = new Date(t);
+		return `${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+	}
+
 	// 系统通知（Web Push）
 	let pushSupported = $state(false);
 	let pushEnabled = $state(false);
@@ -130,32 +142,35 @@
 											onclick={() => (notifOpen = false)}
 											class="block px-3 py-2 border-b border-black/20 hover:bg-neutral-50 transition-colors duration-150 {n.read ? 'opacity-60' : ''}"
 										>
-											<div class="flex items-center gap-2">
-												<span class="w-1 h-1 shrink-0 {n.read ? 'bg-transparent' : 'bg-accent'}" aria-hidden="true"></span>
-												<span class="text-sm font-bold truncate">{n.title}</span>
+											<div class="flex items-start justify-between gap-3">
+												<div class="flex items-center gap-2 min-w-0">
+													<span class="w-1.5 h-1.5 shrink-0 mt-1 {n.read ? 'bg-neutral-300' : 'bg-accent'}" aria-hidden="true"></span>
+													<span class="text-sm font-bold truncate">{n.title}</span>
+												</div>
+												<span class="text-[10px] text-neutral-400 font-bold shrink-0 tabular-nums">{formatTime(n.createdAt)}</span>
 											</div>
-											<p class="text-xs text-neutral-500 mt-0.5 line-clamp-2">{n.message}</p>
+											<p class="text-xs text-neutral-500 mt-1 ml-3.5 line-clamp-2 leading-relaxed">{n.message}</p>
 										</a>
 									{/each}
 								{/if}
 							</div>
-						</div>
-						<div class="border-t border-black px-3 py-2.5 flex items-center justify-between gap-3 bg-neutral-50">
-							<div class="min-w-0">
-								<p class="text-xs font-bold text-black">系统通知</p>
-								<p class="text-[10px] text-neutral-400 font-bold">浏览器桌面推送提醒</p>
+							<div class="border-t border-black px-3 py-2.5 flex items-center justify-between gap-3 bg-neutral-50">
+								<div class="min-w-0">
+									<p class="text-xs font-bold text-black">系统通知</p>
+									<p class="text-[10px] text-neutral-400 font-bold">浏览器桌面推送提醒</p>
+								</div>
+								{#if !pushSupported}
+									<span class="text-[10px] text-neutral-400 font-bold shrink-0">浏览器不支持</span>
+								{:else}
+									<button
+										onclick={togglePush}
+										disabled={pushToggling}
+										class="text-xs font-bold border border-black px-3 py-1 transition-colors duration-150 active:opacity-70 disabled:opacity-50 {pushEnabled ? 'bg-black text-white' : 'bg-white text-black hover:bg-neutral-100'}"
+									>
+										{pushEnabled ? '已开启' : '开启'}
+									</button>
+								{/if}
 							</div>
-							{#if !pushSupported}
-								<span class="text-[10px] text-neutral-400 font-bold shrink-0">浏览器不支持</span>
-							{:else}
-								<button
-									onclick={togglePush}
-									disabled={pushToggling}
-									class="text-xs font-bold border border-black px-3 py-1 transition-colors duration-150 active:opacity-70 disabled:opacity-50 {pushEnabled ? 'bg-black text-white' : 'bg-white text-black hover:bg-neutral-100'}"
-								>
-									{pushEnabled ? '已开启' : '开启'}
-								</button>
-							{/if}
 						</div>
 					{/if}
 				</div>
