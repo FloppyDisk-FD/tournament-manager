@@ -16,6 +16,15 @@
 	let { data } = $props();
 
 	const liveUrlValue = $derived(data.tournament?.liveUrl ?? data.tournament?.live_url ?? '');
+	const bannerUrlValue = $derived(data.tournament?.bannerUrl ?? data.tournament?.banner_url ?? '');
+	const sponsorList = $derived(
+		(data.tournament?.sponsors ?? []).map((s: any) => ({
+			name: s?.name ?? '',
+			logoUrl: s?.logoUrl ?? s?.logo_url ?? '',
+			url: s?.url ?? '',
+		})) as { name: string; logoUrl: string; url: string }[]
+	);
+	const bannerLink = $derived(sponsorList.find((s) => s.url)?.url ?? bannerUrlValue);
 	const rulesHtml = $derived(renderMarkdown(data.tournament?.rules ?? ''));
 	function livePlatformLabel(url: string): string {
 		if (url.includes('youtube.com') || url.includes('youtu.be')) return 'YouTube';
@@ -179,6 +188,14 @@
 	{#if t.coverImage ?? t.cover_image}
 		<div class="border border-black overflow-hidden mb-6 lift">
 			<img src={t.coverImage ?? t.cover_image} alt={t.name} class="w-full h-40 md:h-56 object-cover" />
+		</div>
+	{/if}
+
+	{#if bannerUrlValue}
+		<div class="border border-black overflow-hidden mb-6">
+			<a href={bannerLink} target="_blank" rel="noopener noreferrer" class="block" aria-label="赛事广告横幅">
+				<img src={bannerUrlValue} alt="赛事广告" class="w-full h-24 md:h-32 object-cover" />
+			</a>
 		</div>
 	{/if}
 
@@ -523,6 +540,40 @@
 			{:else}
 				<EmptyState title="暂无积分数据" class="bg-neutral-50 py-12" />
 			{/if}
+		</div>
+	{/if}
+
+	{#if sponsorList.length > 0}
+		<div class="border border-black bg-white mb-6">
+			<div class="flex items-center justify-between px-4 py-3 border-b border-black">
+				<div class="flex items-center gap-2">
+					<span class="inline-block w-1 h-1 bg-accent"></span>
+					<span class="font-black text-sm tracking-tight">赞助商</span>
+				</div>
+				<span class="text-xs text-neutral-400 font-bold">{sponsorList.length} 家</span>
+			</div>
+			<div class="p-4 flex flex-wrap items-center gap-3">
+				{#each sponsorList as s}
+					{#if s.url}
+						<a href={s.url} target="_blank" rel="noopener noreferrer"
+							class="border border-black bg-white px-4 py-3 flex items-center gap-2 hover:bg-neutral-100 transition-colors duration-150 min-w-[120px] justify-center">
+							{#if s.logoUrl}
+								<img src={s.logoUrl} alt={s.name} class="h-8 w-auto max-w-[120px] object-contain" loading="lazy" />
+							{:else}
+								<span class="font-black text-sm text-black">{s.name}</span>
+							{/if}
+						</a>
+					{:else}
+						<div class="border border-black bg-white px-4 py-3 flex items-center gap-2 min-w-[120px] justify-center">
+							{#if s.logoUrl}
+								<img src={s.logoUrl} alt={s.name} class="h-8 w-auto max-w-[120px] object-contain" loading="lazy" />
+							{:else}
+								<span class="font-black text-sm text-black">{s.name}</span>
+							{/if}
+						</div>
+					{/if}
+				{/each}
+			</div>
 		</div>
 	{/if}
 </div>

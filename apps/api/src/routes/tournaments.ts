@@ -76,6 +76,8 @@ tournamentRoutes.post('/', async (c) => {
     formatConfig: data.format_config,
     coverImage: data.cover_image || data.coverImage,
     liveUrl: data.live_url,
+    bannerUrl: data.banner_url,
+    sponsors: data.sponsors ?? [],
     entryFee: data.entry_fee ?? 0,
     customFields: validateCustomFields(data.custom_fields ?? data.customFields ?? []),
     createdBy: user.id,
@@ -116,6 +118,8 @@ tournamentRoutes.put('/:id', async (c) => {
     formatConfig: data.format_config,
     coverImage: data.cover_image,
     liveUrl: data.live_url,
+    bannerUrl: data.banner_url,
+    sponsors: data.sponsors ?? [],
     entryFee: data.entry_fee,
     startDate: data.start_date,
     endDate: data.end_date,
@@ -137,6 +141,33 @@ tournamentRoutes.put('/:id/live', async (c) => {
   const data = await c.req.json();
   const [updated] = await c.get('db').update(tournaments)
     .set({ liveUrl: data.live_url ?? null })
+    .where(eq(tournaments.id, id))
+    .returning();
+  return c.json(updated);
+});
+
+// 赞助商与 Banner 设置（任何状态可改，跟随 live 模式）
+tournamentRoutes.put('/:id/sponsors', async (c) => {
+  const id = c.req.param('id');
+  const [existing] = await c.get('db').select().from(tournaments).where(eq(tournaments.id, id)).limit(1);
+  if (!existing) {
+    throw new AppError('NOT_FOUND', '赛事不存在', 404);
+  }
+  if (!canManageTournament(c.get('user'), existing)) {
+    throw new AppError('FORBIDDEN', '无权管理该赛事', 403);
+  }
+  const data = await c.req.json();
+  const sponsors = Array.isArray(data.sponsors)
+    ? data.sponsors
+        .filter((s: any) => s && typeof s.name === 'string' && s.name.trim())
+        .map((s: any) => ({
+          name: String(s.name).trim().slice(0, 100),
+          logoUrl: typeof s.logoUrl === 'string' ? s.logoUrl.slice(0, 500) : '',
+          url: typeof s.url === 'string' ? s.url.slice(0, 500) : '',
+        }))
+    : [];
+  const [updated] = await c.get('db').update(tournaments)
+    .set({ bannerUrl: typeof data.banner_url === 'string' ? data.banner_url : null, sponsors })
     .where(eq(tournaments.id, id))
     .returning();
   return c.json(updated);

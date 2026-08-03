@@ -174,6 +174,44 @@
 	// 报名费
 	let feeInput = $state(data.tournament?.entryFee ?? data.tournament?.entry_fee ?? 0);
 	const entryFeeValue = $derived(data.tournament?.entryFee ?? data.tournament?.entry_fee ?? 0);
+
+	// 赞助商与 Banner 广告位
+	interface SponsorItem { name: string; logoUrl: string; url: string }
+	let sponsorPanelOpen = $state(false);
+	let bannerInput = $state(data.tournament?.bannerUrl ?? data.tournament?.banner_url ?? '');
+	const bannerUrlValue = $derived(data.tournament?.bannerUrl ?? data.tournament?.banner_url ?? '');
+	let sponsorsInput = $state<SponsorItem[]>(
+		(data.tournament?.sponsors ?? []).map((s: any) => ({ name: s?.name ?? '', logoUrl: s?.logoUrl ?? s?.logo_url ?? '', url: s?.url ?? '' }))
+	);
+	const sponsorCount = $derived(sponsorsInput.filter((s) => s.name.trim()).length);
+
+	async function saveSponsors() {
+		try {
+			const updated = await api.put<any>(`/tournaments/${data.tournament.id}/sponsors`, {
+				banner_url: bannerInput || null,
+				sponsors: sponsorsInput.filter((s) => s.name.trim()),
+			});
+			data.tournament = { ...data.tournament, ...updated };
+			sponsorPanelOpen = false;
+			success('赞助商与 Banner 已保存');
+		} catch (e: any) {
+			error(e.message);
+		}
+	}
+
+	async function clearSponsors() {
+		bannerInput = '';
+		sponsorsInput = [];
+		await saveSponsors();
+	}
+
+	function addSponsor() {
+		sponsorsInput = [...sponsorsInput, { name: '', logoUrl: '', url: '' }];
+	}
+
+	function removeSponsor(i: number) {
+		sponsorsInput = sponsorsInput.filter((_, idx) => idx !== i);
+	}
 	let feePanelOpen = $state(false);
 	let feeSaving = $state(false);
 	async function saveFee() {
@@ -359,6 +397,68 @@
 					<p class="text-xs text-neutral-500 mt-1 font-bold">元为单位，0 = 免费。报名时自动生成支付订单，支付成功后才可审核通过；赛事开始后不可修改。</p>
 					<div class="mt-3 flex gap-2">
 						<Button onclick={saveFee} disabled={feeSaving} en="Save" class="px-4">{feeSaving ? '保存中...' : '保存'}</Button>
+					</div>
+				</div>
+			{/if}
+		</div>
+
+		<!-- 赞助商与 Banner 广告位 -->
+		<div class="border border-black bg-white mb-6">
+			<div class="flex items-center justify-between px-4 py-3 border-b border-black">
+				<div class="flex items-center gap-2">
+					<span class="inline-block w-1 h-1 bg-accent"></span>
+					<span class="font-black text-sm tracking-tight">赞助商与 Banner 广告位</span>
+					{#if bannerUrlValue || sponsorCount > 0}
+						<span class="text-xs text-neutral-400 font-bold">已配置</span>
+					{/if}
+				</div>
+				<button onclick={() => sponsorPanelOpen = !sponsorPanelOpen}
+					class="text-xs font-bold border border-black px-2.5 py-1 bg-white hover:bg-neutral-100 transition-colors duration-150">
+					{sponsorPanelOpen ? '收起' : bannerUrlValue || sponsorCount > 0 ? '编辑' : '+ 配置'}
+				</button>
+			</div>
+			{#if sponsorPanelOpen}
+				<div class="p-4 space-y-4">
+					<div>
+						<label class="block text-sm font-bold text-black mb-2">Banner 广告位图片 URL</label>
+						<Input type="url" bind:value={bannerInput} placeholder="https://... 赛事页顶部展示的横幅图" />
+						{#if bannerInput}
+							<div class="mt-2 border border-black overflow-hidden">
+								<img src={bannerInput} alt="banner preview" class="w-full h-28 object-cover" />
+							</div>
+						{/if}
+					</div>
+					<div>
+						<div class="flex items-center justify-between mb-2">
+							<label class="block text-sm font-bold text-black">赞助商 Logo 墙</label>
+							<button onclick={addSponsor}
+								class="text-xs font-bold border border-black px-2.5 py-1 bg-white hover:bg-neutral-100 transition-colors duration-150">
+								+ 添加赞助商
+							</button>
+						</div>
+						{#if sponsorsInput.length === 0}
+							<p class="text-xs text-neutral-400 font-bold py-2">暂无赞助商，点击右上角添加</p>
+						{:else}
+							<div class="space-y-2">
+								{#each sponsorsInput as s, i}
+									<div class="border border-black p-2.5 flex flex-col md:flex-row gap-2">
+										<Input type="text" bind:value={s.name} placeholder="赞助商名称" class="flex-1" />
+										<Input type="url" bind:value={s.logoUrl} placeholder="Logo 图片 URL" class="flex-1" />
+										<Input type="url" bind:value={s.url} placeholder="官网链接（可选）" class="flex-1" />
+										<button onclick={() => removeSponsor(i)}
+											class="border border-black bg-white text-accent font-bold px-3 py-2 text-sm hover:bg-neutral-100 shrink-0">
+											删除
+										</button>
+									</div>
+								{/each}
+							</div>
+						{/if}
+					</div>
+					<div class="flex gap-2 pt-1">
+						<Button onclick={saveSponsors} en="Save" class="px-4">保存</Button>
+						{#if bannerUrlValue || sponsorCount > 0}
+							<button onclick={clearSponsors} class="border border-black bg-white text-accent font-bold px-3 py-2 text-sm hover:bg-neutral-100">清空</button>
+						{/if}
 					</div>
 				</div>
 			{/if}

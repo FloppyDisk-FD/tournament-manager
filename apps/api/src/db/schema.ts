@@ -53,6 +53,8 @@ export const tournaments = pgTable('tournaments', {
   liveUrl: varchar('live_url', { length: 500 }),
   entryFee: integer('entry_fee').notNull().default(0),
   customFields: jsonb('custom_fields').notNull().default([]),
+  bannerUrl: varchar('banner_url', { length: 500 }),
+  sponsors: jsonb('sponsors').notNull().default([]),
   formatConfig: jsonb('format_config'),
 });
 
