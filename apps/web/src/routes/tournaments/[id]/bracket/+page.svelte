@@ -568,9 +568,9 @@
 				{#each stages as stage}
 					<div class="flex flex-col shrink-0 {stage.type === 'losers_bracket' ? 'bg-neutral-100/70 p-3' : ''}">
 						<div class="mb-4 border-b border-black pb-1 flex items-center gap-2">
-							<span class="w-2 h-2 shrink-0 {stage.type === 'losers_bracket' || stage.type === 'grand_final' ? 'bg-accent' : stage.type === 'winners_bracket' ? 'bg-black' : 'bg-neutral-400'}" aria-hidden="true"></span>
+							<span class="w-2 h-2 shrink-0 {stage.type === 'losers_bracket' || stage.type === 'grand_final' ? 'bg-accent' : stage.type === 'winners_bracket' && data.tournament.format !== 'single_elim' ? 'bg-black' : 'bg-neutral-400'}" aria-hidden="true"></span>
 							<h3 class="font-black text-base md:text-lg tracking-tight">{stage.name}</h3>
-							{#if stage.type === 'winners_bracket'}
+							{#if stage.type === 'winners_bracket' && data.tournament.format !== 'single_elim'}
 								<span class="ml-1 text-[10px] font-black uppercase tracking-wider px-1.5 py-0.5 bg-black text-white">胜者组</span>
 							{:else if stage.type === 'losers_bracket'}
 								<span class="ml-1 text-[10px] font-black uppercase tracking-wider px-1.5 py-0.5 bg-accent text-white">败者组</span>
