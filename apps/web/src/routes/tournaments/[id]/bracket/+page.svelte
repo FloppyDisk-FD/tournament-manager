@@ -371,11 +371,15 @@
 				{/if}
 			</div>
 			{#if ongoing}
-				<div class="absolute top-1.5 right-1.5 flex items-center gap-1" aria-label="进行中">
-					<span class="w-1.5 h-1.5 bg-accent status-dot"></span>
+				<div class="absolute -top-2.5 right-1.5 z-10 flex items-center gap-1 bg-accent text-white px-1.5 py-0.5 shadow-[2px_2px_0_rgba(0,0,0,0.15)]" aria-label="进行中">
+					<span class="w-1 h-1 bg-white rounded-full status-dot"></span>
+					<span class="text-[9px] font-black uppercase tracking-wider leading-none">进行中</span>
 				</div>
 			{:else if isWaiting}
-				<div class="absolute top-1.5 right-1.5 w-1.5 h-1.5 bg-neutral-400 status-dot" aria-label="待赛"></div>
+				<div class="absolute -top-2.5 right-1.5 z-10 flex items-center gap-1 bg-neutral-200 text-black px-1.5 py-0.5 border border-black shadow-[2px_2px_0_rgba(0,0,0,0.15)]" aria-label="待赛">
+					<span class="w-1 h-1 bg-neutral-500 rounded-full"></span>
+					<span class="text-[9px] font-black uppercase tracking-wider leading-none">待赛</span>
+				</div>
 			{:else if walk}
 				<div class="absolute top-1.5 right-1.5 text-[9px] font-bold uppercase tracking-wider text-neutral-400">轮空</div>
 			{/if}
