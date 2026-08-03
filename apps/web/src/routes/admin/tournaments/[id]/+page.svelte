@@ -25,6 +25,7 @@
 
 	// 签到管理
 	let checkins = $state<any>({ teams: [], stats: { total: 0, checked: 0 } });
+	const checkinMeta = $derived(`${checkins.stats.checked}/${checkins.stats.total}`);
 	let checkinLoaded = $state(false);
 	let checkinToggling = $state<string | null>(null);
 
@@ -745,7 +746,7 @@
 		{/if}
 
 		<div class="border border-black bg-white {t.status === 'draft' ? '' : 'lg:col-span-2'}">
-		<PanelHeader title="签到管理" watermark="Check-in" meta={`{checkins.stats.checked}/{checkins.stats.total}`}>
+		<PanelHeader title="签到管理" watermark="Check-in" meta={checkinMeta}>
 			{#snippet right()}
 				<button
 					onclick={showQr}
