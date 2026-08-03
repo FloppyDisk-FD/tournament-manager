@@ -191,11 +191,48 @@
 		</div>
 	{/if}
 
-	{#if bannerUrlValue}
-		<div class="border border-black overflow-hidden mb-6">
-			<a href={bannerLink} target="_blank" rel="noopener noreferrer" class="block" aria-label="赛事广告横幅">
-				<img src={bannerUrlValue} alt="赛事广告" class="w-full h-24 md:h-32 object-cover" />
-			</a>
+	{#if bannerUrlValue || sponsorList.length > 0}
+		<div class="grid grid-cols-1 gap-6 mb-6 {bannerUrlValue && sponsorList.length > 0 ? 'md:grid-cols-2' : ''}">
+			{#if bannerUrlValue}
+				<div class="border border-black overflow-hidden">
+					<a href={bannerLink} target="_blank" rel="noopener noreferrer" class="block h-full" aria-label="赛事广告横幅">
+						<img src={bannerUrlValue} alt="赛事广告" class="w-full h-full min-h-[120px] object-cover" />
+					</a>
+				</div>
+			{/if}
+			{#if sponsorList.length > 0}
+				<div class="border border-black bg-white">
+					<div class="flex items-center justify-between px-4 py-3 border-b border-black">
+						<div class="flex items-center gap-2">
+							<span class="inline-block w-1 h-1 bg-accent"></span>
+							<span class="font-black text-sm tracking-tight">赞助商</span>
+						</div>
+						<span class="text-xs text-neutral-400 font-bold">{sponsorList.length} 家</span>
+					</div>
+					<div class="p-4 flex flex-wrap items-center gap-3">
+						{#each sponsorList as s}
+							{#if s.url}
+								<a href={s.url} target="_blank" rel="noopener noreferrer"
+									class="border border-black bg-white px-4 py-3 flex items-center gap-2 hover:bg-neutral-100 transition-colors duration-150 min-w-[120px] justify-center">
+									{#if s.logoUrl}
+										<img src={s.logoUrl} alt={s.name} class="h-8 w-auto max-w-[120px] object-contain" loading="lazy" />
+									{:else}
+										<span class="font-black text-sm text-black">{s.name}</span>
+									{/if}
+								</a>
+							{:else}
+								<div class="border border-black bg-white px-4 py-3 flex items-center gap-2 min-w-[120px] justify-center">
+									{#if s.logoUrl}
+										<img src={s.logoUrl} alt={s.name} class="h-8 w-auto max-w-[120px] object-contain" loading="lazy" />
+									{:else}
+										<span class="font-black text-sm text-black">{s.name}</span>
+									{/if}
+								</div>
+							{/if}
+						{/each}
+					</div>
+				</div>
+			{/if}
 		</div>
 	{/if}
 
@@ -543,37 +580,4 @@
 		</div>
 	{/if}
 
-	{#if sponsorList.length > 0}
-		<div class="border border-black bg-white mb-6">
-			<div class="flex items-center justify-between px-4 py-3 border-b border-black">
-				<div class="flex items-center gap-2">
-					<span class="inline-block w-1 h-1 bg-accent"></span>
-					<span class="font-black text-sm tracking-tight">赞助商</span>
-				</div>
-				<span class="text-xs text-neutral-400 font-bold">{sponsorList.length} 家</span>
-			</div>
-			<div class="p-4 flex flex-wrap items-center gap-3">
-				{#each sponsorList as s}
-					{#if s.url}
-						<a href={s.url} target="_blank" rel="noopener noreferrer"
-							class="border border-black bg-white px-4 py-3 flex items-center gap-2 hover:bg-neutral-100 transition-colors duration-150 min-w-[120px] justify-center">
-							{#if s.logoUrl}
-								<img src={s.logoUrl} alt={s.name} class="h-8 w-auto max-w-[120px] object-contain" loading="lazy" />
-							{:else}
-								<span class="font-black text-sm text-black">{s.name}</span>
-							{/if}
-						</a>
-					{:else}
-						<div class="border border-black bg-white px-4 py-3 flex items-center gap-2 min-w-[120px] justify-center">
-							{#if s.logoUrl}
-								<img src={s.logoUrl} alt={s.name} class="h-8 w-auto max-w-[120px] object-contain" loading="lazy" />
-							{:else}
-								<span class="font-black text-sm text-black">{s.name}</span>
-							{/if}
-						</div>
-					{/if}
-				{/each}
-			</div>
-		</div>
-	{/if}
 </div>
