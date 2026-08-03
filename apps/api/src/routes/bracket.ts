@@ -58,8 +58,8 @@ bracketRoutes.get('/:id/bracket', async (c) => {
   const matchRows = await c.get('db').select({
     match: matches,
     game: games,
-    team1: { id: t1.id, name: t1.name, logoUrl: t1.logoUrl, seed: t1.seed },
-    team2: { id: t2.id, name: t2.name, logoUrl: t2.logoUrl, seed: t2.seed },
+    team1: { id: t1.id, name: t1.name, logoUrl: t1.logoUrl, logoEmoji: t1.logoEmoji, seed: t1.seed },
+    team2: { id: t2.id, name: t2.name, logoUrl: t2.logoUrl, logoEmoji: t2.logoEmoji, seed: t2.seed },
   })
     .from(matches)
     .leftJoin(t1, eq(t1.id, matches.team1Id))
@@ -76,8 +76,8 @@ bracketRoutes.get('/:id/bracket', async (c) => {
         id: m.id,
         stageId: m.stageId,
         bracket_pos: m.bracketPos,
-        team1: row.team1 ? { id: row.team1.id, name: row.team1.name, logo_url: row.team1.logoUrl, seed: row.team1.seed } : null,
-        team2: row.team2 ? { id: row.team2.id, name: row.team2.name, logo_url: row.team2.logoUrl, seed: row.team2.seed } : null,
+        team1: row.team1 ? { id: row.team1.id, name: row.team1.name, logo_url: row.team1.logoUrl, logo_emoji: row.team1.logoEmoji, seed: row.team1.seed } : null,
+        team2: row.team2 ? { id: row.team2.id, name: row.team2.name, logo_url: row.team2.logoUrl, logo_emoji: row.team2.logoEmoji, seed: row.team2.seed } : null,
         team1_score: m.team1Score,
         team2_score: m.team2Score,
         status: m.status,

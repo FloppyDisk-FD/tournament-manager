@@ -63,6 +63,14 @@
 		clearTimeout(hideTimer);
 	}
 
+	// 兼容 API 的 camelCase / snake_case 队标字段
+	function logoUrlOf(t: any) {
+		return t?.logoUrl ?? t?.logo_url ?? null;
+	}
+	function logoEmojiOf(t: any) {
+		return t?.logoEmoji ?? t?.logo_emoji ?? null;
+	}
+
 	// Geometry constants for elimination brackets.
 	const CARD_H = 80;
 	const GAP = 32;
@@ -313,6 +321,11 @@
 						<span class="w-4 shrink-0 text-[10px] text-neutral-400 tabular-nums">
 							{m.team1?.seed ?? ''}
 						</span>
+						{#if logoUrlOf(m.team1)}
+							<img src={logoUrlOf(m.team1)} alt="" class="w-4 h-4 object-contain shrink-0" loading="lazy" />
+						{:else if logoEmojiOf(m.team1)}
+							<span class="w-4 h-4 shrink-0 flex items-center justify-center text-xs leading-none" aria-hidden="true">{logoEmojiOf(m.team1)}</span>
+						{/if}
 						<span class="flex-1 min-w-0 truncate">
 							{m.team1 ? m.team1.name : 'TBD'}
 						</span>
@@ -338,6 +351,11 @@
 						<span class="w-4 shrink-0 text-[10px] text-neutral-400 tabular-nums">
 							{m.team2?.seed ?? ''}
 						</span>
+						{#if logoUrlOf(m.team2)}
+							<img src={logoUrlOf(m.team2)} alt="" class="w-4 h-4 object-contain shrink-0" loading="lazy" />
+						{:else if logoEmojiOf(m.team2)}
+							<span class="w-4 h-4 shrink-0 flex items-center justify-center text-xs leading-none" aria-hidden="true">{logoEmojiOf(m.team2)}</span>
+						{/if}
 						<span class="flex-1 min-w-0 truncate">
 							{m.team2 ? m.team2.name : 'TBD'}
 						</span>
@@ -655,15 +673,16 @@
 		{:else}
 			<EmptyState icon={GitFork} title="暂无赛程数据" class="py-20" />
 		{/if}
-		{#if stages.length > 0}
-			<div class="flex flex-wrap gap-x-6 gap-y-2 mt-6 pt-4 border-t border-black/20 text-[10px] font-bold uppercase tracking-wider text-neutral-500">
-				<span class="flex items-center gap-1.5"><span class="w-3 h-[2px] bg-black inline-block"></span>胜者晋级</span>
-				<span class="flex items-center gap-1.5"><span class="w-3 h-[2px] bg-black/40 inline-block"></span>败者淘汰</span>
-				<span class="flex items-center gap-1.5"><span class="w-1.5 h-1.5 bg-accent inline-block rounded-full"></span>进行中</span>
-				<span class="flex items-center gap-1.5"><span class="w-1.5 h-1.5 bg-neutral-400 inline-block rounded-full"></span>待赛</span>
-				<span class="flex items-center gap-1.5"><span class="text-[10px] leading-none">轮空</span>不战而胜</span>
-				<span class="flex items-center gap-1.5">#1 <span class="text-neutral-400">种子号</span></span>
-			</div>
-		{/if}
 	</div>
+	{#if stages.length > 0}
+		<div class="mt-4 border border-black bg-white px-4 py-2.5 flex flex-wrap gap-x-6 gap-y-2 text-[10px] font-black uppercase tracking-wider text-neutral-600">
+			<span class="flex items-center gap-1.5"><span class="w-4 h-[3px] bg-black inline-block"></span>胜者晋级</span>
+			<span class="flex items-center gap-1.5"><span class="w-4 h-[3px] bg-black/40 inline-block"></span>败者淘汰</span>
+			<span class="flex items-center gap-1.5"><span class="w-2 h-2 bg-accent inline-block rounded-full"></span>进行中</span>
+			<span class="flex items-center gap-1.5"><span class="w-2 h-2 bg-neutral-400 inline-block rounded-full"></span>待赛</span>
+			<span class="flex items-center gap-1.5"><span class="text-[10px] leading-none font-black">轮空</span>不战而胜</span>
+			<span class="flex items-center gap-1.5">#1 <span class="text-neutral-400 font-bold">种子号</span></span>
+			<span class="flex items-center gap-1.5"><span class="w-3.5 h-3.5 bg-neutral-200 border border-neutral-400 inline-block"></span>队标</span>
+		</div>
+	{/if}
 </div>
