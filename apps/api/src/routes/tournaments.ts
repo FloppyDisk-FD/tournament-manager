@@ -62,6 +62,7 @@ tournamentRoutes.post('/', async (c) => {
   const [tournament] = await c.get('db').insert(tournaments).values({
     name: data.name,
     description: data.description || '',
+    rules: data.rules || '',
     game: data.game,
     format: data.format,
     teamSize: data.team_size || 5,
@@ -101,6 +102,7 @@ tournamentRoutes.put('/:id', async (c) => {
   const [updated] = await c.get('db').update(tournaments).set({
     name: data.name,
     description: data.description,
+    rules: data.rules,
     game: data.game,
     format: data.format,
     teamSize: data.team_size,
@@ -167,6 +169,21 @@ tournamentRoutes.put('/:id/custom-fields', async (c) => {
   const fields = validateCustomFields(data.fields);
   const [updated] = await c.get('db').update(tournaments)
     .set({ customFields: fields })
+    .where(eq(tournaments.id, id)).returning();
+  return c.json(updated);
+});
+
+// 赛事规则（Markdown，任何状态可改）
+tournamentRoutes.put('/:id/rules', async (c) => {
+  const id = c.req.param('id');
+  const [existing] = await c.get('db').select().from(tournaments).where(eq(tournaments.id, id)).limit(1);
+  if (!existing) throw new AppError('NOT_FOUND', '赛事不存在', 404);
+  if (!canManageTournament(c.get('user'), existing)) throw new AppError('FORBIDDEN', '无权管理该赛事', 403);
+  const data = await c.req.json();
+  const rules = typeof data.rules === 'string' ? data.rules : '';
+  if (rules.length > 20000) throw new AppError('INVALID_INPUT', '规则内容过长（最多 20000 字）', 400);
+  const [updated] = await c.get('db').update(tournaments)
+    .set({ rules })
     .where(eq(tournaments.id, id)).returning();
   return c.json(updated);
 });

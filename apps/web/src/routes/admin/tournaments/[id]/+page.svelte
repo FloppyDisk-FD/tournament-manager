@@ -190,6 +190,25 @@
 		}
 	}
 
+	// 赛事规则
+	let rulesPanelOpen = $state(false);
+	let rulesSaving = $state(false);
+	let rulesInput = $state(data.tournament?.rules ?? '');
+
+	async function saveRules() {
+		rulesSaving = true;
+		try {
+			const updated = await api.put<any>(`/tournaments/${data.tournament.id}/rules`, { rules: rulesInput });
+			data.tournament = { ...data.tournament, ...updated };
+			rulesPanelOpen = false;
+			success('赛事规则已保存');
+		} catch (e: any) {
+			error(e.message || '保存失败');
+		} finally {
+			rulesSaving = false;
+		}
+	}
+
 	// 报名表单自定义字段
 	let customFields = $state<any[]>(Array.isArray(data.tournament?.customFields) ? data.tournament.customFields : []);
 	let customPanelOpen = $state(false);
@@ -412,6 +431,37 @@
 					</div>
 					<div class="flex gap-2 pt-1">
 						<Button onclick={saveCustomFields} disabled={customSaving} en="Save" class="px-4">{customSaving ? '保存中...' : '保存表单'}</Button>
+					</div>
+				</div>
+			{/if}
+		</div>
+
+		<div class="border border-black bg-white mb-6">
+			<div class="flex items-center justify-between px-4 py-3 border-b border-black">
+				<div class="flex items-center gap-2">
+					<span class="inline-block w-1 h-1 bg-accent"></span>
+					<span class="font-black text-sm tracking-tight">赛事规则</span>
+					<span class="text-[10px] font-bold text-neutral-400 border border-black px-1">Markdown</span>
+				</div>
+				<button onclick={() => (rulesPanelOpen = !rulesPanelOpen)}
+					class="text-xs font-bold border border-black px-2.5 py-1 bg-white hover:bg-neutral-100 transition-colors duration-150">
+					{rulesPanelOpen ? '收起' : t.rules ? '编辑' : '+ 添加规则'}
+				</button>
+			</div>
+			{#if !rulesPanelOpen}
+				{#if t.rules}
+					<div class="px-4 py-3 text-sm font-bold text-neutral-600 whitespace-pre-line">{t.rules.slice(0, 200)}{t.rules.length > 200 ? '…' : ''}</div>
+				{:else}
+					<p class="px-4 py-3 text-sm text-neutral-400 font-bold">尚未添加规则，公开页不显示规则区块。</p>
+				{/if}
+			{:else}
+				<div class="p-4 space-y-3">
+					<textarea bind:value={rulesInput} rows="10"
+						class="w-full rounded-none border border-black font-mono px-3 py-2 text-sm bg-white focus:outline-none focus:border-accent"
+						placeholder="支持 Markdown：## 标题、- 列表、**加粗**、[链接](url)&#10;&#10;## 赛制&#10;- 单败淘汰 BO3，每队 5 人&#10;&#10;## 奖品&#10;- 冠军：¥500 + 奖杯&#10;&#10;## 联系方式&#10;- QQ 群：123456&#10;- 邮箱：contact@example.com"></textarea>
+					<div class="flex items-center gap-3">
+						<Button onclick={saveRules} disabled={rulesSaving} en="Save" class="px-4">{rulesSaving ? '保存中...' : '保存规则'}</Button>
+						<span class="text-xs text-neutral-400 font-bold">保存后公开页立即展示</span>
 					</div>
 				</div>
 			{/if}

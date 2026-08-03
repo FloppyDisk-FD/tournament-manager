@@ -33,6 +33,7 @@ export const tournaments = pgTable('tournaments', {
   id: uuid('id').primaryKey().defaultRandom(),
   name: varchar('name', { length: 200 }).notNull(),
   description: text('description').notNull().default(''),
+  rules: text('rules'),
   game: varchar('game', { length: 100 }).notNull(),
   coverImage: varchar('cover_image'),
   status: tournamentStatusEnum('status').notNull().default('draft'),

@@ -11,10 +11,12 @@
 	import { getUser } from '$lib/stores/auth.svelte';
 	import { success, error } from '$lib/stores/toast.svelte';
 	import { resolveLiveEmbed, type LiveEmbed } from '$lib/utils/live';
+	import { renderMarkdown } from '$lib/utils/markdown';
 
 	let { data } = $props();
 
 	const liveUrlValue = $derived(data.tournament?.liveUrl ?? data.tournament?.live_url ?? '');
+	const rulesHtml = $derived(renderMarkdown(data.tournament?.rules ?? ''));
 	function livePlatformLabel(url: string): string {
 		if (url.includes('youtube.com') || url.includes('youtu.be')) return 'YouTube';
 		if (url.includes('twitch.tv')) return 'Twitch';
@@ -242,6 +244,17 @@
 							</a>
 						</div>
 					{/if}
+				</div>
+			{/if}
+			{#if data.tournament?.rules}
+				<div class="border border-black bg-white mb-8">
+					<div class="relative overflow-hidden flex items-center justify-between px-4 py-3 bg-black text-white">
+						<div class="flex items-center gap-2 relative z-10">
+							<span class="inline-block w-1 h-1 bg-accent shrink-0" aria-hidden="true"></span>
+							<span class="font-black text-base tracking-tight">赛事规则</span>
+						</div>
+					</div>
+					<div class="p-4 md:p-5 rules-markdown">{@html rulesHtml}</div>
 				</div>
 			{/if}
 			<div class="grid grid-cols-2 md:grid-cols-4 gap-0 border-l border-t border-black mb-8">

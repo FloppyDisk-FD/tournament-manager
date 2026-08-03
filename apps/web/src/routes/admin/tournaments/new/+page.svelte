@@ -19,6 +19,7 @@
 	let description = $state('');
 	let coverImage = $state('');
 	let liveUrl = $state('');
+	let rules = $state('');
 	let entryFee = $state(0);
 	let loading = $state(false);
 	let selectedTemplate = $state<string | null>(null);
@@ -56,6 +57,7 @@
 				description,
 				cover_image: coverImage || undefined,
 				live_url: liveUrl || undefined,
+				rules: rules || undefined,
 				entry_fee: entryFee,
 			});
 			success('赛事创建成功');
