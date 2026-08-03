@@ -318,8 +318,8 @@
 						}}
 						tabindex="0"
 					>
-						<span class="w-4 shrink-0 text-[10px] text-neutral-400 tabular-nums">
-							{m.team1?.seed ?? ''}
+						<span class="w-5 shrink-0 text-[10px] text-neutral-400 tabular-nums">
+							{m.team1?.seed != null ? '#' + m.team1.seed : ''}
 						</span>
 						{#if logoUrlOf(m.team1)}
 							<img src={logoUrlOf(m.team1)} alt="" class="w-4 h-4 object-contain shrink-0" loading="lazy" />
@@ -348,8 +348,8 @@
 						}}
 						tabindex="0"
 					>
-						<span class="w-4 shrink-0 text-[10px] text-neutral-400 tabular-nums">
-							{m.team2?.seed ?? ''}
+						<span class="w-5 shrink-0 text-[10px] text-neutral-400 tabular-nums">
+							{m.team2?.seed != null ? '#' + m.team2.seed : ''}
 						</span>
 						{#if logoUrlOf(m.team2)}
 							<img src={logoUrlOf(m.team2)} alt="" class="w-4 h-4 object-contain shrink-0" loading="lazy" />
