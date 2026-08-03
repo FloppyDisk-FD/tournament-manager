@@ -209,6 +209,21 @@
 	font-style: italic;
 }
 
+/* hover 浮层入场：向触发行方向滑入 */
+.tooltip-enter {
+	animation: tooltip-in 0.15s ease-out;
+}
+@keyframes tooltip-in {
+	from {
+		opacity: 0;
+		transform: translate(-50%, 4px);
+	}
+	to {
+		opacity: 1;
+		transform: translate(-50%, 0);
+	}
+}
+
 /* 卡片悬停 — 微位移 */
 .lift {
 	transition: transform var(--dur-2) var(--ease-out), background-color var(--dur-2) var(--ease-out);

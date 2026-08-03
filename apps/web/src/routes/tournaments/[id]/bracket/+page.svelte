@@ -11,23 +11,47 @@
 
 	// hover 队伍详情（懒加载 + 缓存）
 	const teamCache = new Map<string, any>();
-	let hoveredTeam = $state<any>(null);
+	let hoveredTeam = $state<{ id: string; name: string; logoEmoji?: string | null; logoUrl?: string | null; players?: any[]; dir: 'up' | 'down' } | null>(null);
+	let hoverLoadingId = $state<string | null>(null);
 	let hideTimer: ReturnType<typeof setTimeout> | undefined;
 
-	async function showTeam(teamId: string | null | undefined) {
+	// 计算浮层方向：行靠近卡片顶部时朝下展开（避免被容器裁剪）
+	function computeDir(el?: HTMLElement | null): 'up' | 'down' {
+		const card = el?.closest('.match-card');
+		if (!card) return 'up';
+		const cardRect = card.getBoundingClientRect();
+		const rowRect = el!.getBoundingClientRect();
+		return rowRect.top - cardRect.top < 120 ? 'down' : 'up';
+	}
+
+	async function showTeam(teamId: string | null | undefined, el?: HTMLElement | null) {
 		if (!teamId) return;
 		clearTimeout(hideTimer);
+		const dir = computeDir(el);
 		if (teamCache.has(teamId)) {
-			hoveredTeam = teamCache.get(teamId)!;
+			hoveredTeam = { ...teamCache.get(teamId)!, dir };
 			return;
 		}
+		hoverLoadingId = teamId;
 		try {
 			const t = await api.get<any>(`/public/teams/${teamId}`);
 			teamCache.set(teamId, t);
-			hoveredTeam = t;
+			hoveredTeam = { ...t, dir };
 		} catch {
 			// 队伍可能已删除，忽略
+		} finally {
+			hoverLoadingId = null;
 		}
+	}
+
+	// 触屏/点击支持：再次点击同一队伍则收起
+	function toggleTeam(teamId: string | null | undefined, el: HTMLElement) {
+		if (!teamId) return;
+		if (hoveredTeam?.id === teamId) {
+			hoveredTeam = null;
+			return;
+		}
+		showTeam(teamId, el);
 	}
 
 	function scheduleHide() {
@@ -256,8 +280,15 @@
 		{@const t1Win = !!(winner && m.team1 && winner.id === m.team1.id)}
 		{@const t2Win = !!(winner && m.team2 && winner.id === m.team2.id)}
 		{@const decided = t1Win || t2Win}
+		{@const isHoverTarget =
+			hoveredTeam?.id === m.team1?.id ||
+			hoveredTeam?.id === m.team2?.id ||
+			hoverLoadingId === m.team1?.id ||
+			hoverLoadingId === m.team2?.id}
+		{@const hoverSeed =
+			hoveredTeam?.id === m.team1?.id ? m.team1?.seed : hoveredTeam?.id === m.team2?.id ? m.team2?.seed : null}
 		<div
-			class="relative bg-white border border-black rounded-none font-sans {isFinal
+			class="match-card relative bg-white border border-black rounded-none font-sans {isFinal
 				? 'border-2 min-w-[240px]'
 				: 'min-w-[200px]'} {decided ? 'border-l-2 border-l-black' : ''} {ongoing ? 'border-l-2 border-l-accent' : ''}"
 			style="height:{CARD_H}px;"
@@ -265,11 +296,19 @@
 			<div class="h-full flex flex-col">
 				<div class="flex-1 flex flex-col justify-center text-xs">
 					<div
-						class="flex items-center gap-2 px-2 py-0.5 {t1Win
+						class="flex items-center gap-2 px-2 py-0.5 cursor-pointer transition-colors duration-150 hover:bg-neutral-100 {t1Win
 							? 'font-black'
 							: t2Win ? 'opacity-40 font-medium' : 'font-bold'}"
-						onmouseenter={() => showTeam(m.team1?.id)}
+						onmouseenter={(e) => showTeam(m.team1?.id, e.currentTarget as HTMLElement)}
 						onmouseleave={scheduleHide}
+						onclick={(e) => toggleTeam(m.team1?.id, e.currentTarget as HTMLElement)}
+						onfocus={(e) => showTeam(m.team1?.id, e.currentTarget as HTMLElement)}
+						onblur={scheduleHide}
+						role="button"
+						onkeydown={(e) => {
+							if (e.key === 'Enter' || e.key === ' ') toggleTeam(m.team1?.id, e.currentTarget as HTMLElement);
+						}}
+						tabindex="0"
 					>
 						<span class="w-4 shrink-0 text-[10px] text-neutral-400 tabular-nums">
 							{m.team1?.seed ?? ''}
@@ -282,11 +321,19 @@
 						</span>
 					</div>
 					<div
-						class="flex items-center gap-2 px-2 py-0.5 {t2Win
+						class="flex items-center gap-2 px-2 py-0.5 cursor-pointer transition-colors duration-150 hover:bg-neutral-100 {t2Win
 							? 'font-black'
 							: t1Win ? 'opacity-40 font-medium' : 'font-bold'}"
-						onmouseenter={() => showTeam(m.team2?.id)}
+						onmouseenter={(e) => showTeam(m.team2?.id, e.currentTarget as HTMLElement)}
 						onmouseleave={scheduleHide}
+						onclick={(e) => toggleTeam(m.team2?.id, e.currentTarget as HTMLElement)}
+						onfocus={(e) => showTeam(m.team2?.id, e.currentTarget as HTMLElement)}
+						onblur={scheduleHide}
+						role="button"
+						onkeydown={(e) => {
+							if (e.key === 'Enter' || e.key === ' ') toggleTeam(m.team2?.id, e.currentTarget as HTMLElement);
+						}}
+						tabindex="0"
 					>
 						<span class="w-4 shrink-0 text-[10px] text-neutral-400 tabular-nums">
 							{m.team2?.seed ?? ''}
@@ -314,35 +361,54 @@
 			{:else if walk}
 				<div class="absolute top-1.5 right-1.5 text-[9px] font-bold uppercase tracking-wider text-neutral-400">轮空</div>
 			{/if}
-			{#if hoveredTeam && (hoveredTeam.id === m.team1?.id || hoveredTeam.id === m.team2?.id)}
+			{#if isHoverTarget}
 				<div
-					class="absolute z-30 bottom-full left-1/2 -translate-x-1/2 mb-1 w-48 bg-black text-white border border-black shadow-[4px_4px_0_rgba(0,0,0,0.18)] p-3 pointer-events-auto"
+					role="tooltip"
+					class="absolute z-30 left-1/2 -translate-x-1/2 w-52 bg-black text-white border border-black shadow-[4px_4px_0_rgba(0,0,0,0.18)] p-3 tooltip-enter {hoveredTeam?.dir === 'down' ? 'top-full mt-1.5' : 'bottom-full mb-1.5'}"
 					onmouseenter={cancelHide}
 					onmouseleave={scheduleHide}
 				>
-					<div class="flex items-center gap-2 mb-1.5 min-w-0">
-						{#if hoveredTeam.logoUrl}
-							<img src={hoveredTeam.logoUrl} alt={hoveredTeam.name} class="w-6 h-6 object-contain bg-white shrink-0" />
-						{:else if hoveredTeam.logoEmoji}
-							<span class="text-lg leading-none shrink-0">{hoveredTeam.logoEmoji}</span>
-						{:else}
-							<span class="w-6 h-6 shrink-0 flex items-center justify-center border border-white/40 text-[10px] font-black">{hoveredTeam.name.slice(0, 1)}</span>
-						{/if}
-						<span class="font-black text-sm truncate">{hoveredTeam.name}</span>
-					</div>
-					{#if hoveredTeam.players?.length}
-						<div class="border-t border-white/20 pt-1.5 space-y-0.5 max-h-24 overflow-hidden">
-							{#each hoveredTeam.players as p}
-								<div class="flex items-center gap-1 text-[11px] font-bold text-white/90 min-w-0">
-									{#if p.isCaptain}
-										<Star size={9} fill="currentColor" class="shrink-0 text-accent" aria-label="队长" />
-									{/if}
-									<span class="truncate">{p.name || '未命名选手'}</span>
-								</div>
-							{/each}
+					{#if hoveredTeam}
+						<div class="flex items-center gap-2.5 mb-2 min-w-0">
+							{#if hoveredTeam.logoUrl}
+								<img src={hoveredTeam.logoUrl} alt={hoveredTeam.name} class="w-7 h-7 object-contain bg-white border border-white/30 shrink-0" />
+							{:else if hoveredTeam.logoEmoji}
+								<span class="w-7 h-7 flex items-center justify-center border border-white/30 shrink-0 text-base leading-none">{hoveredTeam.logoEmoji}</span>
+							{:else}
+								<span class="w-7 h-7 shrink-0 flex items-center justify-center border border-white/40 text-[11px] font-black">{hoveredTeam.name.slice(0, 1)}</span>
+							{/if}
+							<div class="min-w-0 flex-1">
+								<div class="font-black text-sm truncate">{hoveredTeam.name}</div>
+								{#if hoverSeed != null}
+									<div class="text-[10px] font-bold text-white/50 uppercase tracking-wider">种子 #{hoverSeed}</div>
+								{/if}
+							</div>
 						</div>
+						{#if hoveredTeam.players?.length}
+							<div class="border-t border-white/20 pt-1.5 space-y-1 max-h-32 overflow-hidden">
+								{#each hoveredTeam.players as p}
+									<div class="flex items-center gap-1.5 text-[11px] font-bold text-white/90 min-w-0">
+										{#if p.isCaptain}
+											<Star size={9} fill="currentColor" class="shrink-0 text-accent" aria-label="队长" />
+										{:else}
+											<span class="w-[9px] shrink-0" aria-hidden="true"></span>
+										{/if}
+										<span class="truncate">{p.name || '未命名选手'}</span>
+									</div>
+								{/each}
+							</div>
+						{:else}
+							<p class="border-t border-white/20 pt-1.5 text-[11px] text-white/60 font-bold">暂无成员信息</p>
+						{/if}
 					{:else}
-						<p class="border-t border-white/20 pt-1.5 text-[11px] text-white/60 font-bold">暂无成员信息</p>
+						<div class="space-y-1.5 animate-pulse" aria-label="加载中">
+							<div class="flex items-center gap-2.5">
+								<div class="w-7 h-7 bg-white/20 shrink-0"></div>
+								<div class="h-3.5 flex-1 bg-white/20"></div>
+							</div>
+							<div class="h-2.5 bg-white/10"></div>
+							<div class="h-2.5 bg-white/10 w-2/3"></div>
+						</div>
 					{/if}
 				</div>
 			{/if}
