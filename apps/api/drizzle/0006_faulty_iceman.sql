@@ -1,0 +1,1 @@
+ALTER TABLE "tournaments" ADD COLUMN "live_url" varchar(500);

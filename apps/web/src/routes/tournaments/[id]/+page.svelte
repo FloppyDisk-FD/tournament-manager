@@ -9,8 +9,17 @@
 	import { FORMAT_MAP, TOURNAMENT_STATUS_MAP, REGISTRATION_STATUS_MAP } from '$lib/constants/tournament';
 	import { getUser } from '$lib/stores/auth.svelte';
 	import { success, error } from '$lib/stores/toast.svelte';
+	import { resolveLiveEmbed, type LiveEmbed } from '$lib/utils/live';
 
 	let { data } = $props();
+
+	const liveUrlValue = $derived(data.tournament?.liveUrl ?? data.tournament?.live_url ?? '');
+	let liveInfo = $state<LiveEmbed | null>(null);
+	$effect(() => {
+		liveInfo = liveUrlValue
+			? resolveLiveEmbed(liveUrlValue, typeof window !== 'undefined' ? window.location.hostname : undefined)
+			: null;
+	});
 
 	let activeTab = $state('overview');
 	let bracketData = $state<any>(null);
@@ -172,6 +181,34 @@
 
 	{#if activeTab === 'overview'}
 		<div class="animate-enter">
+			{#if liveUrlValue}
+				<div class="border border-black bg-white mb-8">
+					<div class="relative overflow-hidden flex items-center justify-between px-4 py-3 bg-black text-white">
+						<div class="flex items-center gap-2 relative z-10">
+							<span class="inline-block w-1 h-1 bg-accent shrink-0" aria-hidden="true"></span>
+							<span class="font-black text-base tracking-tight">直播</span>
+						</div>
+						{#if liveInfo?.kind === 'link'}
+							<a href={liveUrlValue} target="_blank" rel="noopener noreferrer"
+								class="relative z-10 text-xs font-bold text-white/80 border-b border-white/50 hover:text-white transition-colors duration-150">
+								新窗口观看 →
+							</a>
+						{/if}
+					</div>
+					{#if liveInfo?.kind === 'iframe'}
+						<iframe src={liveInfo.src} class="w-full aspect-video block" allowfullscreen loading="lazy"
+							title="赛事直播" sandbox="allow-scripts allow-same-origin allow-presentation"></iframe>
+					{:else if liveInfo?.kind === 'link'}
+						<div class="p-6 text-center">
+							<p class="text-sm font-bold text-black">该直播平台不支持页内嵌入</p>
+							<a href={liveUrlValue} target="_blank" rel="noopener noreferrer"
+								class="inline-block mt-3 text-sm font-bold text-black border border-black px-4 py-2 hover:bg-neutral-100 transition-colors duration-150">
+								前往观看 →
+							</a>
+						</div>
+					{/if}
+				</div>
+			{/if}
 			<div class="grid grid-cols-2 md:grid-cols-4 gap-0 border-l border-t border-black mb-8">
 				{#each [{ label: '赛制', value: FORMAT_MAP[t.format] }, { label: '队伍', value: `${teams.length}/${t.maxTeams}` }, { label: '局数', value: `BO${t.boCount}` }, { label: '状态', value: TOURNAMENT_STATUS_MAP[t.status]?.label ?? t.status }] as stat, i}
 					<div class="border-r border-b border-black bg-white p-4 lift animate-enter" style="animation-delay:{i * 50}ms">

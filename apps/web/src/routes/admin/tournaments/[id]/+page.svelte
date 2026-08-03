@@ -150,6 +150,26 @@
 		}
 	}
 
+	let livePanelOpen = $state(false);
+	let liveInput = $state(data.tournament?.liveUrl ?? data.tournament?.live_url ?? '');
+	const liveUrlValue = $derived(data.tournament?.liveUrl ?? data.tournament?.live_url ?? '');
+
+	async function saveLive() {
+		try {
+			const updated = await api.put<any>(`/tournaments/${data.tournament.id}/live`, { live_url: liveInput });
+			data.tournament = { ...data.tournament, ...updated };
+			livePanelOpen = false;
+			success('直播配置已保存');
+		} catch (e: any) {
+			error(e.message);
+		}
+	}
+
+	async function clearLive() {
+		liveInput = '';
+		await saveLive();
+	}
+
 	const t = $derived(data.tournament);
 	const teams = $derived(data.teams);
 </script>
@@ -199,6 +219,34 @@
 			{/if}
 		</div>
 	{/if}
+
+		<div class="border border-black bg-white mb-6">
+			<div class="flex items-center justify-between px-4 py-3 border-b border-black">
+				<div class="flex items-center gap-2">
+					<span class="inline-block w-1 h-1 bg-accent"></span>
+					<span class="font-black text-sm tracking-tight">直播嵌入</span>
+					{#if liveUrlValue}
+						<span class="text-xs text-neutral-400 font-bold">已配置</span>
+					{/if}
+				</div>
+				<button onclick={() => livePanelOpen = !livePanelOpen}
+					class="text-xs font-bold border border-black px-2.5 py-1 bg-white hover:bg-neutral-100 transition-colors duration-150">
+					{livePanelOpen ? '收起' : liveUrlValue ? '编辑' : '+ 配置直播'}
+				</button>
+			</div>
+			{#if livePanelOpen}
+				<div class="p-4">
+					<Input type="url" bind:value={liveInput} placeholder="https://live.bilibili.com/... 或 YouTube/Twitch 链接" />
+					<p class="text-xs text-neutral-500 mt-1 font-bold">支持 YouTube / Twitch 页内嵌入；B 站等受限平台将显示为外链按钮</p>
+					<div class="mt-3 flex gap-2">
+						<Button onclick={saveLive} en="Save" class="px-4">保存</Button>
+						{#if liveUrlValue}
+							<button onclick={clearLive} class="border border-black bg-white text-accent font-bold px-3 py-2 text-sm hover:bg-neutral-100">移除直播</button>
+						{/if}
+					</div>
+				</div>
+			{/if}
+		</div>
 
 	<div class="flex items-start justify-between mb-6">
 		<div>

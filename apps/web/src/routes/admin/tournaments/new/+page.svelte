@@ -18,6 +18,7 @@
 	let thirdPlace = $state(false);
 	let description = $state('');
 	let coverImage = $state('');
+	let liveUrl = $state('');
 	let loading = $state(false);
 	let selectedTemplate = $state<string | null>(null);
 
@@ -52,6 +53,7 @@
 				third_place: thirdPlace,
 				description,
 				cover_image: coverImage || undefined,
+				live_url: liveUrl || undefined,
 			});
 			success('赛事创建成功');
 			goto(`/admin/tournaments/${tournament.id}`);
@@ -134,6 +136,11 @@
 					<img src={coverImage} alt="banner preview" class="w-full h-32 object-cover" />
 				</div>
 			{/if}
+		</div>
+		<div>
+			<Label for="liveUrl">直播地址（可选）</Label>
+			<Input id="liveUrl" type="url" bind:value={liveUrl} placeholder="https://live.bilibili.com/... 或 YouTube/Twitch 链接" />
+			<p class="text-xs text-neutral-500 mt-1 font-bold">支持 YouTube / Twitch 页内嵌入；B 站等受限平台将显示为外链按钮</p>
 		</div>
 		<Button onclick={createTournament} disabled={loading || !name} en="Create Tournament" class="px-6">
 			{loading ? '创建中...' : '创建赛事 →'}

@@ -49,6 +49,7 @@ export const tournaments = pgTable('tournaments', {
   advancePerGroup: integer('advance_per_group'),
   thirdPlace: boolean('third_place').notNull().default(false),
   swissRounds: integer('swiss_rounds'),
+  liveUrl: varchar('live_url', { length: 500 }),
   formatConfig: jsonb('format_config'),
 });
 

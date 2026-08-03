@@ -73,6 +73,7 @@ tournamentRoutes.post('/', async (c) => {
     swissRounds: data.swiss_rounds,
     formatConfig: data.format_config,
     coverImage: data.cover_image || data.coverImage,
+    liveUrl: data.live_url,
     createdBy: user.id,
   }).returning();
 
@@ -109,11 +110,29 @@ tournamentRoutes.put('/:id', async (c) => {
     swissRounds: data.swiss_rounds,
     formatConfig: data.format_config,
     coverImage: data.cover_image,
+    liveUrl: data.live_url,
     startDate: data.start_date,
     endDate: data.end_date,
     status: data.status,
   }).where(eq(tournaments.id, id)).returning();
 
+  return c.json(updated);
+});
+
+tournamentRoutes.put('/:id/live', async (c) => {
+  const id = c.req.param('id');
+  const [existing] = await c.get('db').select().from(tournaments).where(eq(tournaments.id, id)).limit(1);
+  if (!existing) {
+    throw new AppError('NOT_FOUND', '赛事不存在', 404);
+  }
+  if (!canManageTournament(c.get('user'), existing)) {
+    throw new AppError('FORBIDDEN', '无权管理该赛事', 403);
+  }
+  const data = await c.req.json();
+  const [updated] = await c.get('db').update(tournaments)
+    .set({ liveUrl: data.live_url ?? null })
+    .where(eq(tournaments.id, id))
+    .returning();
   return c.json(updated);
 });
 
