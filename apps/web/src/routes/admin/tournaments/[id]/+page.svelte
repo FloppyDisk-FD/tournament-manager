@@ -9,6 +9,7 @@
 	import SeedRankingPanel from '$lib/components/SeedRankingPanel.svelte';
 	import { FORMAT_MAP, TOURNAMENT_STATUS_MAP, REGISTRATION_STATUS_MAP } from '$lib/constants/tournament';
 	import StatusBadge from '$lib/components/StatusBadge.svelte';
+	import PanelHeader from '$lib/components/PanelHeader.svelte';
 	import { success, error } from '$lib/stores/toast.svelte';
 
 	let { data } = $props();
@@ -320,13 +321,11 @@
 
 	<!-- 赛事设置 -->
 	<div class="border border-black bg-white mb-6" bind:this={settingsCard}>
-		<div class="relative overflow-hidden flex items-center justify-between px-4 py-3 bg-black text-white">
-			<div class="flex items-center gap-2">
-				<span class="inline-block w-1 h-1 bg-accent"></span>
-				<span class="font-black text-sm tracking-tight">赛事设置</span>
-			</div>
-			<span class="hidden md:block text-[10px] font-bold text-neutral-400 uppercase tracking-wider">Banner · 直播 · 报名费 · 赞助商 · 表单 · 规则</span>
-		</div>
+		<PanelHeader title="赛事设置" watermark="Settings">
+			{#snippet right()}
+				<span class="hidden md:block text-[10px] font-bold text-neutral-400 uppercase tracking-wider">Banner · 直播 · 报名费 · 赞助商 · 表单 · 规则</span>
+			{/snippet}
+		</PanelHeader>
 		<div class="grid grid-cols-1 md:grid-cols-2 gap-px bg-black">
 			<!-- Banner -->
 			<div class="bg-white {bannerOpen ? 'md:col-span-2' : ''}">
@@ -601,12 +600,7 @@
 	</div>
 
 		<div class="border border-black bg-white mb-6">
-			<div class="relative overflow-hidden flex items-center justify-between px-4 py-3 bg-black text-white">
-				<div class="flex items-center gap-2">
-					<span class="inline-block w-1 h-1 bg-accent"></span>
-					<span class="font-black text-sm tracking-tight">数据统计与导出</span>
-				</div>
-			</div>
+			<PanelHeader title="数据统计与导出" watermark="Stats" />
 			<div class="p-4">
 				{#if stats}
 					<div class="grid grid-cols-2 md:grid-cols-4 gap-0 border-l border-t border-black mb-4">
@@ -699,19 +693,7 @@
 	<div class="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
 		{#if t.status === 'draft'}
 		<div class="border border-black bg-white">
-			<div class="relative overflow-hidden flex items-center justify-between px-4 py-3 bg-black text-white">
-				<div class="flex items-center gap-2 relative z-10">
-					<span class="inline-block w-1 h-1 bg-accent shrink-0" aria-hidden="true"></span>
-					<span class="font-black text-base tracking-tight">报名审核</span>
-					{#if pendingRegs.length > 0}
-						<span class="text-xs font-black bg-accent text-white px-1.5 py-0.5 shrink-0">{pendingRegs.length}</span>
-					{/if}
-				</div>
-				<span
-					class="pointer-events-none absolute right-2 top-1/2 -translate-y-1/2 text-4xl leading-none font-black uppercase tracking-widest whitespace-nowrap select-none text-white/15"
-					style="-webkit-mask-image: linear-gradient(to right, transparent, black); mask-image: linear-gradient(to right, transparent, black)"
-				>Review</span>
-			</div>
+			<PanelHeader title="报名审核" watermark="Review" badge={pendingRegs.length} />
 			<div class="p-4">
 				{#if registrations.length === 0}
 					<p class="text-sm text-neutral-500 font-bold text-center py-2">暂无报名</p>
@@ -763,23 +745,18 @@
 		{/if}
 
 		<div class="border border-black bg-white {t.status === 'draft' ? '' : 'lg:col-span-2'}">
-		<div class="relative overflow-hidden flex items-center justify-between px-4 py-3 bg-black text-white">
-			<div class="flex items-center gap-2 relative z-10">
-				<span class="inline-block w-1 h-1 bg-accent shrink-0" aria-hidden="true"></span>
-				<span class="font-black text-base tracking-tight">签到管理</span>
-				<span class="text-xs font-black text-white/70">{checkins.stats.checked}/{checkins.stats.total}</span>
-			</div>
-			<button
-				onclick={showQr}
-				class="text-xs font-bold text-white/80 border-b border-white/50 hover:text-white hover:border-white transition-colors duration-150 relative z-10 inline-flex items-center gap-1"
-				title="展示赛事签到二维码"
-			>
-				<QrCode size={13} class="shrink-0" aria-hidden="true" />
-				签到二维码
-			</button>
-			<span class="pointer-events-none absolute right-2 top-1/2 -translate-y-1/2 text-4xl leading-none font-black uppercase tracking-widest whitespace-nowrap select-none text-white/15"
-				style="-webkit-mask-image: linear-gradient(to right, transparent, black); mask-image: linear-gradient(to right, transparent, black)">Check-in</span>
-		</div>
+		<PanelHeader title="签到管理" watermark="Check-in" meta={`{checkins.stats.checked}/{checkins.stats.total}`}>
+			{#snippet right()}
+				<button
+					onclick={showQr}
+					class="text-xs font-bold text-white/80 border-b border-white/50 hover:text-white hover:border-white transition-colors duration-150 inline-flex items-center gap-1"
+					title="展示赛事签到二维码"
+				>
+					<QrCode size={13} class="shrink-0" aria-hidden="true" />
+					签到二维码
+				</button>
+			{/snippet}
+		</PanelHeader>
 		<div class="p-4">
 			{#if checkins.teams.length === 0}
 				<p class="text-sm text-neutral-500 font-bold text-center py-2">暂无队伍</p>
