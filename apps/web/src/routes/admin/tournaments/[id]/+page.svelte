@@ -272,25 +272,27 @@
 				{:else}
 					<div class="space-y-2">
 						{#each registrations as reg (reg.id)}
-							<div class="border border-black bg-white">
-								<div class="flex items-center justify-between gap-3 px-3 py-2 flex-wrap">
-									<div class="flex items-center gap-3 min-w-0 flex-wrap">
+							<div class="border border-black bg-white grid grid-cols-1 sm:grid-cols-[1fr_auto]">
+								<div class="px-3 py-2.5 border-b sm:border-b-0 sm:border-r border-black/20 min-w-0">
+									<div class="flex items-center gap-2 flex-wrap">
 										<StatusBadge status={reg.status} map={REGISTRATION_STATUS_MAP} />
 										<span class="text-sm font-black truncate">{reg.teamName}</span>
-										<span class="text-xs text-neutral-500 font-bold shrink-0">报名人：{reg.applicant?.username ?? '—'}</span>
-										<span class="text-xs text-neutral-400 font-bold shrink-0">{reg.players?.length ?? 0} 名选手</span>
+									</div>
+									<div class="mt-1 flex items-center gap-3 text-xs text-neutral-500 font-bold flex-wrap">
+										<span>报名人：{reg.applicant?.username ?? '—'}</span>
+										<span class="text-neutral-400">{reg.players?.length ?? 0} 名选手</span>
 										{#if reg.status === 'rejected' && reg.note}
-											<span class="text-xs text-neutral-500 font-bold">原因：{reg.note}</span>
+											<span>原因：{reg.note}</span>
 										{/if}
 									</div>
-									<div class="flex gap-1 shrink-0">
-										{#if reg.status === 'pending'}
-											<button onclick={() => approveRegistration(reg.id)} disabled={reviewing === reg.id}
-												class="rounded-none font-sans font-bold border border-black bg-black text-white px-3 py-1 text-xs transition-opacity duration-150 active:opacity-70 disabled:opacity-50">通过</button>
-											<button onclick={() => rejectRegistration(reg.id)} disabled={reviewing === reg.id}
-												class="rounded-none font-sans font-bold border border-black bg-white text-accent px-3 py-1 text-xs transition-opacity duration-150 active:opacity-70 disabled:opacity-50">拒绝</button>
-										{/if}
-									</div>
+								</div>
+								<div class="flex items-center justify-end gap-1 px-3 py-2.5">
+									{#if reg.status === 'pending'}
+										<button onclick={() => approveRegistration(reg.id)} disabled={reviewing === reg.id}
+											class="rounded-none font-sans font-bold border border-black bg-black text-white px-3 py-1 text-xs transition-opacity duration-150 active:opacity-70 disabled:opacity-50">通过</button>
+										<button onclick={() => rejectRegistration(reg.id)} disabled={reviewing === reg.id}
+											class="rounded-none font-sans font-bold border border-black bg-white text-accent px-3 py-1 text-xs transition-opacity duration-150 active:opacity-70 disabled:opacity-50">拒绝</button>
+									{/if}
 								</div>
 							</div>
 						{/each}
@@ -328,26 +330,28 @@
 				</div>
 				<div class="space-y-1">
 					{#each checkins.teams as t (t.teamId)}
-						<div class="flex items-center justify-between gap-3 border border-black bg-white px-3 py-2 flex-wrap">
-							<div class="flex items-center gap-3 min-w-0 flex-wrap">
+						<div class="grid grid-cols-1 sm:grid-cols-[1fr_auto] border border-black bg-white">
+							<div class="flex items-center gap-3 px-3 py-2.5 border-b sm:border-b-0 sm:border-r border-black/20 min-w-0">
 								<span class="text-xs font-black tabular-nums text-neutral-500 shrink-0">{String(t.seed ?? '').padStart(2, '0')}</span>
 								<span class="text-sm shrink-0 {t.checkedIn ? 'text-accent' : 'text-neutral-300'}" aria-hidden="true">
-					{#if t.checkedIn}<Check size={14} class="shrink-0" />{:else}<Circle size={14} class="shrink-0" />{/if}
-				</span>
+									{#if t.checkedIn}<Check size={14} class="shrink-0" />{:else}<Circle size={14} class="shrink-0" />{/if}
+								</span>
 								<span class="text-sm font-black truncate">{t.name}</span>
 								{#if t.checkedInAt}
 									<span class="text-xs text-neutral-400 font-bold shrink-0">{new Date(t.checkedInAt).toLocaleTimeString()}</span>
 								{/if}
 							</div>
-							<button
-								onclick={() => toggleCheckin(t.teamId)}
-								disabled={checkinToggling === t.teamId}
-								class="rounded-none font-sans font-bold border border-black px-3 py-1 text-xs transition-colors duration-150 active:opacity-70 disabled:opacity-50 {t.checkedIn
-									? 'bg-white text-accent hover:bg-neutral-100'
-									: 'bg-black text-white hover:bg-neutral-800'}"
-							>
-								{t.checkedIn ? '取消签到' : '标记到场'}
-							</button>
+							<div class="flex items-center justify-end px-3 py-2.5">
+								<button
+									onclick={() => toggleCheckin(t.teamId)}
+									disabled={checkinToggling === t.teamId}
+									class="rounded-none font-sans font-bold border border-black px-3 py-1 text-xs transition-colors duration-150 active:opacity-70 disabled:opacity-50 {t.checkedIn
+										? 'bg-white text-accent hover:bg-neutral-100'
+										: 'bg-black text-white hover:bg-neutral-800'}"
+								>
+									{t.checkedIn ? '取消签到' : '标记到场'}
+								</button>
+							</div>
 						</div>
 					{/each}
 				</div>
