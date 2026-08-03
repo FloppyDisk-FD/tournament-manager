@@ -124,31 +124,57 @@ bracketRoutes.get('/:id/matches', async (c) => {
   const id = c.req.param('id');
   const t1 = alias(teams, 't1');
   const t2 = alias(teams, 't2');
+  const tt1 = alias(tournamentTeams, 'tt1');
+  const tt2 = alias(tournamentTeams, 'tt2');
   const rows = await c.get('db').select({
     match: matches,
     stageType: stages.type,
     stageName: stages.name,
     stageOrder: stages.order,
     team1Name: t1.name,
+    team1LogoUrl: t1.logoUrl,
+    team1LogoEmoji: t1.logoEmoji,
+    team1Seed: tt1.seed,
     team2Name: t2.name,
+    team2LogoUrl: t2.logoUrl,
+    team2LogoEmoji: t2.logoEmoji,
+    team2Seed: tt2.seed,
   })
     .from(matches)
     .innerJoin(stages, eq(stages.id, matches.stageId))
     .leftJoin(t1, eq(t1.id, matches.team1Id))
     .leftJoin(t2, eq(t2.id, matches.team2Id))
+    .leftJoin(tt1, and(eq(tt1.teamId, matches.team1Id), eq(tt1.tournamentId, id)))
+    .leftJoin(tt2, and(eq(tt2.teamId, matches.team2Id), eq(tt2.tournamentId, id)))
     .where(eq(stages.tournamentId, id));
 
   const result = rows
     .map((r) => ({
-      ...r.match,
-      stageType: r.stageType,
-      stageName: r.stageName,
-      stageOrder: r.stageOrder,
-      team1Name: r.team1Name ?? null,
-      team2Name: r.team2Name ?? null,
+      id: r.match.id,
+      stage_id: r.match.stageId,
+      group_label: r.match.groupLabel,
+      round: r.match.round,
+      position: r.match.position,
+      bracket_pos: r.match.bracketPos,
+      team1_id: r.match.team1Id,
+      team2_id: r.match.team2Id,
+      winner_id: r.match.winnerId,
+      team1_score: r.match.team1Score,
+      team2_score: r.match.team2Score,
+      status: r.match.status,
+      scheduled_at: r.match.scheduledAt,
+      team1: r.team1Name
+        ? { id: r.match.team1Id, name: r.team1Name, logo_url: r.team1LogoUrl, logo_emoji: r.team1LogoEmoji, seed: r.team1Seed }
+        : null,
+      team2: r.team2Name
+        ? { id: r.match.team2Id, name: r.team2Name, logo_url: r.team2LogoUrl, logo_emoji: r.team2LogoEmoji, seed: r.team2Seed }
+        : null,
+      stage_type: r.stageType,
+      stage_name: r.stageName,
+      stage_order: r.stageOrder,
     }))
     .sort((a, b) => {
-      if (a.stageOrder !== b.stageOrder) return a.stageOrder - b.stageOrder;
+      if (a.stage_order !== b.stage_order) return a.stage_order - b.stage_order;
       if (a.round !== b.round) return a.round - b.round;
       return a.position - b.position;
     });

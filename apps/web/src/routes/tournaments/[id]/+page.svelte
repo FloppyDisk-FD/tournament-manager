@@ -44,6 +44,159 @@
 	let loadingBracket = $state(false);
 	let loadingStandings = $state(false);
 
+	// —— 时间线：赛程 + 实时比分 + 预测 ——
+	let timelineMatches = $state<any[]>([]);
+	let predictionStats = $state<Record<string, any>>({});
+	let loadingTimeline = $state(false);
+	let predicting = $state<string | null>(null);
+
+	const user = $derived(getUser());
+
+	async function loadTimeline() {
+		if (loadingTimeline && timelineMatches.length > 0) return;
+		loadingTimeline = true;
+		try {
+			const [m, p] = await Promise.all([
+				api.get<any[]>(`/tournaments/${data.tournament.id}/matches`),
+				api.get<any>(`/tournaments/${data.tournament.id}/predictions`).catch(() => ({}))
+			]);
+			timelineMatches = Array.isArray(m) ? m : [];
+			predictionStats = p ?? {};
+		} catch (e) {
+			console.error(e);
+		} finally {
+			loadingTimeline = false;
+		}
+	}
+
+	let pollTimer: ReturnType<typeof setInterval> | undefined;
+	$effect(() => {
+		if (activeTab === 'timeline') {
+			if (timelineMatches.length === 0 && !loadingTimeline) loadTimeline();
+			pollTimer = setInterval(async () => {
+				// 实时比分：仅刷新比分/状态，避免覆盖正在进行的预测交互
+				try {
+					const [m, p] = await Promise.all([
+						api.get<any[]>(`/tournaments/${data.tournament.id}/matches`),
+						api.get<any>(`/tournaments/${data.tournament.id}/predictions`).catch(() => ({}))
+					]);
+					timelineMatches = Array.isArray(m) ? m : [];
+					predictionStats = p ?? {};
+				} catch (e) {
+					console.error(e);
+				}
+			}, 20000);
+			return () => {
+				if (pollTimer) clearInterval(pollTimer);
+				pollTimer = undefined;
+			};
+		}
+	});
+
+	async function vote(matchId: string, winnerTeamId: string) {
+		if (!user || predicting) return;
+		predicting = matchId;
+		try {
+			await api.post(`/tournaments/${data.tournament.id}/predictions`, {
+				match_id: matchId,
+				winner_team_id: winnerTeamId
+			});
+			const p = await api.get<any>(`/tournaments/${data.tournament.id}/predictions`).catch(() => ({}));
+			predictionStats = p ?? {};
+			success('预测已提交');
+		} catch (e: any) {
+			console.error(e);
+			error(e?.message ?? '预测失败');
+		} finally {
+			predicting = null;
+		}
+	}
+
+	async function cancelVote(matchId: string) {
+		if (!user || predicting) return;
+		predicting = matchId;
+		try {
+			await api.del(`/tournaments/${data.tournament.id}/predictions`, { match_id: matchId });
+			const p = await api.get<any>(`/tournaments/${data.tournament.id}/predictions`).catch(() => ({}));
+			predictionStats = p ?? {};
+			success('已撤销预测');
+		} catch (e: any) {
+			console.error(e);
+			error(e?.message ?? '操作失败');
+		} finally {
+			predicting = null;
+		}
+	}
+
+	function dayLabel(iso: string | null): string {
+		if (!iso) return '未排期';
+		const d = new Date(iso);
+		if (isNaN(d.getTime())) return '未排期';
+		const today = new Date();
+		today.setHours(0, 0, 0, 0);
+		const day = new Date(d);
+		day.setHours(0, 0, 0, 0);
+		const diff = Math.round((day.getTime() - today.getTime()) / 86400000);
+		if (diff === 0) return '今天';
+		if (diff === 1) return '明天';
+		if (diff === -1) return '昨天';
+		const week = ['日', '一', '二', '三', '四', '五', '六'];
+		if (diff > 1 && diff < 7) return `${week[d.getDay()]}（+${diff} 天）`;
+		return `${d.getMonth() + 1}月${d.getDate()}日`;
+	}
+
+	function timeLabel(iso: string | null): string {
+		if (!iso) return '时间待定';
+		const d = new Date(iso);
+		if (isNaN(d.getTime())) return '时间待定';
+		return d.toLocaleTimeString('zh-CN', { hour: '2-digit', minute: '2-digit' });
+	}
+
+	const timelineGroups = $derived.by(() => {
+		const order = ['今天', '明天', '未排期'];
+		const groups: { label: string; matches: any[] }[] = [];
+		for (const m of timelineMatches) {
+			const label = dayLabel(m.scheduled_at ?? null);
+			let g = groups.find((x) => x.label === label);
+			if (!g) {
+				g = { label, matches: [] };
+				groups.push(g);
+			}
+			g.matches.push(m);
+		}
+		groups.sort((a, b) => {
+			const ia = order.indexOf(a.label);
+			const ib = order.indexOf(b.label);
+			if (ia !== -1 && ib !== -1) return ia - ib;
+			if (ia !== -1) return -1;
+			if (ib !== -1) return 1;
+			return a.label.localeCompare(b.label, 'zh-CN');
+		});
+		for (const g of groups) {
+			g.matches.sort((a, b) => {
+				const ta = a.scheduled_at ? new Date(a.scheduled_at).getTime() : 0;
+				const tb = b.scheduled_at ? new Date(b.scheduled_at).getTime() : 0;
+				if (ta !== tb) return ta - tb;
+				return (a.stage_order ?? 0) - (b.stage_order ?? 0) || (a.round ?? 0) - (b.round ?? 0);
+			});
+		}
+		return groups;
+	});
+
+	function matchStatusLabel(m: any): { text: string; cls: string } {
+		if (m.status === 'in_progress') return { text: '进行中', cls: 'bg-accent text-white' };
+		if (m.status === 'completed') return { text: '已结束', cls: 'bg-black text-white' };
+		if (m.status === 'walkthrough') return { text: '轮空', cls: 'bg-neutral-200 text-neutral-600' };
+		return { text: '待赛', cls: 'bg-white text-black border border-black' };
+	}
+
+	function logoOf(t: any): string | null {
+		return t?.logo_url ?? t?.logoUrl ?? null;
+	}
+	function emojiOf(t: any): string | null {
+		return t?.logo_emoji ?? t?.logoEmoji ?? null;
+	}
+
 	// 报名参赛（从我的队伍中选择）
 	let myRegistrations = $state<any[]>([]);
 	let myTeams = $state<any[]>([]);
@@ -145,6 +298,7 @@
 
 	const tabs = [
 		{ id: 'overview', label: '总览' },
+		{ id: 'timeline', label: '时间线' },
 		{ id: 'bracket', label: '赛程图' },
 		{ id: 'standings', label: '积分榜' },
 	];
@@ -496,6 +650,123 @@
 							{/if}
 							<span class="font-bold truncate">{team.name}</span>
 						</a>
+					{/each}
+				</div>
+			{/if}
+		</div>
+	{:else if activeTab === 'timeline'}
+		<div class="animate-enter">
+			{#if loadingTimeline && timelineMatches.length === 0}
+				<div class="space-y-3">
+					{#each Array(4) as _, i}
+						<div class="skeleton h-16 w-full" aria-hidden="true"></div>
+					{/each}
+				</div>
+			{:else if timelineGroups.length === 0}
+				<EmptyState title="暂无赛程安排" class="bg-neutral-50 py-12" />
+			{:else}
+				<div class="space-y-8">
+					{#each timelineGroups as group}
+						<section aria-label={group.label}>
+							<h3 class="font-black text-sm uppercase tracking-wider mb-3 flex items-center gap-2">
+								<span class="inline-block w-1 h-4 bg-accent"></span>
+								{group.label}
+								<span class="text-neutral-400 font-bold text-xs">{group.matches.length} 场</span>
+							</h3>
+							<div class="space-y-3">
+								{#each group.matches as m}
+									{@const st = matchStatusLabel(m)}
+									{@const ps = predictionStats[m.id] ?? { team1Votes: 0, team2Votes: 0, total: 0, myPick: null }}
+									{@const t1VotePct = ps.total > 0 ? Math.round((ps.team1Votes / ps.total) * 100) : 0}
+									{@const t2VotePct = ps.total > 0 ? Math.round((ps.team2Votes / ps.total) * 100) : 0}
+									{@const ended = m.status === 'completed' || m.status === 'walkthrough'}
+									{@const t1Won = m.status === 'completed' && (m.team1_score ?? 0) > (m.team2_score ?? 0)}
+									{@const t2Won = m.status === 'completed' && (m.team2_score ?? 0) > (m.team1_score ?? 0)}
+									<div class="border border-black bg-white">
+										<div class="flex items-center gap-3 px-4 py-2 border-b border-black/10">
+											<span class="text-xs font-bold text-neutral-500 tabular-nums">{timeLabel(m.scheduled_at ?? null)}</span>
+											<span class="text-xs font-bold text-neutral-400">{m.stage_name ?? '赛程'} · 第 {m.round ?? 1} 轮</span>
+											<span class="ml-auto text-[10px] font-black px-2 py-0.5 uppercase tracking-wider {st.cls}">{st.text}</span>
+										</div>
+										<div class="grid md:grid-cols-[1fr_auto_1fr] items-center gap-2 px-4 py-3">
+											<!-- 队伍 A -->
+											<div class="flex items-center gap-2 min-w-0 {t1Won ? 'font-black' : ''}">
+												<span class="shrink-0 w-6 h-6 flex items-center justify-center text-base">
+													{#if logoOf(m.team1)}
+														<img src={logoOf(m.team1)} alt={m.team1?.name ?? ''} class="w-6 h-6 object-contain" loading="lazy" />
+													{:else if emojiOf(m.team1)}
+														<span aria-hidden="true">{emojiOf(m.team1)}</span>
+													{:else}
+														<span class="w-6 h-6 inline-block bg-neutral-100 border border-black" aria-hidden="true"></span>
+													{/if}
+												</span>
+												<span class="font-bold truncate">{m.team1?.name ?? 'TBD'}</span>
+											</div>
+											<!-- 比分 -->
+											<div class="text-center shrink-0">
+												<span class="font-black text-xl tabular-nums">{m.team1_score ?? 0}<span class="text-neutral-400 mx-1 text-sm">:</span>{m.team2_score ?? 0}</span>
+												{#if m.status === 'in_progress'}
+													<span class="block text-[10px] font-black text-accent uppercase tracking-wider animate-pulse">LIVE</span>
+												{/if}
+											</div>
+											<!-- 队伍 B -->
+											<div class="flex items-center gap-2 min-w-0 justify-end {t2Won ? 'font-black' : ''}">
+												<span class="font-bold truncate">{m.team2?.name ?? 'TBD'}</span>
+												<span class="shrink-0 w-6 h-6 flex items-center justify-center text-base">
+													{#if logoOf(m.team2)}
+														<img src={logoOf(m.team2)} alt={m.team2?.name ?? ''} class="w-6 h-6 object-contain" loading="lazy" />
+													{:else if emojiOf(m.team2)}
+														<span aria-hidden="true">{emojiOf(m.team2)}</span>
+													{:else}
+														<span class="w-6 h-6 inline-block bg-neutral-100 border border-black" aria-hidden="true"></span>
+													{/if}
+												</span>
+											</div>
+										</div>
+										<!-- 预测区 -->
+										<div class="border-t border-black/10 px-4 py-3 bg-neutral-50">
+											{#if !user}
+												<p class="text-xs font-bold text-neutral-500">登录后可参与预测竞猜</p>
+											{:else if ended}
+												<p class="text-xs font-bold text-neutral-500">比赛已结束 · 预测 {ps.total} 票（A {ps.team1Votes} / B {ps.team2Votes}）</p>
+											{:else}
+												<div class="flex items-center gap-3">
+													<span class="text-[10px] font-black uppercase tracking-wider text-neutral-500 shrink-0">预测</span>
+													<button
+														class="flex-1 border text-xs font-bold px-2 py-1.5 transition-colors {ps.myPick === m.team1?.id ? 'bg-black text-white border-black' : 'bg-white text-black border-black hover:bg-neutral-100'}"
+														type="button"
+														disabled={predicting === m.id || !m.team1?.id}
+														onclick={() => vote(m.id, m.team1?.id)}
+													>
+														{m.team1?.name ?? 'A'} 胜 · {ps.team1Votes} 票
+													</button>
+													<button
+														class="flex-1 border text-xs font-bold px-2 py-1.5 transition-colors {ps.myPick === m.team2?.id ? 'bg-black text-white border-black' : 'bg-white text-black border-black hover:bg-neutral-100'}"
+														type="button"
+														disabled={predicting === m.id || !m.team2?.id}
+														onclick={() => vote(m.id, m.team2?.id)}
+													>
+														{m.team2?.name ?? 'B'} 胜 · {ps.team2Votes} 票
+													</button>
+													{#if ps.myPick}
+														<button
+															class="text-[10px] font-bold text-neutral-500 underline underline-offset-2 shrink-0"
+															type="button"
+															disabled={predicting === m.id}
+															onclick={() => cancelVote(m.id)}
+														>撤销</button>
+													{/if}
+												</div>
+												<div class="flex h-1.5 mt-2 border border-black/20" role="img" aria-label="预测票数分布">
+													<div class="bg-black" style="width: {t1VotePct}%"></div>
+													<div class="bg-accent" style="width: {t2VotePct}%"></div>
+												</div>
+											{/if}
+										</div>
+									</div>
+								{/each}
+							</div>
+						</section>
 					{/each}
 				</div>
 			{/if}

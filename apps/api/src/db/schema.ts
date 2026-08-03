@@ -1,6 +1,6 @@
 import {
   pgTable, uuid, varchar, text, integer, boolean, timestamp,
-  jsonb, pgEnum, serial,
+  jsonb, pgEnum, serial, uniqueIndex,
 } from 'drizzle-orm/pg-core';
 import { relations, InferSelectModel } from 'drizzle-orm';
 
@@ -149,6 +149,20 @@ export const matches = pgTable('matches', {
   nextLosersMatchId: uuid('next_losers_match_id'),
   swissScoreGroup: integer('swiss_score_group'),
 });
+
+export const predictions = pgTable('predictions', {
+  id: uuid('id').primaryKey().defaultRandom(),
+  matchId: uuid('match_id').notNull().references(() => matches.id, { onDelete: 'cascade' }),
+  userId: uuid('user_id').notNull().references(() => users.id, { onDelete: 'cascade' }),
+  winnerTeamId: uuid('winner_team_id').notNull().references(() => teams.id, { onDelete: 'cascade' }),
+  createdAt: timestamp('created_at').notNull().defaultNow(),
+}, (t) => [uniqueIndex('predictions_match_user_unique').on(t.matchId, t.userId)]);
+
+export const predictionsRelations = relations(predictions, ({ one }) => ({
+  match: one(matches, { fields: [predictions.matchId], references: [matches.id] }),
+  user: one(users, { fields: [predictions.userId], references: [users.id] }),
+  winnerTeam: one(teams, { fields: [predictions.winnerTeamId], references: [teams.id] }),
+}));
 
 export const matchesRelations = relations(matches, ({ one, many }) => ({
   stage: one(stages, { fields: [matches.stageId], references: [stages.id] }),
