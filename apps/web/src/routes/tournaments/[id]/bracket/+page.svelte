@@ -76,45 +76,80 @@
 	}
 
 	function buildStandings(stage: any, teams: any[]): any[] {
-		const rows = teams.map((t) => ({ team: t, w: 0, d: 0, l: 0, pts: 0 }));
+		const rows = teams.map((t) => ({ team: t, w: 0, d: 0, l: 0, pts: 0, gd: 0, played: 0 }));
 		const byId = new Map(rows.map((r) => [r.team.id, r]));
+		// 对战矩阵：h2h[a][b] > 0 表示 a 在对阵 b 中净胜场次占优（与后端 T.Lets 规则一致）
+		const h2h = new Map<string, Map<string, number>>();
 		for (const r of stage.rounds ?? []) {
 			for (const m of r.matches ?? []) {
-				if (m.status !== 'completed') continue;
+				if (m.status !== 'completed' && m.status !== 'walkthrough') continue;
 				if (!m.team1 || !m.team2) continue;
 				const s1 = m.team1_score ?? 0;
 				const s2 = m.team2_score ?? 0;
 				const a = byId.get(m.team1.id);
 				const b = byId.get(m.team2.id);
 				if (!a || !b) continue;
-				if (s1 === s2) {
+				a.played++;
+				b.played++;
+				const winnerId = m.winner_id ?? m.winnerId ?? (s1 > s2 ? m.team1.id : s1 < s2 ? m.team2.id : null);
+				if (!winnerId) {
 					a.d++;
 					b.d++;
 					a.pts++;
 					b.pts++;
-				} else if (s1 > s2) {
-					a.w++;
-					b.l++;
-					a.pts += 3;
 				} else {
-					b.w++;
-					a.l++;
-					b.pts += 3;
+					const win = winnerId === m.team1.id ? a : b;
+					const lose = winnerId === m.team1.id ? b : a;
+					win.w++;
+					lose.l++;
+					win.pts += 3;
+					if (!h2h.has(win.team.id)) h2h.set(win.team.id, new Map());
+					if (!h2h.has(lose.team.id)) h2h.set(lose.team.id, new Map());
+					h2h.get(win.team.id)!.set(lose.team.id, (h2h.get(win.team.id)!.get(lose.team.id) ?? 0) + 1);
+					h2h.get(lose.team.id)!.set(win.team.id, (h2h.get(lose.team.id)!.get(win.team.id) ?? 0) - 1);
 				}
+				a.gd += s1 - s2;
+				b.gd += s2 - s1;
 			}
 		}
-		rows.sort(
-			(x, y) =>
-				y.pts - x.pts ||
-				y.w - x.w ||
-				String(x.team.name).localeCompare(String(y.team.name))
-		);
+		// T.Lets：积分 → 胜负场次差 → 净胜分 → 对战胜负
+		rows.sort((x, y) => {
+			if (y.pts !== x.pts) return y.pts - x.pts;
+			const wd = (y.w - y.l) - (x.w - x.l);
+			if (wd !== 0) return wd;
+			if (y.gd !== x.gd) return y.gd - x.gd;
+			return -((h2h.get(x.team.id)?.get(y.team.id) ?? 0) || 0);
+		});
 		return rows;
+	}
+
+	// 淘汰赛轮次命名：决赛 / 半决赛 / 1/4 决赛 …
+	function roundLabel(r: number, total: number): string {
+		if (r >= total) return '决赛';
+		if (total - r === 1) return '半决赛';
+		if (total - r === 2) return '1/4 决赛';
+		if (total - r === 3) return '1/8 决赛';
+		if (total - r === 4) return '1/16 决赛';
+		return `第 ${r} 轮`;
+	}
+
+	// 缩放控制
+	let zoom = $state(1);
+	const ZOOM_MIN = 0.5;
+	const ZOOM_MAX = 2;
+	function zoomBy(d: number) {
+		zoom = Math.min(ZOOM_MAX, Math.max(ZOOM_MIN, Math.round((zoom + d) * 10) / 10));
 	}
 
 	async function exportImage() {
 		exporting = true;
 		try {
+			// 导出前临时恢复 100% 缩放，避免图片被缩放影响
+			const prevZoom = zoom;
+			if (prevZoom !== 1) {
+				zoom = 1;
+				await new Promise((r) => requestAnimationFrame(() => r(null)));
+			}
 			const { toPng } = await import('html-to-image');
 			const dataUrl = await toPng(bracketEl, { backgroundColor: '#ffffff', pixelRatio: 2 });
 			const link = document.createElement('a');
@@ -151,15 +186,34 @@
 				{data.tournament.name} — 赛程图
 			</h1>
 		</div>
-		<Button
-			onclick={exportImage}
-			disabled={exporting}
-			en="Export"
-			class="rounded-none shrink-0"
-			aria-label="导出赛程图为图片"
-		>
+		<div class="flex items-center gap-2 shrink-0">
+			<div class="flex items-center border border-black bg-white">
+				<button
+					onclick={() => zoomBy(-0.1)}
+					class="px-2.5 py-1.5 text-sm font-black hover:bg-neutral-100 transition-colors duration-150"
+					aria-label="缩小"
+				>−</button>
+				<button
+					onclick={() => (zoom = 1)}
+					class="px-2.5 py-1.5 text-xs font-bold border-x border-black tabular-nums hover:bg-neutral-100 transition-colors duration-150"
+					aria-label="重置缩放"
+				>{Math.round(zoom * 100)}%</button>
+				<button
+					onclick={() => zoomBy(0.1)}
+					class="px-2.5 py-1.5 text-sm font-black hover:bg-neutral-100 transition-colors duration-150"
+					aria-label="放大"
+				>+</button>
+			</div>
+			<Button
+				onclick={exportImage}
+				disabled={exporting}
+				en="Export"
+				class="rounded-none shrink-0"
+				aria-label="导出赛程图为图片"
+			>
 			{exporting ? '导出中...' : '导出为图片 →'}
 		</Button>
+		</div>
 	</div>
 
 	{#snippet matchCard(m: any, isFinal: boolean)}
@@ -275,7 +329,7 @@
 				{@const halvesNext = !isLast && rounds[ri + 1].matches.length * 2 === n}
 				<div class="shrink-0">
 					<div class="text-xs text-neutral-500 font-bold uppercase tracking-wider mb-2 h-4">
-						第 {round.round} 轮{isLast && n === 1 ? ' · 决赛' : ''}
+						{roundLabel(round.round, rounds.length)}
 					</div>
 					<div class="flex flex-col justify-around" style="height:{H}px;">
 						{#each sortRound(round.matches) as m, mi}
@@ -311,17 +365,52 @@
 
 	{#snippet swissStage(stage: any)}
 		{@const rounds = (stage.rounds ?? []).filter((r: any) => r.matches.length > 0)}
-		<div class="flex gap-6">
-			{#each rounds as round}
-				<div class="flex flex-col gap-3 shrink-0">
-					<div class="text-xs text-neutral-500 font-bold uppercase tracking-wider">
-						第 {round.round} 轮
+		{@const teams = getRoundRobinTeams(stage)}
+		{@const standings = buildStandings(stage, teams)}
+		<div class="flex gap-8 items-start">
+			<div class="flex gap-6">
+				{#each rounds as round}
+					<div class="flex flex-col gap-3 shrink-0">
+						<div class="text-xs text-neutral-500 font-bold uppercase tracking-wider">
+							第 {round.round} 轮
+						</div>
+						{#each sortRound(round.matches) as m}
+							{@render matchCard(m, false)}
+						{/each}
 					</div>
-					{#each sortRound(round.matches) as m}
-						{@render matchCard(m, false)}
-					{/each}
+				{/each}
+			</div>
+			{#if standings.length > 0}
+				<div class="shrink-0">
+					<div class="text-xs text-neutral-500 font-bold uppercase tracking-wider mb-2">积分榜</div>
+					<div class="border border-black bg-white">
+						<table class="border-collapse text-sm">
+							<thead>
+								<tr class="bg-black text-white">
+									<th class="px-3 py-2 text-left font-bold">排名</th>
+									<th class="px-3 py-2 text-left font-bold">队伍</th>
+									<th class="px-3 py-2 text-center font-bold">胜</th>
+									<th class="px-3 py-2 text-center font-bold">负</th>
+									<th class="px-3 py-2 text-center font-bold">净胜</th>
+									<th class="px-3 py-2 text-center font-bold">积分</th>
+								</tr>
+							</thead>
+							<tbody>
+								{#each standings as s, i}
+									<tr class="border-t border-black">
+										<td class="px-3 py-2 font-bold">{i + 1}</td>
+										<td class="px-3 py-2 font-bold whitespace-nowrap">{s.team.name}</td>
+										<td class="px-3 py-2 text-center tabular-nums">{s.w}</td>
+										<td class="px-3 py-2 text-center tabular-nums">{s.l}</td>
+										<td class="px-3 py-2 text-center tabular-nums">{s.gd > 0 ? `+${s.gd}` : s.gd}</td>
+										<td class="px-3 py-2 text-center font-black tabular-nums">{s.pts}</td>
+									</tr>
+								{/each}
+							</tbody>
+						</table>
+					</div>
 				</div>
-			{/each}
+			{/if}
 		</div>
 	{/snippet}
 
@@ -408,7 +497,7 @@
 
 	<div class="p-4 md:p-6 overflow-auto animate-enter bg-white/70 backdrop-blur-md" bind:this={bracketEl}>
 		{#if stages.length > 0}
-			<div class="flex gap-10 flex-nowrap">
+			<div class="flex gap-10 flex-nowrap" style="zoom: {zoom}">
 				{#each stages as stage}
 					<div class="flex flex-col shrink-0">
 						<div class="mb-4 border-b border-black pb-1">
@@ -426,6 +515,16 @@
 			</div>
 		{:else}
 			<EmptyState icon={GitFork} title="暂无赛程数据" class="py-20" />
+		{/if}
+		{#if stages.length > 0}
+			<div class="flex flex-wrap gap-x-6 gap-y-2 mt-6 pt-4 border-t border-black/20 text-[10px] font-bold uppercase tracking-wider text-neutral-500">
+				<span class="flex items-center gap-1.5"><span class="w-3 h-[2px] bg-black inline-block"></span>胜者晋级</span>
+				<span class="flex items-center gap-1.5"><span class="w-3 h-[2px] bg-black/40 inline-block"></span>败者淘汰</span>
+				<span class="flex items-center gap-1.5"><span class="w-1.5 h-1.5 bg-accent inline-block rounded-full"></span>进行中</span>
+				<span class="flex items-center gap-1.5"><span class="w-1.5 h-1.5 bg-neutral-400 inline-block rounded-full"></span>待赛</span>
+				<span class="flex items-center gap-1.5"><span class="text-[10px] leading-none">轮空</span>不战而胜</span>
+				<span class="flex items-center gap-1.5">#1 <span class="text-neutral-400">种子号</span></span>
+			</div>
 		{/if}
 	</div>
 </div>
