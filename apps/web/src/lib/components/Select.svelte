@@ -18,7 +18,7 @@
 
 <select
 	bind:value
-	class={cn('w-full border border-black font-sans px-3 py-2 text-sm bg-white focus:outline-none focus:border-accent', klass)}
+	class={cn('w-full border border-black font-sans px-3 py-2.5 text-sm bg-white focus:outline-none focus:border-accent', klass)}
 	{...rest}
 >
 	{#each options as opt}

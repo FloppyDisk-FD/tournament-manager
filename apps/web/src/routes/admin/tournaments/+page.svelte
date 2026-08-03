@@ -39,11 +39,11 @@
 	{#if tournaments.length === 0}
 		<EmptyState title="暂无赛事" description="点击右上角「创建赛事」开始" class="bg-neutral-50 p-12" />
 	{:else}
-		<div class="border border-black overflow-hidden">
+		<div class="border border-black overflow-hidden overflow-x-auto">
 			<table class="w-full text-sm">
 				<thead class="bg-black text-white">
 					<tr>
-						<th class="text-left px-4 py-3 font-bold">名称</th>
+						<th class="text-left px-4 py-3 font-bold sticky left-0 bg-black z-10">名称</th>
 						<th class="text-left px-4 py-3 font-bold">游戏</th>
 						<th class="text-left px-4 py-3 font-bold">赛制</th>
 						<th class="text-left px-4 py-3 font-bold">状态</th>
@@ -52,8 +52,8 @@
 				</thead>
 				<tbody>
 					{#each tournaments as t, i (t.id)}
-						<tr class="border-t border-black/20 hover:bg-neutral-50 transition-colors duration-150 animate-enter" style="animation-delay:{Math.min(i * 30, 240)}ms">
-							<td class="px-4 py-3 font-bold">{t.name}</td>
+						<tr class="group border-t border-black/20 hover:bg-neutral-50 transition-colors duration-150 animate-enter" style="animation-delay:{Math.min(i * 30, 240)}ms">
+							<td class="px-4 py-3 font-bold sticky left-0 bg-white group-hover:bg-neutral-50 transition-colors duration-150">{t.name}</td>
 							<td class="px-4 py-3 text-neutral-600">{t.game}</td>
 							<td class="px-4 py-3 text-neutral-600">{FORMAT_MAP[t.format] ?? t.format}</td>
 							<td class="px-4 py-3">

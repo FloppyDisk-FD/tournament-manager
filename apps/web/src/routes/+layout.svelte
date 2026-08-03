@@ -7,8 +7,20 @@
 	import Toast from '$lib/components/Toast.svelte';
 	import { success, error, info } from '$lib/stores/toast.svelte';
 	import { isPushSupported, getPushSubscription, enablePush, disablePush } from '$lib/push';
+	import { beforeNavigate, afterNavigate } from '$app/navigation';
 
 	let { children, data } = $props();
+
+	// 顶部导航进度条（瑞士风格：2px 红色细线）
+	let navigating = $state(false);
+	let navTimer: ReturnType<typeof setTimeout> | undefined;
+	beforeNavigate(() => {
+		navigating = true;
+		clearTimeout(navTimer);
+	});
+	afterNavigate(() => {
+		navTimer = setTimeout(() => (navigating = false), 250);
+	});
 
 	// 通知中心
 	let notifOpen = $state(false);
@@ -93,6 +105,11 @@
 </script>
 
 <div class="min-h-screen flex flex-col">
+	{#if navigating}
+		<div class="fixed top-0 left-0 right-0 h-0.5 bg-accent z-[100]" aria-hidden="true">
+			<div class="h-full w-1/3 bg-accent progress-slide"></div>
+		</div>
+	{/if}
 	<a href="#main-content" class="skip-link">跳到主内容</a>
 	<nav class="bg-black/75 backdrop-blur-md border-b-2 border-black px-4 md:px-8 h-14 flex items-center justify-between sticky top-0 z-50" aria-label="主导航">
 		<a href="/" class="font-black text-lg md:text-xl tracking-tight text-white press inline-flex items-center gap-2" aria-label="返回首页">

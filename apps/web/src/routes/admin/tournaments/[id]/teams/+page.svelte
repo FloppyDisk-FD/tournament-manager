@@ -365,11 +365,11 @@
 	{/if}
 
 	{#if teams.length > 0}
-		<div class="border border-black overflow-hidden">
+		<div class="border border-black overflow-hidden overflow-x-auto">
 			<table class="w-full text-sm">
 				<thead class="bg-black text-white">
 					<tr>
-						<th class="text-left px-4 py-3 font-bold w-14">SEED</th>
+						<th class="text-left px-4 py-3 font-bold w-14 sticky left-0 bg-black z-10">SEED</th>
 						<th class="text-left px-4 py-3 font-bold w-14">LOGO</th>
 						<th class="text-left px-4 py-3 font-bold">队名</th>
 						<th class="text-left px-4 py-3 font-bold w-20">选手</th>
@@ -378,8 +378,8 @@
 				</thead>
 				<tbody>
 					{#each teams as team, i (team.id)}
-						<tr class="border-t border-black/20 hover:bg-neutral-50 transition-colors duration-150">
-							<td class="px-4 py-2 text-neutral-500 font-bold">{team.seed ?? i + 1}</td>
+						<tr class="group border-t border-black/20 hover:bg-neutral-50 transition-colors duration-150">
+							<td class="px-4 py-2 text-neutral-500 font-bold sticky left-0 bg-white group-hover:bg-neutral-50 transition-colors duration-150">{team.seed ?? i + 1}</td>
 							<td class="px-4 py-2">
 								{#if team.logo_url}
 									<img src={team.logo_url} alt={team.name} class="w-6 h-6 object-contain" />

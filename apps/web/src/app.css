@@ -266,6 +266,15 @@
 	border: 0;
 }
 
+/* 顶部导航进度条 — 红色细线滑动 */
+.progress-slide {
+	animation: progress-slide 1.1s ease-in-out infinite;
+}
+@keyframes progress-slide {
+	0% { transform: translateX(-100%); }
+	100% { transform: translateX(400%); }
+}
+
 /* 跳到主内容 */
 .skip-link {
 	position: absolute;

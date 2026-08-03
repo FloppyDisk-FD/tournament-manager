@@ -538,7 +538,7 @@
 			{#if standings.length > 0}
 				<div class="shrink-0">
 					<div class="text-xs text-neutral-500 font-bold uppercase tracking-wider mb-2">积分榜</div>
-					<div class="border border-black bg-white">
+					<div class="border border-black bg-white overflow-x-auto">
 						<table class="border-collapse text-sm">
 							<thead>
 								<tr class="bg-black text-white">
@@ -573,7 +573,7 @@
 		{@const teams = getRoundRobinTeams(stage)}
 		{@const standings = buildStandings(stage, teams)}
 		<div class="flex flex-col gap-6">
-			<div class="border border-black bg-white">
+			<div class="border border-black bg-white overflow-x-auto">
 				<table class="border-collapse text-sm">
 					<thead>
 						<tr class="bg-black text-white">
@@ -615,7 +615,7 @@
 			</div>
 			<div>
 				<div class="text-xs text-neutral-500 font-bold uppercase tracking-wider mb-2">积分榜</div>
-				<div class="border border-black bg-white">
+				<div class="border border-black bg-white overflow-x-auto">
 					<table class="border-collapse text-sm w-full">
 						<thead>
 							<tr class="bg-black text-white">

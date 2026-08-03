@@ -111,7 +111,7 @@
     {#if activeTab === 'players'}
       <div class="animate-enter">
         {#if t.players.length > 0}
-          <div class="border border-black">
+          <div class="border border-black overflow-x-auto">
             <table class="w-full text-sm">
               <thead class="bg-black text-white">
                 <tr>
