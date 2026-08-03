@@ -55,15 +55,19 @@ bracketRoutes.get('/:id/bracket', async (c) => {
 
   const t1 = alias(teams, 't1');
   const t2 = alias(teams, 't2');
+  const tt1 = alias(tournamentTeams, 'tt1');
+  const tt2 = alias(tournamentTeams, 'tt2');
   const matchRows = await c.get('db').select({
     match: matches,
     game: games,
-    team1: { id: t1.id, name: t1.name, logoUrl: t1.logoUrl, logoEmoji: t1.logoEmoji, seed: t1.seed },
-    team2: { id: t2.id, name: t2.name, logoUrl: t2.logoUrl, logoEmoji: t2.logoEmoji, seed: t2.seed },
+    team1: { id: t1.id, name: t1.name, logoUrl: t1.logoUrl, logoEmoji: t1.logoEmoji, seed: tt1.seed },
+    team2: { id: t2.id, name: t2.name, logoUrl: t2.logoUrl, logoEmoji: t2.logoEmoji, seed: tt2.seed },
   })
     .from(matches)
     .leftJoin(t1, eq(t1.id, matches.team1Id))
     .leftJoin(t2, eq(t2.id, matches.team2Id))
+    .leftJoin(tt1, and(eq(tt1.teamId, matches.team1Id), eq(tt1.tournamentId, tournament.id)))
+    .leftJoin(tt2, and(eq(tt2.teamId, matches.team2Id), eq(tt2.tournamentId, tournament.id)))
     .leftJoin(games, eq(games.matchId, matches.id))
     .where(inArray(matches.stageId, stageIds));
 
