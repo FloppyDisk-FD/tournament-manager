@@ -3,6 +3,7 @@
 	import { ArrowRight, Users } from 'lucide-svelte';
 	import Button from '$lib/components/Button.svelte';
 	import EmptyState from '$lib/components/EmptyState.svelte';
+	import Input from '$lib/components/Input.svelte';
 	import PageHeader from '$lib/components/PageHeader.svelte';
 	import PlayerEditCard from '$lib/components/PlayerEditCard.svelte';
 	import { success, error } from '$lib/stores/toast.svelte';
@@ -186,22 +187,11 @@
 			<div class="grid grid-cols-1 md:grid-cols-3 gap-0 border border-black">
 				<div class="border-b md:border-b-0 md:border-r border-black p-3">
 					<label class="block text-xs font-bold text-neutral-600 mb-1">队名</label>
-					<input
-						type="text"
-						bind:value={newName}
-						placeholder="例如：火焰战队"
-						class="w-full rounded-none border border-black font-sans px-2 py-1.5 text-sm bg-white focus:outline-none"
-					/>
+					<Input bind:value={newName} placeholder="例如：火焰战队" />
 				</div>
 				<div class="border-b md:border-b-0 md:border-r border-black p-3">
 					<label class="block text-xs font-bold text-neutral-600 mb-1">Logo Emoji</label>
-					<input
-						type="text"
-						maxlength="10"
-						bind:value={newEmoji}
-						placeholder="🏆"
-						class="w-full rounded-none border border-black font-sans px-2 py-1.5 text-sm bg-white focus:outline-none"
-					/>
+					<Input maxlength="10" bind:value={newEmoji} placeholder="🏆" />
 					<div class="flex flex-wrap gap-1 mt-2">
 						{#each emojiPresets as em}
 							<button
@@ -218,12 +208,7 @@
 				</div>
 				<div class="p-3">
 					<label class="block text-xs font-bold text-neutral-600 mb-1">Logo URL（可选）</label>
-					<input
-						type="text"
-						bind:value={newLogoUrl}
-						placeholder="https://..."
-						class="w-full rounded-none border border-black font-sans px-2 py-1.5 text-sm bg-white focus:outline-none"
-					/>
+					<Input bind:value={newLogoUrl} placeholder="https://..." />
 				</div>
 			</div>
 			<div class="mt-4">
@@ -264,11 +249,7 @@
 						</span>
 							<div class="flex-1 min-w-0">
 								{#if isEditing}
-									<input
-										type="text"
-										bind:value={editDraft!.name}
-										class="rounded-none border border-black font-sans font-bold px-2 py-1 text-sm bg-white focus:outline-none w-full"
-									/>
+									<Input bind:value={editDraft!.name} class="font-bold" />
 								{:else}
 									<div class="font-black text-base md:text-lg text-black truncate">{team.name}</div>
 								{/if}
@@ -327,12 +308,7 @@
 									<div class="space-y-3">
 										<div>
 											<label class="block text-xs font-bold text-neutral-600 mb-1">Logo Emoji</label>
-											<input
-												type="text"
-												maxlength="10"
-												bind:value={editDraft!.logo_emoji}
-												class="w-full rounded-none border border-black font-sans px-2 py-1.5 text-sm bg-white focus:outline-none"
-											/>
+											<Input maxlength="10" bind:value={editDraft!.logo_emoji} />
 											<div class="flex flex-wrap gap-1 mt-2">
 												{#each emojiPresets as em}
 													<button
@@ -349,12 +325,7 @@
 										</div>
 										<div>
 											<label class="block text-xs font-bold text-neutral-600 mb-1">Logo URL（可选）</label>
-											<input
-												type="text"
-												bind:value={editDraft!.logo_url}
-												placeholder="https://..."
-												class="w-full rounded-none border border-black font-sans px-2 py-1.5 text-sm bg-white focus:outline-none"
-											/>
+											<Input bind:value={editDraft!.logo_url} placeholder="https://..." />
 										</div>
 									</div>
 								</div>

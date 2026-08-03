@@ -1,5 +1,7 @@
 <script lang="ts">
 	import { PLAYER_ROLE_MAP } from '$lib/constants/tournament';
+	import Input from '$lib/components/Input.svelte';
+	import Select from '$lib/components/Select.svelte';
 
 	interface Props {
 		/** 选手对象（$state 引用，字段直接 bind 同步到父级） */
@@ -60,41 +62,19 @@
 		<div class="flex-1 min-w-0 grid grid-cols-1 md:grid-cols-2 gap-2">
 			<div>
 				<label class="block text-[10px] font-bold uppercase tracking-wider text-neutral-500 mb-1">选手名</label>
-				<input
-					type="text"
-					bind:value={player.player_name}
-					placeholder="选手名"
-					class="w-full rounded-none border border-black font-sans px-2 py-1.5 text-sm bg-white focus:outline-none"
-				/>
+				<Input bind:value={player.player_name} placeholder="选手名" />
 			</div>
 			<div>
 				<label class="block text-[10px] font-bold uppercase tracking-wider text-neutral-500 mb-1">角色</label>
-				<select
-					bind:value={player.player_role}
-					class="w-full rounded-none border border-black font-sans px-2 py-1.5 text-sm bg-white focus:outline-none"
-				>
-					{#each Object.entries(PLAYER_ROLE_MAP) as [value, label]}
-						<option value={value}>{label}</option>
-					{/each}
-				</select>
+				<Select bind:value={player.player_role} options={Object.entries(PLAYER_ROLE_MAP).map(([value, label]) => ({ value, label }))} />
 			</div>
 			<div>
 				<label class="block text-[10px] font-bold uppercase tracking-wider text-neutral-500 mb-1">游戏 ID</label>
-				<input
-					type="text"
-					bind:value={player.game_id}
-					placeholder="游戏内 ID"
-					class="w-full rounded-none border border-black font-sans px-2 py-1.5 text-sm bg-white focus:outline-none"
-				/>
+				<Input bind:value={player.game_id} placeholder="游戏内 ID" />
 			</div>
 			<div>
 				<label class="block text-[10px] font-bold uppercase tracking-wider text-neutral-500 mb-1">头像 URL</label>
-				<input
-					type="url"
-					bind:value={player.avatar_url}
-					placeholder="https://..."
-					class="w-full rounded-none border border-black font-sans px-2 py-1.5 text-sm bg-white focus:outline-none"
-				/>
+				<Input type="url" bind:value={player.avatar_url} placeholder="https://..." />
 			</div>
 		</div>
 	</div>

@@ -3,6 +3,7 @@
 	import Button from '$lib/components/Button.svelte';
 	import BackLink from '$lib/components/BackLink.svelte';
 	import EmptyState from '$lib/components/EmptyState.svelte';
+	import Input from '$lib/components/Input.svelte';
 	import PageHeader from '$lib/components/PageHeader.svelte';
 	import SeedRankingPanel from '$lib/components/SeedRankingPanel.svelte';
 	import { success, error } from '$lib/stores/toast.svelte';
@@ -219,27 +220,10 @@
 	{#if t.status === 'draft'}
 		<div class="mb-6 space-y-3">
 			<!-- 快速创建：emoji + 队名 + Logo URL + 按钮 -->
-			<div class="flex flex-col md:flex-row gap-0 border border-black bg-white">
-				<input
-					type="text"
-					maxlength="10"
-					bind:value={newEmoji}
-					placeholder="🏆"
-					onkeydown={(e) => e.key === 'Enter' && addTeam()}
-					class="w-full md:w-20 border-b md:border-b-0 md:border-r border-black px-3 py-2 text-sm text-center font-sans bg-white focus:outline-none rounded-none"
-				/>
-				<input
-					type="text"
-					bind:value={newName}
-					placeholder="队伍名称"
-					onkeydown={(e) => e.key === 'Enter' && addTeam()}
-					class="w-full md:flex-1 border-b md:border-b-0 md:border-r border-black px-3 py-2 text-sm font-sans bg-white focus:outline-none rounded-none"
-				/>
-				<input
-					type="text"
-					bind:value={newLogoUrl}
-					placeholder="Logo URL（可选）"
-					onkeydown={(e) => e.key === 'Enter' && addTeam()}
+			<div class="flex flex-col md:flex-row gap-2">
+				<Input maxlength="10" bind:value={newEmoji} placeholder="🏆" onkeydown={(e: KeyboardEvent) => e.key === 'Enter' && addTeam()} class="md:w-20 text-center" />
+				<Input bind:value={newName} placeholder="队伍名称" onkeydown={(e: KeyboardEvent) => e.key === 'Enter' && addTeam()} class="md:flex-1" />
+				<Input bind:value={newLogoUrl} placeholder="Logo URL（可选）" onkeydown={(e: KeyboardEvent) => e.key === 'Enter' && addTeam()} class="md:flex-1" />
 					class="w-full md:flex-1 border-b md:border-b-0 md:border-r border-black px-3 py-2 text-sm font-sans bg-white focus:outline-none rounded-none"
 				/>
 				<Button
