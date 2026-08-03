@@ -327,9 +327,9 @@
 			</div>
 			<span class="hidden md:block text-[10px] font-bold text-neutral-400 uppercase tracking-wider">Banner · 直播 · 报名费 · 赞助商 · 表单 · 规则</span>
 		</div>
-		<div class="divide-y divide-black">
+		<div class="grid grid-cols-1 md:grid-cols-2 gap-px bg-black">
 			<!-- Banner -->
-			<div class="border-b border-black">
+			<div class="bg-white {bannerOpen ? 'md:col-span-2' : ''}">
 				<button onclick={() => (bannerOpen = !bannerOpen)}
 					class="w-full flex items-center justify-between gap-3 px-4 py-3 bg-white hover:bg-neutral-50 transition-colors duration-150 text-left">
 					<div class="flex items-center gap-2.5 min-w-0">
@@ -365,7 +365,7 @@
 				{/if}
 			</div>
 			<!-- 直播 -->
-			<div class="border-b border-black">
+			<div class="bg-white {livePanelOpen ? 'md:col-span-2' : ''}">
 				<button onclick={() => (livePanelOpen = !livePanelOpen)}
 					class="w-full flex items-center justify-between gap-3 px-4 py-3 bg-white hover:bg-neutral-50 transition-colors duration-150 text-left">
 					<div class="flex items-center gap-2.5 min-w-0">
@@ -395,7 +395,7 @@
 				{/if}
 			</div>
 			<!-- 报名费 -->
-			<div class="border-b border-black">
+			<div class="bg-white {feePanelOpen ? 'md:col-span-2' : ''}">
 				<button onclick={() => (feePanelOpen = !feePanelOpen)}
 					class="w-full flex items-center justify-between gap-3 px-4 py-3 bg-white hover:bg-neutral-50 transition-colors duration-150 text-left">
 					<div class="flex items-center gap-2.5 min-w-0">
@@ -426,7 +426,7 @@
 				{/if}
 			</div>
 			<!-- 赞助商与 Banner 广告位 -->
-			<div class="border-b border-black">
+			<div class="bg-white {sponsorPanelOpen ? 'md:col-span-2' : ''}">
 				<button onclick={() => (sponsorPanelOpen = !sponsorPanelOpen)}
 					class="w-full flex items-center justify-between gap-3 px-4 py-3 bg-white hover:bg-neutral-50 transition-colors duration-150 text-left">
 					<div class="flex items-center gap-2.5 min-w-0">
@@ -489,7 +489,7 @@
 				{/if}
 			</div>
 			<!-- 报名表单 -->
-			<div class="border-b border-black">
+			<div class="bg-white {customPanelOpen ? 'md:col-span-2' : ''}">
 				<button onclick={() => (customPanelOpen = !customPanelOpen)}
 					class="w-full flex items-center justify-between gap-3 px-4 py-3 bg-white hover:bg-neutral-50 transition-colors duration-150 text-left">
 					<div class="flex items-center gap-2.5 min-w-0">
@@ -565,7 +565,7 @@
 				{/if}
 			</div>
 			<!-- 赛事规则 -->
-			<div class="border-b border-black">
+			<div class="bg-white {rulesPanelOpen ? 'md:col-span-2' : ''}">
 				<button onclick={() => (rulesPanelOpen = !rulesPanelOpen)}
 					class="w-full flex items-center justify-between gap-3 px-4 py-3 bg-white hover:bg-neutral-50 transition-colors duration-150 text-left">
 					<div class="flex items-center gap-2.5 min-w-0">
