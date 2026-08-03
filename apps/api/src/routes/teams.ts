@@ -6,6 +6,23 @@ import { AppError, requireUuid } from '../middleware/error';
 import { authMiddleware, requireAuth } from '../middleware/auth';
 import { isAdmin, canManageTeam, canManageTournament, canCreateTeam } from '../services/perm';
 
+// 公开队伍信息（赛程图 hover 详情等场景，无需登录）
+export const publicTeamRoutes = new Hono<{ Variables: { user: any | null; db: Db } }>();
+publicTeamRoutes.get('/:teamId', async (c) => {
+  const { teamId } = c.req.param();
+  requireUuid(teamId, '队伍');
+  const [team] = await c.get('db').select().from(teams).where(eq(teams.id, teamId)).limit(1);
+  if (!team) throw new AppError('NOT_FOUND', '队伍不存在', 404);
+  const players = await c.get('db').select().from(teamPlayers).where(eq(teamPlayers.teamId, teamId));
+  return c.json({
+    id: team.id,
+    name: team.name,
+    logoEmoji: team.logoEmoji,
+    logoUrl: team.logoUrl,
+    players: players.map((p) => ({ id: p.id, name: p.playerName, role: p.playerRole, isCaptain: p.isCaptain })),
+  });
+});
+
 // 全局队伍库路由（/api/v1/teams）
 export const globalTeamRoutes = new Hono<{ Variables: { user: any | null; db: Db } }>();
 globalTeamRoutes.use('*', authMiddleware, requireAuth);

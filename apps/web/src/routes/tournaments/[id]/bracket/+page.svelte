@@ -1,12 +1,43 @@
 <script lang="ts">
-	import { GitFork } from 'lucide-svelte';
+	import { GitFork, Star } from 'lucide-svelte';
 	import Button from '$lib/components/Button.svelte';
 	import EmptyState from '$lib/components/EmptyState.svelte';
+	import { api } from '$lib/api/client';
 
 	let { data } = $props();
 	let bracketEl: HTMLElement;
 	let exporting = $state(false);
 	const stages: any[] = $derived(data.bracket?.stages ?? []);
+
+	// hover 队伍详情（懒加载 + 缓存）
+	const teamCache = new Map<string, any>();
+	let hoveredTeam = $state<any>(null);
+	let hideTimer: ReturnType<typeof setTimeout> | undefined;
+
+	async function showTeam(teamId: string | null | undefined) {
+		if (!teamId) return;
+		clearTimeout(hideTimer);
+		if (teamCache.has(teamId)) {
+			hoveredTeam = teamCache.get(teamId)!;
+			return;
+		}
+		try {
+			const t = await api.get<any>(`/public/teams/${teamId}`);
+			teamCache.set(teamId, t);
+			hoveredTeam = t;
+		} catch {
+			// 队伍可能已删除，忽略
+		}
+	}
+
+	function scheduleHide() {
+		clearTimeout(hideTimer);
+		hideTimer = setTimeout(() => (hoveredTeam = null), 150);
+	}
+
+	function cancelHide() {
+		clearTimeout(hideTimer);
+	}
 
 	// Geometry constants for elimination brackets.
 	const CARD_H = 80;
@@ -237,6 +268,8 @@
 						class="flex items-center gap-2 px-2 py-0.5 {t1Win
 							? 'font-black'
 							: t2Win ? 'opacity-40 font-medium' : 'font-bold'}"
+						onmouseenter={() => showTeam(m.team1?.id)}
+						onmouseleave={scheduleHide}
 					>
 						<span class="w-4 shrink-0 text-[10px] text-neutral-400 tabular-nums">
 							{m.team1?.seed ?? ''}
@@ -252,6 +285,8 @@
 						class="flex items-center gap-2 px-2 py-0.5 {t2Win
 							? 'font-black'
 							: t1Win ? 'opacity-40 font-medium' : 'font-bold'}"
+						onmouseenter={() => showTeam(m.team2?.id)}
+						onmouseleave={scheduleHide}
 					>
 						<span class="w-4 shrink-0 text-[10px] text-neutral-400 tabular-nums">
 							{m.team2?.seed ?? ''}
@@ -278,6 +313,38 @@
 				<div class="absolute top-1.5 right-1.5 w-1.5 h-1.5 bg-neutral-400 status-dot" aria-label="待赛"></div>
 			{:else if walk}
 				<div class="absolute top-1.5 right-1.5 text-[9px] font-bold uppercase tracking-wider text-neutral-400">轮空</div>
+			{/if}
+			{#if hoveredTeam && (hoveredTeam.id === m.team1?.id || hoveredTeam.id === m.team2?.id)}
+				<div
+					class="absolute z-30 bottom-full left-1/2 -translate-x-1/2 mb-1 w-48 bg-black text-white border border-black shadow-[4px_4px_0_rgba(0,0,0,0.18)] p-3 pointer-events-auto"
+					onmouseenter={cancelHide}
+					onmouseleave={scheduleHide}
+				>
+					<div class="flex items-center gap-2 mb-1.5 min-w-0">
+						{#if hoveredTeam.logoUrl}
+							<img src={hoveredTeam.logoUrl} alt={hoveredTeam.name} class="w-6 h-6 object-contain bg-white shrink-0" />
+						{:else if hoveredTeam.logoEmoji}
+							<span class="text-lg leading-none shrink-0">{hoveredTeam.logoEmoji}</span>
+						{:else}
+							<span class="w-6 h-6 shrink-0 flex items-center justify-center border border-white/40 text-[10px] font-black">{hoveredTeam.name.slice(0, 1)}</span>
+						{/if}
+						<span class="font-black text-sm truncate">{hoveredTeam.name}</span>
+					</div>
+					{#if hoveredTeam.players?.length}
+						<div class="border-t border-white/20 pt-1.5 space-y-0.5 max-h-24 overflow-hidden">
+							{#each hoveredTeam.players as p}
+								<div class="flex items-center gap-1 text-[11px] font-bold text-white/90 min-w-0">
+									{#if p.isCaptain}
+										<Star size={9} fill="currentColor" class="shrink-0 text-accent" aria-label="队长" />
+									{/if}
+									<span class="truncate">{p.name || '未命名选手'}</span>
+								</div>
+							{/each}
+						</div>
+					{:else}
+						<p class="border-t border-white/20 pt-1.5 text-[11px] text-white/60 font-bold">暂无成员信息</p>
+					{/if}
+				</div>
 			{/if}
 		</div>
 	{/snippet}
@@ -499,9 +566,15 @@
 		{#if stages.length > 0}
 			<div class="flex gap-10 flex-nowrap" style="zoom: {zoom}">
 				{#each stages as stage}
-					<div class="flex flex-col shrink-0">
-						<div class="mb-4 border-b border-black pb-1">
+					<div class="flex flex-col shrink-0 {stage.type === 'losers_bracket' ? 'bg-neutral-100/70 p-3' : ''}">
+						<div class="mb-4 border-b border-black pb-1 flex items-center gap-2">
+							<span class="w-2 h-2 shrink-0 {stage.type === 'losers_bracket' || stage.type === 'grand_final' ? 'bg-accent' : stage.type === 'winners_bracket' ? 'bg-black' : 'bg-neutral-400'}" aria-hidden="true"></span>
 							<h3 class="font-black text-base md:text-lg tracking-tight">{stage.name}</h3>
+							{#if stage.type === 'winners_bracket'}
+								<span class="ml-1 text-[10px] font-black uppercase tracking-wider px-1.5 py-0.5 bg-black text-white">胜者组</span>
+							{:else if stage.type === 'losers_bracket'}
+								<span class="ml-1 text-[10px] font-black uppercase tracking-wider px-1.5 py-0.5 bg-accent text-white">败者组</span>
+							{/if}
 						</div>
 						{#if stage.type === 'swiss'}
 							{@render swissStage(stage)}
