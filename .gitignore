@@ -45,3 +45,6 @@ test-*.js
 
 
 .wrangler/
+
+# Reasonix desktop metadata
+.reasonix/
