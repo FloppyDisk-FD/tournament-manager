@@ -86,60 +86,60 @@
 			class="border border-black px-8 py-10"
 		/>
 	{:else}
-		<!-- 标题栏：黑底 + 渐变水印 -->
-		<div class="relative overflow-hidden bg-black text-white px-4 py-5 mb-8">
+		<!-- 标题栏：白底黑边 + 渐变水印 -->
+		<div class="relative overflow-hidden border-2 border-black bg-white px-4 py-5 mb-8">
 			<div class="relative z-10">
 				<div class="flex items-center gap-2 mb-1">
 					<span class="inline-block w-1 h-1 bg-accent" aria-hidden="true"></span>
-					<span class="text-xs font-black uppercase tracking-widest text-white/60">Tournament Review</span>
+					<span class="text-xs font-black uppercase tracking-widest text-neutral-400">Tournament Review</span>
 				</div>
-				<h1 class="font-black text-2xl md:text-3xl tracking-tight">{t.name}</h1>
-				<p class="text-sm text-white/70 mt-1">
+				<h1 class="font-black text-2xl md:text-3xl tracking-tight text-black">{t.name}</h1>
+				<p class="text-sm text-neutral-500 mt-1">
 					{FORMAT_MAP[t.format] ?? t.format}
 					{#if t.game} · {t.game}{/if}
 					· {fmtDate(t.startDate ?? t.createdAt)}
 				</p>
 			</div>
 			<span
-				class="pointer-events-none absolute right-2 top-1/2 -translate-y-1/2 text-5xl md:text-6xl leading-none font-black uppercase tracking-widest whitespace-nowrap select-none text-white/15"
+				class="pointer-events-none absolute right-2 top-1/2 -translate-y-1/2 text-5xl md:text-6xl leading-none font-black uppercase tracking-widest whitespace-nowrap select-none text-black/5"
 				style="-webkit-mask-image: linear-gradient(to right, transparent, black); mask-image: linear-gradient(to right, transparent, black)"
 			>Review</span>
 		</div>
 
 		<!-- 冠军卡 -->
 		{#if champion}
-			<div class="border-2 border-black bg-black text-white mb-8">
-				<div class="flex items-center gap-3 px-4 py-2 border-b border-white/20">
+			<div class="border-2 border-black bg-white mb-8">
+				<div class="flex items-center gap-3 px-4 py-2 border-b-2 border-black">
 					<Crown size={14} class="shrink-0 text-accent" aria-hidden="true" />
-					<span class="text-xs font-black uppercase tracking-widest text-white/70">Champion</span>
+					<span class="text-xs font-black uppercase tracking-widest text-black">Champion</span>
 				</div>
 				<div class="flex flex-col md:flex-row md:items-center gap-4 px-4 py-6">
 					<div class="flex items-center gap-4 flex-1 min-w-0">
-						<div class="w-16 h-16 shrink-0 border border-white/30 bg-white/10 flex items-center justify-center text-3xl overflow-hidden">
+						<div class="w-16 h-16 shrink-0 border-2 border-black bg-neutral-50 flex items-center justify-center text-3xl overflow-hidden">
 							{#if teamLogo(champion)}
 								<img src={teamLogo(champion)} alt={champion.name} class="w-full h-full object-cover" />
 							{:else if teamEmoji(champion)}
 								<span aria-hidden="true">{teamEmoji(champion)}</span>
 							{:else}
-								<span class="text-white/40 font-black" aria-hidden="true">{champion.name?.slice(0, 1)}</span>
+								<span class="text-neutral-300 font-black" aria-hidden="true">{champion.name?.slice(0, 1)}</span>
 							{/if}
 						</div>
 						<div class="min-w-0">
 							<div class="flex items-center gap-2 mb-1">
 								<Trophy size={16} class="shrink-0 text-accent" aria-hidden="true" />
-								<span class="font-black text-xl md:text-2xl tracking-tight truncate">{champion.name}</span>
+								<span class="font-black text-xl md:text-2xl tracking-tight text-black truncate">{champion.name}</span>
 								{#if champion.seed}
-									<span class="text-xs font-black bg-white text-black px-1.5 py-0.5 shrink-0">#{champion.seed}</span>
+									<span class="text-xs font-black bg-black text-white px-1.5 py-0.5 shrink-0">#{champion.seed}</span>
 								{/if}
 							</div>
-							<div class="text-xs font-bold text-white/60">战绩 {champion.wins} 胜 {champion.losses} 负</div>
+							<div class="text-xs font-bold text-neutral-500">战绩 {champion.wins} 胜 {champion.losses} 负</div>
 						</div>
 					</div>
 					<div class="shrink-0 text-right">
 						<div class="flex items-center justify-end">
 							<Trophy size={44} stroke-width={2} class="text-accent" aria-hidden="true" />
 						</div>
-						<div class="text-xs font-black uppercase tracking-widest text-white/60 mt-1">冠军</div>
+						<div class="text-xs font-black uppercase tracking-widest text-neutral-500 mt-1">冠军</div>
 					</div>
 				</div>
 			</div>
@@ -161,12 +161,12 @@
 		<!-- 决赛对阵 -->
 		{#if finalMatch}
 			<div class="border border-black bg-white mb-8">
-				<div class="flex items-center justify-between px-4 py-2 bg-black text-white">
-					<span class="text-xs font-black uppercase tracking-widest text-white/70">决赛</span>
-					<span class="text-xs font-bold text-white/60">BO{t.boCount ?? 3}</span>
+				<div class="flex items-center justify-between px-4 py-2 border-b-2 border-black">
+					<span class="text-xs font-black uppercase tracking-widest text-black">决赛</span>
+					<span class="text-xs font-bold text-neutral-500">BO{t.boCount ?? 3}</span>
 				</div>
 				<div class="flex flex-col md:flex-row items-stretch">
-					<div class="flex items-center gap-3 px-4 py-4 flex-1 {finalMatch.winnerId === finalMatch.team1Id ? 'bg-black text-white' : ''}">
+					<div class="flex items-center gap-3 px-4 py-4 flex-1 {finalMatch.winnerId === finalMatch.team1Id ? 'bg-neutral-100' : ''}">
 						{#if finalMatch.winnerId === finalMatch.team1Id}
 							<Trophy size={16} class="shrink-0 text-accent" aria-hidden="true" />
 						{/if}
@@ -184,7 +184,7 @@
 						<span class="text-xs font-black text-neutral-400">:</span>
 						<span class="font-black text-2xl tracking-tight tabular-nums">{finalMatch.team2Score ?? 0}</span>
 					</div>
-					<div class="flex items-center gap-3 px-4 py-4 flex-1 {finalMatch.winnerId === finalMatch.team2Id ? 'bg-black text-white' : ''}">
+					<div class="flex items-center gap-3 px-4 py-4 flex-1 {finalMatch.winnerId === finalMatch.team2Id ? 'bg-neutral-100' : ''}">
 						{#if finalMatch.winnerId === finalMatch.team2Id}
 							<Trophy size={16} class="shrink-0 text-accent" aria-hidden="true" />
 						{/if}
@@ -203,10 +203,10 @@
 
 		<!-- 最终排名 -->
 		<div class="border border-black bg-white mb-8">
-			<div class="flex items-center gap-2 px-4 py-2 bg-black text-white">
+			<div class="flex items-center gap-2 px-4 py-2 border-b-2 border-black">
 				<Medal size={14} class="shrink-0 text-accent" aria-hidden="true" />
-				<span class="text-xs font-black uppercase tracking-widest text-white/70">最终排名</span>
-				<span class="text-xs font-bold text-white/60 ml-auto">{sortedRanking.length} 支队伍</span>
+				<span class="text-xs font-black uppercase tracking-widest text-black">最终排名</span>
+				<span class="text-xs font-bold text-neutral-500 ml-auto">{sortedRanking.length} 支队伍</span>
 			</div>
 			{#if sortedRanking.length === 0}
 				<div class="px-4 py-10 text-center text-sm font-bold text-neutral-400">暂无排名数据</div>
