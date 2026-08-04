@@ -79,7 +79,7 @@ predictionRoutes.get('/:id/predictions/leaderboard', async (c) => {
   const [t] = await db.select({ id: tournaments.id }).from(tournaments).where(eq(tournaments.id, id)).limit(1);
   if (!t) throw new AppError('NOT_FOUND', '赛事不存在', 404);
 
-  // 该赛事所有已结束比赛的预测（join 比赛结果 + 用户信息）
+  // 该赛事所有预测（join 比赛结果 + 用户信息）；积分只在比赛结束后按预测正确判定
   const rows = await db.select({
     userId: predictions.userId,
     winnerTeamId: predictions.winnerTeamId,
@@ -92,7 +92,7 @@ predictionRoutes.get('/:id/predictions/leaderboard', async (c) => {
     .innerJoin(matches, eq(matches.id, predictions.matchId))
     .innerJoin(stages, eq(stages.id, matches.stageId))
     .innerJoin(users, eq(users.id, predictions.userId))
-    .where(and(eq(stages.tournamentId, id), eq(matches.status, 'completed')));
+    .where(eq(stages.tournamentId, id));
 
   const agg = new Map<string, {
     userId: string; username: string; displayName: string | null; avatarUrl: string | null;
