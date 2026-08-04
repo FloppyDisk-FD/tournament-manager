@@ -456,7 +456,7 @@
 						</div>
 						{#if liveInfo}
 							<a href={liveInfo.url} target="_blank" rel="noopener noreferrer"
-								class="relative z-10 text-xs font-bold text-white/80 border-b border-white/50 hover:text-white transition-colors duration-150">
+								class="relative z-10 text-xs font-bold text-white border border-white/60 px-3 py-1.5 hover:bg-white hover:text-black transition-colors duration-150">
 								{liveInfo.kind === 'iframe' ? `在 ${livePlatformLabel(liveInfo.url)} 观看` : '新窗口观看'} →
 							</a>
 						{/if}
