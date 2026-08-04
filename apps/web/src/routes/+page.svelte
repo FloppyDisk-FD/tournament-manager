@@ -85,7 +85,7 @@ let { data } = $props();
 				{#each tournaments as t, i (t.id)}
 					<a
 						href="/tournaments/{t.id}"
-						class="block border-r border-b border-black bg-white hover:bg-neutral-50 transition-colors duration-150 group animate-enter lift"
+						class="block border-r border-b border-black bg-white hover:bg-neutral-50 transition-colors duration-150 group animate-enter lift flex flex-col"
 						style="animation-delay:{Math.min(i * 40, 320)}ms"
 					>
 						{#if t.coverImage ?? t.cover_image}
@@ -93,7 +93,7 @@ let { data } = $props();
 							<img src={t.coverImage ?? t.cover_image} alt={t.name} class="w-full h-full object-cover transition-opacity duration-150 group-hover:opacity-90" />
 						</div>
 					{/if}
-						<div class="p-4 md:p-6">
+						<div class="p-4 md:p-6 flex-1 flex flex-col">
 							<div class="flex items-center gap-2 mb-3">
 								<StatusBadge status={t.status} />
 								<span class="text-xs text-neutral-500 font-bold">{FORMAT_MAP[t.format] ?? t.format}</span>
@@ -102,7 +102,7 @@ let { data } = $props();
 							{#if t.game}
 								<p class="text-sm text-neutral-600">{t.game}</p>
 							{/if}
-							<div class="mt-4 text-sm font-bold text-black flex items-center gap-1">
+							<div class="text-sm font-bold text-black flex items-center gap-1 mt-auto pt-4">
 								<span>查看详情</span>
 								<span class="transition-transform duration-150 group-hover:translate-x-1">→</span>
 							</div>

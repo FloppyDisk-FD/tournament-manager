@@ -345,6 +345,7 @@
 
 	const t = $derived(data.tournament);
 	const teams = $derived(data.teams);
+	const sortedTeams = $derived([...(teams ?? [])].sort((a: any, b: any) => (a.seed ?? 0) - (b.seed ?? 0)));
 </script>
 
 <div class="max-w-7xl mx-auto px-4 md:px-8 lg:px-16 py-8 md:py-12 animate-enter">
@@ -432,7 +433,7 @@
 					aria-selected={activeTab === tab.id}
 					onclick={() => activeTab = tab.id}
 					class={cn(
-						'px-4 md:px-6 py-3 text-sm font-bold border-b-2 transition-colors duration-150 press',
+						'flex-1 px-2 md:px-6 py-3 text-sm font-bold border-b-2 transition-colors duration-150 press text-center whitespace-nowrap',
 						activeTab === tab.id
 							? 'border-accent text-black bg-neutral-50'
 							: 'border-transparent text-neutral-500 hover:text-black'
@@ -658,11 +659,11 @@
 			{#if teams.length > 0}
 				<h2 class="font-black text-lg md:text-xl tracking-tight mb-3">参赛队伍</h2>
 				<div class="grid grid-cols-2 md:grid-cols-4 gap-0 border-l border-t border-black">
-					{#each teams as team, i}
+					{#each sortedTeams as team, i}
 						<a href="/tournaments/{data.tournament.id}/teams/{team.id}"
 							class="border-r border-b border-black bg-white px-3 py-2 text-sm flex items-center gap-2 animate-enter lift hover:bg-neutral-50 transition-colors duration-150"
 							style="animation-delay:{Math.min(i * 30, 300)}ms">
-							<span class="text-neutral-500 font-bold tabular-nums">#{i + 1}</span>
+							<span class="text-neutral-500 font-bold tabular-nums">#{team.seed ?? i + 1}</span>
 							{#if team.logo_url ?? team.logoUrl}
 								<img src={team.logo_url ?? team.logoUrl} alt={team.name} class="w-5 h-5 object-contain" />
 							{:else if team.logo_emoji ?? team.logoEmoji}
