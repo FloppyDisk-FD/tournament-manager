@@ -13,6 +13,7 @@
 	import { success, error } from '$lib/stores/toast.svelte';
 	import { resolveLiveEmbed, type LiveEmbed } from '$lib/utils/live';
 	import { renderMarkdown } from '$lib/utils/markdown';
+import { ArrowRight } from 'lucide-svelte';
 
 	let { data } = $props();
 
@@ -490,6 +491,10 @@
 							<span class="inline-block w-1 h-1 bg-accent shrink-0" aria-hidden="true"></span>
 							<span class="font-black text-base tracking-tight">赛事规则</span>
 						</div>
+						<a href="/tournaments/{data.tournament.id}/rules" class="relative z-10 inline-flex items-center gap-1 text-xs font-black text-white/70 hover:text-accent transition-colors duration-150">
+							完整规则
+							<ArrowRight size={12} class="shrink-0" aria-hidden="true" />
+						</a>
 					</div>
 					<div class="p-4 md:p-5 rules-markdown">{@html rulesHtml}</div>
 				</div>
