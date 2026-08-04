@@ -1,7 +1,7 @@
 <script lang="ts">
   import { cn } from '$lib/utils';
   import BackLink from '$lib/components/BackLink.svelte';
-  import StatusBadge from '$lib/components/StatusBadge.svelte';
+  import { Star } from 'lucide-svelte';
   import { PLAYER_ROLE_MAP } from '$lib/constants/tournament';
 
   let { data } = $props();
@@ -50,25 +50,33 @@
     </div>
   {:else}
     <!-- 队伍头部 -->
-    <div class="flex items-start gap-4 mb-8 flex-wrap">
-      <div class="flex items-center gap-4 min-w-0 flex-1">
+    <div class="relative overflow-hidden bg-black text-white px-4 py-4 mb-6">
+      <div class="flex items-center gap-4 relative z-10 flex-wrap">
         {#if t.logo_url}
-          <img src={t.logo_url} alt={t.name} width={80} height={80} class="w-16 h-16 md:w-20 md:h-20 object-contain border border-black" />
-        {:else}
-          <div class="w-16 h-16 md:w-20 md:h-20 flex items-center justify-center border border-black bg-white text-4xl">
+          <img src={t.logo_url} alt={t.name} width={64} height={64} class="w-14 h-14 md:w-16 md:h-16 object-contain bg-white p-1 border border-white/30 shrink-0" />
+        {:else if t.logo_emoji}
+          <div class="w-14 h-14 md:w-16 md:h-16 flex items-center justify-center border border-white/30 bg-white/10 text-3xl shrink-0">
             {t.logo_emoji}
           </div>
         {/if}
         <div class="min-w-0">
-          <div class="flex items-center gap-3 mb-1 flex-wrap">
-            <h1 class="font-black text-2xl md:text-4xl tracking-tight text-black">{t.name}</h1>
-            <StatusBadge status={t.status ?? 'active'} kind="team" />
+          <div class="flex items-center gap-3 flex-wrap">
+            <h1 class="font-black text-xl md:text-2xl tracking-tight text-white">{t.name}</h1>
+            {#if t.status}
+              <span class="inline-flex items-center gap-1.5 text-[10px] font-black uppercase tracking-widest text-white/80 border border-white/40 px-2 py-0.5">
+                <span class="w-1.5 h-1.5 bg-accent"></span>
+                {t.status === 'active' ? '活跃' : t.status === 'eliminated' ? '已淘汰' : t.status === 'withdrawn' ? '已退出' : t.status}
+              </span>
+            {/if}
           </div>
-          {#if t.seed}
-            <p class="text-sm text-neutral-600">种子 #{t.seed}{#if t.group_label} · 分组 {t.group_label}{/if}</p>
+          {#if t.seed || t.group_label}
+            <div class="text-xs font-bold text-white/60 mt-1">
+              种子 #{t.seed}{#if t.seed && t.group_label} · {/if}{#if t.group_label}分组 {t.group_label}{/if}
+            </div>
           {/if}
         </div>
       </div>
+      <span class="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-4xl md:text-5xl leading-none font-black uppercase tracking-widest whitespace-nowrap select-none text-white/10" style="-webkit-mask-image: linear-gradient(to left, black, transparent); mask-image: linear-gradient(to left, black, transparent)" aria-hidden="true">TEAM</span>
     </div>
 
     <!-- 统计网格 -->
@@ -127,16 +135,19 @@
                     <td class="px-4 py-3 text-neutral-500 font-bold tabular-nums">{i + 1}</td>
                     <td class="px-4 py-3">
                       <div class="flex items-center gap-2">
-                        <div class="w-8 h-8 shrink-0 border border-black bg-neutral-100 overflow-hidden flex items-center justify-center">
+                        <div class="w-8 h-8 shrink-0 border border-black bg-black overflow-hidden flex items-center justify-center">
                           {#if p.avatar_url}
                             <img src={p.avatar_url} alt={p.player_name || '选手'} class="w-full h-full object-cover" width="32" height="32" />
                           {:else}
-                            <span class="text-[9px] text-neutral-400 font-bold">无</span>
+                            <span class="text-[11px] font-black text-white">{p.player_name?.slice(0, 1)?.toUpperCase() || '?'}</span>
                           {/if}
                         </div>
                         <span class="font-bold">{p.player_name}</span>
                         {#if p.is_captain}
-                          <span class="text-xs font-bold text-accent border border-accent px-1">C</span>
+                          <span class="inline-flex items-center gap-1 text-[10px] font-black bg-black text-white px-1.5 py-0.5">
+                            <Star size={10} class="text-accent" aria-hidden="true" />
+                            队长
+                          </span>
                         {/if}
                       </div>
                     </td>
@@ -148,7 +159,7 @@
             </table>
           </div>
         {:else}
-          <div class="text-center py-12 text-sm text-neutral-500 border border-black bg-neutral-50">暂无选手数据</div>
+          <div class="text-center py-12 text-sm font-bold text-neutral-400 border border-black bg-white">暂无选手数据</div>
         {/if}
       </div>
     {:else if activeTab === 'matches'}
@@ -211,7 +222,7 @@
             {/each}
           </div>
         {:else}
-          <div class="text-center py-12 text-sm text-neutral-500 border border-black bg-neutral-50">暂无比赛记录</div>
+          <div class="text-center py-12 text-sm font-bold text-neutral-400 border border-black bg-white">暂无比赛记录</div>
         {/if}
       </div>
     {:else}
@@ -235,9 +246,9 @@
           </div>
           <p class="text-xs text-neutral-500">已打 {standing.round_played ?? 0} 轮</p>
         {:else}
-          <div class="text-center py-12 text-sm text-neutral-500 border border-black bg-neutral-50">
+          <div class="text-center py-12 text-sm font-bold text-neutral-400 border border-black bg-white">
             暂无积分数据
-            <p class="mt-1 text-xs">该赛事可能未使用循环赛或瑞士轮赛制</p>
+            <p class="mt-1 text-xs font-bold text-neutral-400">该赛事可能未使用循环赛或瑞士轮赛制</p>
           </div>
         {/if}
       </div>
