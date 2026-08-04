@@ -403,7 +403,7 @@
 		</div>
 	{/if}
 
-	<div class="flex items-start justify-between mb-6 flex-wrap gap-4">
+		<div class="flex items-start justify-between mb-6 flex-wrap gap-4">
 		<div class="min-w-0 flex-1">
 			<div class="flex items-center gap-3 mb-1 flex-wrap">
 				<h1 class="font-black text-2xl md:text-4xl tracking-tight text-black">{t.name}</h1>
@@ -411,9 +411,16 @@
 			</div>
 			<p class="text-sm text-neutral-600">{t.game} · {FORMAT_MAP[t.format]} · {teams.length}/{t.maxTeams} 队</p>
 		</div>
-		<Button href="/tournaments/{t.id}/bracket" en="Bracket" class="whitespace-nowrap">
-			全屏赛程图 →
-		</Button>
+		<div class="flex items-center gap-3 shrink-0">
+			{#if t.status === 'completed'}
+				<Button href="/tournaments/{t.id}/review" en="Review" class="whitespace-nowrap">
+					赛事回顾 →
+				</Button>
+			{/if}
+			<Button href="/tournaments/{t.id}/bracket" en="Bracket" class="whitespace-nowrap">
+				全屏赛程图 →
+			</Button>
+		</div>
 	</div>
 
 	<!-- Tabs -->

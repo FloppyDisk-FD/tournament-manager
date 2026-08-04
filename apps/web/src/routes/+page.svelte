@@ -5,7 +5,9 @@
 	import StatusBadge from '$lib/components/StatusBadge.svelte';
 	import { FORMAT_MAP } from '$lib/constants/tournament';
 
-	let { data } = $props();
+	import { History as HistoryIcon } from 'lucide-svelte';
+
+let { data } = $props();
 
 	const filters = [
 		{ value: '', label: '全部' },
@@ -39,6 +41,15 @@
 		<p class="text-sm md:text-base text-neutral-600 max-w-xl mb-6 md:mb-8 animate-enter" style="animation-delay:150ms">
 			创建和管理你的电竞赛事。支持单败淘汰、双败淘汰、循环联赛、瑞士轮四种赛制。
 		</p>
+		<div class="animate-enter" style="animation-delay:200ms">
+			<a
+				href="/tournaments/archived"
+				class="inline-flex items-center gap-1.5 text-sm font-black border border-black px-4 py-2 bg-black text-white hover:bg-accent hover:border-accent transition-colors duration-150"
+			>
+				<HistoryIcon size={14} class="shrink-0" aria-hidden="true" />
+				历史赛事
+			</a>
+		</div>
 	</div>
 </section>
 

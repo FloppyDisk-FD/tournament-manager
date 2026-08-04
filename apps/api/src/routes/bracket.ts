@@ -28,6 +28,132 @@ bracketRoutes.use('*', authMiddleware);
 bracketRoutes.use('/:id/*', async (c, next) => { requireUuid(c.req.param('id'), '赛事'); await next(); });
 
 // ========== 公开路由 ==========
+// 赛事回顾页数据（公开，分享用）
+bracketRoutes.get('/:id/review', async (c) => {
+  const id = requireUuid(c.req.param('id'), '赛事');
+  const db = c.get('db');
+  const [t] = await db.select().from(tournaments).where(eq(tournaments.id, id)).limit(1);
+  if (!t) throw new AppError('NOT_FOUND', '赛事不存在', 404);
+
+  // 参赛队伍 + 种子
+  const tt = await db.select().from(tournamentTeams).where(eq(tournamentTeams.tournamentId, id));
+  const teamIds = [...new Set(tt.map((x) => x.teamId))];
+  const teamRows = teamIds.length ? await db.select().from(teams).where(inArray(teams.id, teamIds)) : [];
+  const teamById = new Map(teamRows.map((x) => [x.id, x]));
+  const seedByTeam = new Map(tt.map((x) => [x.teamId, x.seed]));
+
+  // stages + matches
+  const stageRows = await db.select().from(stages).where(eq(stages.tournamentId, id));
+  const stageIds = stageRows.map((s) => s.id);
+  const ms = stageIds.length ? await db.select().from(matches).where(inArray(matches.stageId, stageIds)) : [];
+  const done = ms.filter((m) => m.status === 'completed' || m.status === 'walkthrough');
+
+  // 每队胜负
+  const record = new Map<string, { wins: number; losses: number }>();
+  for (const m of done) {
+    if (m.team1Id) {
+      const r = record.get(m.team1Id) ?? { wins: 0, losses: 0 };
+      if (m.winnerId === m.team1Id) r.wins += 1;
+      else if (m.status === 'completed') r.losses += 1;
+      record.set(m.team1Id, r);
+    }
+    if (m.team2Id) {
+      const r = record.get(m.team2Id) ?? { wins: 0, losses: 0 };
+      if (m.winnerId === m.team2Id) r.wins += 1;
+      else if (m.status === 'completed') r.losses += 1;
+      record.set(m.team2Id, r);
+    }
+  }
+
+  // 最终排名
+  let ranking: { label: string; teamId: string }[] = [];
+  let championId: string | null = null;
+  if (t.format === 'swiss' || t.format === 'round_robin') {
+    const stds = await db.select().from(standings).where(eq(standings.tournamentId, id));
+    stds.sort((a, b) => (b.points - a.points) || (b.gameDifference - a.gameDifference) || (b.wins - a.wins));
+    stds.forEach((s, i) => {
+      if (i === 0) championId = s.teamId;
+      ranking.push({ label: String(i + 1), teamId: s.teamId });
+    });
+  } else {
+    // 单败/双败：按淘汰轮次推导（冠军 → 决赛败者 → 半决赛败者…）
+    const R = ms.reduce((mx, m) => Math.max(mx, m.round), 0);
+    const finalMatch = ms.find((m) => m.round === R && m.status === 'completed' && m.winnerId && m.loserId);
+    championId = finalMatch?.winnerId ?? null;
+    const losersByRound = new Map<number, string[]>();
+    for (const m of ms) {
+      if (m.loserId && m.loserId !== championId) {
+        const arr = losersByRound.get(m.round) ?? [];
+        arr.push(m.loserId);
+        losersByRound.set(m.round, arr);
+      }
+    }
+    if (championId) ranking.push({ label: '1', teamId: championId });
+    for (let r = R; r >= 1; r--) {
+      const losers = losersByRound.get(r) ?? [];
+      if (!losers.length) continue;
+      const lo = 2 ** (R - r) + 1;
+      const hi = 2 ** (R - r + 1);
+      const label = lo === hi ? String(lo) : `${lo}-${hi}`;
+      for (const teamId of losers) ranking.push({ label, teamId });
+    }
+  }
+
+  const info = (tid: string | null) => {
+    if (!tid) return null;
+    const tm = teamById.get(tid);
+    if (!tm) return null;
+    const rec = record.get(tid) ?? { wins: 0, losses: 0 };
+    return {
+      teamId: tid,
+      name: tm.name,
+      logoEmoji: tm.logoEmoji,
+      logoUrl: tm.logoUrl,
+      seed: seedByTeam.get(tid) ?? null,
+      wins: rec.wins,
+      losses: rec.losses,
+    };
+  };
+
+  // 数据亮点
+  const totalScore = done.reduce((acc, m) => acc + (m.team1Score || 0) + (m.team2Score || 0), 0);
+  const avgScore = done.length ? (totalScore / done.length).toFixed(1) : '0';
+
+  // 决赛（单败取最后一轮）
+  const R = ms.reduce((mx, m) => Math.max(mx, m.round), 0);
+  const finalMatch = t.format === 'swiss' || t.format === 'round_robin'
+    ? null
+    : ms.find((m) => m.round === R && m.status === 'completed' && m.team1Id && m.team2Id) ?? null;
+
+  return c.json({
+    tournament: {
+      id: t.id,
+      name: t.name,
+      format: t.format,
+      status: t.status,
+      game: t.game,
+      boCount: t.boCount,
+      startDate: t.startDate,
+      endDate: t.endDate,
+      createdAt: t.createdAt,
+    },
+    champion: info(championId),
+    ranking: ranking.map((r) => ({ label: r.label, ...info(r.teamId) })),
+    stats: { teamCount: tt.length, matchCount: done.length, totalScore, avgScore },
+    final: finalMatch
+      ? {
+          team1Id: finalMatch.team1Id,
+          team2Id: finalMatch.team2Id,
+          team1Score: finalMatch.team1Score,
+          team2Score: finalMatch.team2Score,
+          winnerId: finalMatch.winnerId,
+          team1: info(finalMatch.team1Id),
+          team2: info(finalMatch.team2Id),
+        }
+      : null,
+  });
+});
+
 bracketRoutes.get('/:id/bracket', async (c) => {
   const id = c.req.param('id');
   const tsRows = await c.get('db').select({
