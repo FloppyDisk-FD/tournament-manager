@@ -7,6 +7,7 @@
 	import StatusBadge from '$lib/components/StatusBadge.svelte';
 	import Input from '$lib/components/Input.svelte';
 	import Label from '$lib/components/Label.svelte';
+	import Select from '$lib/components/Select.svelte';
 	import PanelHeader from '$lib/components/PanelHeader.svelte';
 	import { FORMAT_MAP, TOURNAMENT_STATUS_MAP, REGISTRATION_STATUS_MAP } from '$lib/constants/tournament';
 	import { getUser } from '$lib/stores/auth.svelte';
@@ -568,13 +569,7 @@ import { ArrowRight } from 'lucide-svelte';
 							<div class="space-y-4">
 								<div>
 									<Label for="regTeam">选择参赛队伍 *</Label>
-									<select id="regTeam" bind:value={regTeamId}
-										class="w-full rounded-none border border-black font-sans px-3 py-2 text-sm bg-white focus:outline-none focus:border-accent">
-										<option value="" disabled>请选择队伍</option>
-										{#each myTeams as tm}
-											<option value={tm.id}>{tm.name}（{tm.players?.length ?? 0} 名选手）</option>
-										{/each}
-									</select>
+									<Select id="regTeam" bind:value={regTeamId} placeholder="请选择队伍" options={myTeams.map((tm) => ({ value: tm.id, label: `${tm.name}（${tm.players?.length ?? 0} 名选手）` }))} />
 									<p class="text-xs text-neutral-400 mt-1">报名通过后该队伍将加入赛事，队员可在「我的后台」维护。</p>
 								</div>
 								{#if customFields.length > 0}
@@ -583,13 +578,7 @@ import { ArrowRight } from 'lucide-svelte';
 											<div>
 												<Label for={`cf-${f.key}`}>{f.label}{f.required ? ' *' : ''}</Label>
 												{#if f.type === 'select'}
-													<select id={`cf-${f.key}`} bind:value={regAnswers[f.key]}
-														class="w-full rounded-none border border-black font-sans px-3 py-2 text-sm bg-white focus:outline-none focus:border-accent">
-														<option value="" disabled>请选择</option>
-														{#each f.options ?? [] as opt}
-															<option value={opt}>{opt}</option>
-														{/each}
-													</select>
+													<Select id={`cf-${f.key}`} bind:value={regAnswers[f.key]} placeholder="请选择" options={(f.options ?? []).map((opt: string) => ({ value: opt, label: opt }))} />
 												{:else if f.type === 'textarea'}
 													<textarea id={`cf-${f.key}`} bind:value={regAnswers[f.key]} rows="3"
 														class="w-full rounded-none border border-black font-sans px-3 py-2 text-sm bg-white focus:outline-none focus:border-accent"></textarea>

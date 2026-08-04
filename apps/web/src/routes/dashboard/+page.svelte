@@ -5,6 +5,7 @@
 	import { getUser } from '$lib/stores/auth.svelte';
 	import Button from '$lib/components/Button.svelte';
 	import Input from '$lib/components/Input.svelte';
+	import Select from '$lib/components/Select.svelte';
 	import StatusBadge from '$lib/components/StatusBadge.svelte';
 	import { REGISTRATION_STATUS_MAP, PLAYER_ROLE_MAP } from '$lib/constants/tournament';
 	import { success, error } from '$lib/stores/toast.svelte';
@@ -178,12 +179,11 @@
 											<div class="border border-black bg-white">
 												<div class="flex gap-2 items-center p-1">
 													<Input bind:value={p.player_name} placeholder="姓名" class="flex-1" />
-													<select bind:value={p.player_role}
-														class="w-24 rounded-none border border-black font-sans px-2 py-2 text-sm bg-white focus:outline-none">
-														{#each Object.entries(PLAYER_ROLE_MAP) as [value, label]}
-															<option value={value}>{label}</option>
-														{/each}
-													</select>
+													<Select
+														bind:value={p.player_role}
+														options={Object.entries(PLAYER_ROLE_MAP).map(([value, label]) => ({ value, label }))}
+														class="w-24 px-2"
+													/>
 													<Input bind:value={p.game_id} placeholder="游戏 ID" class="flex-1" />
 													<button type="button" onclick={() => (editPlayers = editPlayers.filter((_, j) => j !== i))}
 														class="text-sm font-bold text-accent border border-accent px-2 py-1 hover:opacity-70 transition-opacity duration-150">×</button>

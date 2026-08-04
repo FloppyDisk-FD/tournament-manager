@@ -6,6 +6,7 @@
 	import BackLink from '$lib/components/BackLink.svelte';
 	import Input from '$lib/components/Input.svelte';
 	import Label from '$lib/components/Label.svelte';
+	import Select from '$lib/components/Select.svelte';
 	import SeedRankingPanel from '$lib/components/SeedRankingPanel.svelte';
 	import { FORMAT_MAP, TOURNAMENT_STATUS_MAP, REGISTRATION_STATUS_MAP } from '$lib/constants/tournament';
 	import StatusBadge from '$lib/components/StatusBadge.svelte';
@@ -538,13 +539,7 @@
 							</div>
 							<div>
 								<Label for="cfType">类型</Label>
-								<select id="cfType" bind:value={newField.type}
-									class="w-full rounded-none border border-black font-sans px-3 py-2 text-sm bg-white focus:outline-none focus:border-accent">
-									<option value="text">文本</option>
-									<option value="number">数字</option>
-									<option value="select">下拉选择</option>
-									<option value="textarea">多行文本</option>
-								</select>
+								<Select id="cfType" bind:value={newField.type} options={[{ value: 'text', label: '文本' }, { value: 'number', label: '数字' }, { value: 'select', label: '下拉选择' }, { value: 'textarea', label: '多行文本' }]} />
 							</div>
 							<div>
 								<Label for="cfOptions">选项（逗号分隔）</Label>

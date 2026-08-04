@@ -9,11 +9,13 @@
 	interface Props {
 		value?: any;
 		options?: Option[];
+		/** 占位项文案（自动插入 disabled 空选项） */
+		placeholder?: string;
 		class?: string;
 		[key: string]: unknown;
 	}
 
-	let { value = $bindable(''), options = [], class: klass = '', ...rest }: Props = $props();
+	let { value = $bindable(''), options = [], placeholder = '', class: klass = '', ...rest }: Props = $props();
 </script>
 
 <select
@@ -21,6 +23,9 @@
 	class={cn('w-full border border-black font-sans px-3 py-2.5 text-sm bg-white focus:outline-none focus:border-accent', klass)}
 	{...rest}
 >
+	{#if placeholder}
+		<option value="" disabled selected={value === ''}>{placeholder}</option>
+	{/if}
 	{#each options as opt}
 		<option value={opt.value}>{opt.label}</option>
 	{/each}
