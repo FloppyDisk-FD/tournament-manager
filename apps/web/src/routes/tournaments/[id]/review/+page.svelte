@@ -136,7 +136,9 @@
 						</div>
 					</div>
 					<div class="shrink-0 text-right">
-						<div class="text-4xl font-black tracking-tight text-accent">🏆</div>
+						<div class="flex items-center justify-end">
+							<Trophy size={44} stroke-width={2} class="text-accent" aria-hidden="true" />
+						</div>
 						<div class="text-xs font-black uppercase tracking-widest text-white/60 mt-1">冠军</div>
 					</div>
 				</div>
@@ -148,10 +150,10 @@
 			{#each statItems as item}
 				<div class="border-r border-b border-black bg-white px-4 py-5">
 					<div class="flex items-center gap-1.5 text-xs font-black uppercase tracking-widest text-neutral-400 mb-2">
-						<item.icon size={12} class="shrink-0" aria-hidden="true" />
+						<item.icon size={14} class="shrink-0" aria-hidden="true" />
 						{item.label}
 					</div>
-					<div class="font-black text-3xl tracking-tight text-black">{item.value()}</div>
+					<div class="font-black text-3xl tracking-tight text-black tabular-nums">{item.value()}</div>
 				</div>
 			{/each}
 		</div>
@@ -165,6 +167,9 @@
 				</div>
 				<div class="flex flex-col md:flex-row items-stretch">
 					<div class="flex items-center gap-3 px-4 py-4 flex-1 {finalMatch.winnerId === finalMatch.team1Id ? 'bg-black text-white' : ''}">
+						{#if finalMatch.winnerId === finalMatch.team1Id}
+							<Trophy size={16} class="shrink-0 text-accent" aria-hidden="true" />
+						{/if}
 						<div class="w-10 h-10 shrink-0 border border-current/30 flex items-center justify-center text-xl overflow-hidden">
 							{#if teamLogo(finalMatch.team1)}
 								<img src={teamLogo(finalMatch.team1)} alt={finalMatch.team1?.name} class="w-full h-full object-cover" />
@@ -173,16 +178,16 @@
 							{/if}
 						</div>
 						<span class="font-black tracking-tight truncate">{finalMatch.team1?.name ?? '—'}</span>
-						{#if finalMatch.winnerId === finalMatch.team1Id}
-							<Trophy size={14} class="shrink-0 text-accent ml-auto" aria-hidden="true" />
-						{/if}
 					</div>
 					<div class="flex items-center justify-center gap-2 px-4 py-4 border-t md:border-t-0 md:border-x border-black bg-neutral-50 shrink-0">
-						<span class="font-black text-2xl tracking-tight">{finalMatch.team1Score ?? 0}</span>
+						<span class="font-black text-2xl tracking-tight tabular-nums">{finalMatch.team1Score ?? 0}</span>
 						<span class="text-xs font-black text-neutral-400">:</span>
-						<span class="font-black text-2xl tracking-tight">{finalMatch.team2Score ?? 0}</span>
+						<span class="font-black text-2xl tracking-tight tabular-nums">{finalMatch.team2Score ?? 0}</span>
 					</div>
 					<div class="flex items-center gap-3 px-4 py-4 flex-1 {finalMatch.winnerId === finalMatch.team2Id ? 'bg-black text-white' : ''}">
+						{#if finalMatch.winnerId === finalMatch.team2Id}
+							<Trophy size={16} class="shrink-0 text-accent" aria-hidden="true" />
+						{/if}
 						<div class="w-10 h-10 shrink-0 border border-current/30 flex items-center justify-center text-xl overflow-hidden">
 							{#if teamLogo(finalMatch.team2)}
 								<img src={teamLogo(finalMatch.team2)} alt={finalMatch.team2?.name} class="w-full h-full object-cover" />
@@ -191,9 +196,6 @@
 							{/if}
 						</div>
 						<span class="font-black tracking-tight truncate">{finalMatch.team2?.name ?? '—'}</span>
-						{#if finalMatch.winnerId === finalMatch.team2Id}
-							<Trophy size={14} class="shrink-0 text-accent ml-auto" aria-hidden="true" />
-						{/if}
 					</div>
 				</div>
 			</div>
@@ -212,7 +214,7 @@
 				<div class="divide-y divide-black">
 					{#each sortedRanking as row, i (row.teamId)}
 						<div class="flex items-center gap-3 md:gap-4 px-4 py-3 {isChampion(row) ? 'bg-accent/5' : ''}">
-							<span class="w-12 shrink-0 font-black text-sm text-black bg-neutral-100 border border-black px-1 py-0.5 text-center">{row.label}</span>
+							<span class="w-12 shrink-0 font-black text-sm px-1 py-0.5 text-center border border-black {rankStart(row.label) <= 3 ? 'bg-black text-white' : 'bg-neutral-100 text-black'}">{row.label}</span>
 							<div class="w-8 h-8 shrink-0 border border-black flex items-center justify-center text-lg overflow-hidden">
 								{#if teamLogo(row)}
 									<img src={teamLogo(row)} alt={row.name} class="w-full h-full object-cover" />
