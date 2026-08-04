@@ -818,13 +818,15 @@
 													{/if}
 												</div>
 												<div class="flex items-center gap-2 mt-2">
+													<span class="text-[10px] font-bold text-neutral-500 tabular-nums shrink-0">
+														<span class="inline-block w-2 h-2 bg-black align-[-1px]" aria-hidden="true"></span> {t1VotePct}%
+													</span>
 													<div class="flex-1 h-1.5 border border-black/20" role="img" aria-label="预测票数分布">
 														<div class="h-full bg-black" style="width: {t1VotePct}%"></div>
 														<div class="h-full bg-accent" style="width: {t2VotePct}%"></div>
 													</div>
 													<span class="text-[10px] font-bold text-neutral-500 tabular-nums shrink-0">
-														<span class="inline-block w-2 h-2 bg-black align-[-1px]" aria-hidden="true"></span> {t1VotePct}%
-														<span class="inline-block w-2 h-2 bg-accent ml-2 align-[-1px]" aria-hidden="true"></span> {t2VotePct}%
+														<span class="inline-block w-2 h-2 bg-accent align-[-1px]" aria-hidden="true"></span> {t2VotePct}%
 													</span>
 												</div>
 											{/if}
