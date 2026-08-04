@@ -7,6 +7,7 @@
 	import StatusBadge from '$lib/components/StatusBadge.svelte';
 	import Input from '$lib/components/Input.svelte';
 	import Label from '$lib/components/Label.svelte';
+	import PanelHeader from '$lib/components/PanelHeader.svelte';
 	import { FORMAT_MAP, TOURNAMENT_STATUS_MAP, REGISTRATION_STATUS_MAP } from '$lib/constants/tournament';
 	import { getUser } from '$lib/stores/auth.svelte';
 	import { success, error } from '$lib/stores/toast.svelte';
@@ -47,6 +48,7 @@
 	// —— 时间线：赛程 + 实时比分 + 预测 ——
 	let timelineMatches = $state<any[]>([]);
 	let predictionStats = $state<Record<string, any>>({});
+	let leaderboard = $state<any>(null);
 	let loadingTimeline = $state(false);
 	let predicting = $state<string | null>(null);
 
@@ -62,6 +64,12 @@
 			]);
 			timelineMatches = Array.isArray(m) ? m : [];
 			predictionStats = p ?? {};
+			// 排行榜需要登录，未登录时为 null（展示引导）
+			api.get<any>(`/tournaments/${data.tournament.id}/predictions/leaderboard`).then((lb) => {
+				leaderboard = lb;
+			}).catch(() => {
+				leaderboard = null;
+			});
 		} catch (e) {
 			console.error(e);
 		} finally {
@@ -82,6 +90,11 @@
 					]);
 					timelineMatches = Array.isArray(m) ? m : [];
 					predictionStats = p ?? {};
+					api.get<any>(`/tournaments/${data.tournament.id}/predictions/leaderboard`).then((lb) => {
+						leaderboard = lb;
+					}).catch(() => {
+						leaderboard = null;
+					});
 				} catch (e) {
 					console.error(e);
 				}
@@ -665,6 +678,53 @@
 			{:else if timelineGroups.length === 0}
 				<EmptyState title="暂无赛程安排" class="bg-neutral-50 py-12" />
 			{:else}
+			<!-- 竞猜排行榜 -->
+			<div class="border border-black bg-white mb-8">
+				<PanelHeader
+					title="竞猜排行榜"
+					watermark="Leaderboard"
+					meta={user && leaderboard?.myRank ? `我的排名 #${leaderboard.myRank}` : undefined}
+				/>
+				<div class="p-4">
+					{#if !user}
+						<p class="text-xs font-bold text-neutral-500">登录后可查看竞猜排行榜并参与预测，猜对一场 +1 分</p>
+					{:else if !leaderboard}
+						<div class="skeleton h-24 w-full" aria-hidden="true"></div>
+					{:else if leaderboard.leaderboard.length === 0}
+						<p class="text-xs font-bold text-neutral-500">暂无竞猜数据，快去预测比赛吧</p>
+					{:else}
+						<div class="divide-y divide-black/10">
+							{#each leaderboard.leaderboard.slice(0, 10) as row}
+								<div class="flex items-center gap-3 py-2 {row.userId === user?.id ? 'bg-neutral-100 px-2 -mx-2' : ''}">
+									<span
+										class="w-7 h-7 shrink-0 flex items-center justify-center text-xs font-black tabular-nums {row.rank <= 3
+											? 'bg-black text-white'
+											: 'bg-neutral-100 text-neutral-500 border border-black/10'}"
+									>{row.rank}</span>
+									{#if row.avatarUrl}
+										<img src={row.avatarUrl} alt={row.displayName ?? row.username} class="w-6 h-6 rounded-full object-cover shrink-0" loading="lazy" />
+									{:else}
+										<span class="w-6 h-6 rounded-full bg-neutral-200 border border-black/10 flex items-center justify-center text-[10px] font-black text-neutral-500 shrink-0" aria-hidden="true">
+											{(row.displayName ?? row.username).slice(0, 1).toUpperCase()}
+										</span>
+									{/if}
+									<span class="font-bold text-sm truncate min-w-0">
+										{row.displayName ?? row.username}
+										{#if row.userId === user?.id}
+											<span class="text-[10px] font-black text-accent ml-1">我</span>
+										{/if}
+									</span>
+									<span class="ml-auto flex items-center gap-2 shrink-0">
+										<span class="text-[10px] font-bold text-neutral-400 tabular-nums">预测 {row.votes} 场</span>
+										<span class="text-sm font-black tabular-nums border border-black px-1.5 py-0.5">{row.correct} 分</span>
+									</span>
+								</div>
+							{/each}
+						</div>
+						<p class="text-[10px] font-bold text-neutral-400 mt-3">规则：预测正确一场 +1 分，同分按命中率排名；仅统计已结束比赛</p>
+					{/if}
+				</div>
+			</div>
 				<div class="space-y-8">
 					{#each timelineGroups as group}
 						<section aria-label={group.label}>

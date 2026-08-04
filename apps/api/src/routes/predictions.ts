@@ -1,7 +1,7 @@
 import { Hono } from 'hono';
 import { eq, and } from 'drizzle-orm';
 import type { Db } from '../db';
-import { predictions, matches, stages, tournaments } from '../db/schema';
+import { predictions, matches, stages, tournaments, users } from '../db/schema';
 import { AppError, requireUuid } from '../middleware/error';
 import { authMiddleware, requireAuth } from '../middleware/auth';
 
@@ -68,6 +68,52 @@ predictionRoutes.get('/:id/predictions', async (c) => {
     stats[m.id] = { team1Votes, team2Votes, total: team1Votes + team2Votes, myPick };
   }
   return c.json(stats);
+});
+
+// 竞猜排行榜：预测正确的比赛数 = 积分，按积分排序（同分按命中率，参与场次少者优先）
+predictionRoutes.get('/:id/predictions/leaderboard', async (c) => {
+  const id = requireUuid(c.req.param('id'), '赛事');
+  const user = c.get('user')!;
+  const db = c.get('db');
+
+  const [t] = await db.select({ id: tournaments.id }).from(tournaments).where(eq(tournaments.id, id)).limit(1);
+  if (!t) throw new AppError('NOT_FOUND', '赛事不存在', 404);
+
+  // 该赛事所有已结束比赛的预测（join 比赛结果 + 用户信息）
+  const rows = await db.select({
+    userId: predictions.userId,
+    winnerTeamId: predictions.winnerTeamId,
+    matchWinnerId: matches.winnerId,
+    username: users.username,
+    displayName: users.displayName,
+    avatarUrl: users.avatarUrl,
+  })
+    .from(predictions)
+    .innerJoin(matches, eq(matches.id, predictions.matchId))
+    .innerJoin(stages, eq(stages.id, matches.stageId))
+    .innerJoin(users, eq(users.id, predictions.userId))
+    .where(and(eq(stages.tournamentId, id), eq(matches.status, 'completed')));
+
+  const agg = new Map<string, {
+    userId: string; username: string; displayName: string | null; avatarUrl: string | null;
+    correct: number; votes: number;
+  }>();
+  for (const r of rows) {
+    let e = agg.get(r.userId);
+    if (!e) {
+      e = { userId: r.userId, username: r.username, displayName: r.displayName, avatarUrl: r.avatarUrl, correct: 0, votes: 0 };
+      agg.set(r.userId, e);
+    }
+    e.votes += 1;
+    if (r.winnerTeamId && r.matchWinnerId && r.winnerTeamId === r.matchWinnerId) e.correct += 1;
+  }
+
+  const leaderboard = [...agg.values()]
+    .sort((a, b) => b.correct - a.correct || a.votes - b.votes)
+    .map((e, i) => ({ rank: i + 1, ...e }));
+
+  const mine = leaderboard.find((e) => e.userId === user.id) ?? null;
+  return c.json({ leaderboard, myRank: mine?.rank ?? null, myScore: mine?.correct ?? 0, myVotes: mine?.votes ?? 0 });
 });
 
 // 投票 / 改票（同场次同一用户仅一条，upsert）
