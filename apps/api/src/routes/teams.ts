@@ -1,7 +1,7 @@
 import { Hono } from 'hono';
-import { eq, and, inArray, isNull } from 'drizzle-orm';
+import { eq, and, inArray, isNull, or, desc } from 'drizzle-orm';
 import type { Db } from '../db';
-import { teams, teamPlayers, tournaments, tournamentTeams } from '../db/schema';
+import { teams, teamPlayers, tournaments, tournamentTeams, matches, stages } from '../db/schema';
 import { AppError, requireUuid } from '../middleware/error';
 import { authMiddleware, requireAuth } from '../middleware/auth';
 import { isAdmin, canManageTeam, canManageTournament, canCreateTeam } from '../services/perm';
@@ -20,6 +20,102 @@ publicTeamRoutes.get('/:teamId', async (c) => {
     logoEmoji: team.logoEmoji,
     logoUrl: team.logoUrl,
     players: players.map((p) => ({ id: p.id, name: p.playerName, role: p.playerRole, isCaptain: p.isCaptain })),
+  });
+});
+
+// 战队主页：信息 + 成员 + 参赛记录 + 历史战绩（公开，无需登录）
+publicTeamRoutes.get('/:teamId/profile', async (c) => {
+  const { teamId } = c.req.param();
+  requireUuid(teamId, '队伍');
+  const db = c.get('db');
+  const [team] = await db.select().from(teams).where(eq(teams.id, teamId)).limit(1);
+  if (!team) throw new AppError('NOT_FOUND', '队伍不存在', 404);
+
+  const players = await db.select().from(teamPlayers).where(eq(teamPlayers.teamId, teamId));
+
+  const entries = await db
+    .select({
+      tournamentId: tournaments.id,
+      tournamentName: tournaments.name,
+      status: tournaments.status,
+      seed: tournamentTeams.seed,
+      groupLabel: tournamentTeams.groupLabel,
+      checkedIn: tournamentTeams.checkedIn,
+    })
+    .from(tournamentTeams)
+    .innerJoin(tournaments, eq(tournamentTeams.tournamentId, tournaments.id))
+    .where(eq(tournamentTeams.teamId, teamId))
+    .orderBy(desc(tournaments.createdAt));
+
+  const played = await db
+    .select()
+    .from(matches)
+    .where(and(or(eq(matches.team1Id, teamId), eq(matches.team2Id, teamId)), eq(matches.status, 'completed')))
+    .orderBy(desc(matches.scheduledAt));
+
+  const stageIds = [...new Set(played.map((m) => m.stageId))];
+  let stageRows: { id: string; tournamentId: string }[] = [];
+  if (stageIds.length) {
+    stageRows = await db
+      .select({ id: stages.id, tournamentId: stages.tournamentId })
+      .from(stages)
+      .where(inArray(stages.id, stageIds));
+  }
+  const tIds = [...new Set(stageRows.map((s) => s.tournamentId))];
+  const nameById = new Map<string, string>();
+  if (tIds.length) {
+    const tRows = await db
+      .select({ id: tournaments.id, name: tournaments.name })
+      .from(tournaments)
+      .where(inArray(tournaments.id, tIds));
+    tRows.forEach((t) => nameById.set(t.id, t.name));
+  }
+  const stageTournament = new Map(stageRows.map((s) => [s.id, s.tournamentId] as const));
+
+  // 对手名
+  const opponentIds = [...new Set(played.map((m) => (m.team1Id === teamId ? m.team2Id : m.team1Id)).filter((x): x is string => !!x))];
+  const oppNameById = new Map<string, string>();
+  if (opponentIds.length) {
+    const oppRows = await db
+      .select({ id: teams.id, name: teams.name })
+      .from(teams)
+      .where(inArray(teams.id, opponentIds));
+    oppRows.forEach((o) => oppNameById.set(o.id, o.name));
+  }
+
+  const wins = played.filter((m) => m.winnerId === teamId).length;
+  const recent = played.slice(0, 10).map((m) => {
+    const opponentId = m.team1Id === teamId ? m.team2Id : m.team1Id;
+    const myScore = m.team1Id === teamId ? m.team1Score : m.team2Score;
+    const oppScore = m.team1Id === teamId ? m.team2Score : m.team1Score;
+    return {
+      id: m.id,
+      tournamentName: stageTournament.get(m.stageId) ? (nameById.get(stageTournament.get(m.stageId)!) ?? '未知赛事') : '未知赛事',
+      opponentId,
+      opponentName: opponentId ? (oppNameById.get(opponentId) ?? null) : null,
+      myScore,
+      oppScore,
+      won: m.winnerId === teamId,
+    };
+  });
+
+  return c.json({
+    id: team.id,
+    name: team.name,
+    logoEmoji: team.logoEmoji,
+    logoUrl: team.logoUrl,
+    status: team.status,
+    players: players.map((p) => ({
+      id: p.id,
+      name: p.playerName,
+      role: p.playerRole,
+      gameId: p.gameId,
+      avatarUrl: p.avatarUrl,
+      isCaptain: p.isCaptain,
+    })),
+    tournaments: entries,
+    stats: { played: played.length, wins, losses: played.length - wins },
+    recent,
   });
 });
 

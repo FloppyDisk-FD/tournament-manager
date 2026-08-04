@@ -1,5 +1,5 @@
 <script lang="ts">
-	import { GitFork, Star } from 'lucide-svelte';
+	import { GitFork, Star, ArrowRight } from 'lucide-svelte';
 	import Button from '$lib/components/Button.svelte';
 	import EmptyState from '$lib/components/EmptyState.svelte';
 	import { api } from '$lib/api/client';
@@ -422,6 +422,16 @@
 						{:else}
 							<p class="border-t border-white/20 pt-1.5 text-[11px] text-white/60 font-bold">暂无成员信息</p>
 						{/if}
+						<a
+							href="/teams/{hoveredTeam.id}"
+							onclick={(e) => e.stopPropagation()}
+							onmouseenter={cancelHide}
+							onmouseleave={scheduleHide}
+							class="mt-2 flex items-center justify-between border-t border-white/20 pt-1.5 text-[11px] font-black text-white hover:text-accent transition-colors duration-150"
+						>
+							查看战队主页
+							<ArrowRight size={11} class="shrink-0" aria-hidden="true" />
+						</a>
 					{:else}
 						<div class="space-y-1.5 animate-pulse" aria-label="加载中">
 							<div class="flex items-center gap-2.5">
