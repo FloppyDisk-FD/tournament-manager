@@ -103,7 +103,7 @@
             aria-selected={activeTab === tab.id}
             onclick={() => activeTab = tab.id}
             class={cn(
-              'px-4 md:px-6 py-3 text-sm font-bold border-b-2 transition-colors duration-150 press',
+              'flex-1 px-2 md:px-6 py-3 text-sm font-bold border-b-2 transition-colors duration-150 press text-center whitespace-nowrap',
               activeTab === tab.id
                 ? 'border-accent text-black bg-neutral-50'
                 : 'border-transparent text-neutral-500 hover:text-black'
