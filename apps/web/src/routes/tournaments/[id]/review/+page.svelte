@@ -86,22 +86,22 @@
 			class="border border-black px-8 py-10"
 		/>
 	{:else}
-		<!-- 标题栏：白底黑边 + 渐变水印 -->
-		<div class="relative overflow-hidden border-2 border-black bg-white px-4 py-5 mb-8">
+		<!-- 标题栏：黑底 + 渐变水印 -->
+		<div class="relative overflow-hidden bg-black text-white px-4 py-5 mb-8">
 			<div class="relative z-10">
 				<div class="flex items-center gap-2 mb-1">
 					<span class="inline-block w-1 h-1 bg-accent" aria-hidden="true"></span>
-					<span class="text-xs font-black uppercase tracking-widest text-neutral-400">Tournament Review</span>
+					<span class="text-xs font-black uppercase tracking-widest text-white/60">Tournament Review</span>
 				</div>
-				<h1 class="font-black text-2xl md:text-3xl tracking-tight text-black">{t.name}</h1>
-				<p class="text-sm text-neutral-500 mt-1">
+				<h1 class="font-black text-2xl md:text-3xl tracking-tight">{t.name}</h1>
+				<p class="text-sm text-white/70 mt-1">
 					{FORMAT_MAP[t.format] ?? t.format}
 					{#if t.game} · {t.game}{/if}
 					· {fmtDate(t.startDate ?? t.createdAt)}
 				</p>
 			</div>
 			<span
-				class="pointer-events-none absolute right-2 top-1/2 -translate-y-1/2 text-5xl md:text-6xl leading-none font-black uppercase tracking-widest whitespace-nowrap select-none text-black/5"
+				class="pointer-events-none absolute right-2 top-1/2 -translate-y-1/2 text-5xl md:text-6xl leading-none font-black uppercase tracking-widest whitespace-nowrap select-none text-white/15"
 				style="-webkit-mask-image: linear-gradient(to right, transparent, black); mask-image: linear-gradient(to right, transparent, black)"
 			>Review</span>
 		</div>
