@@ -5,6 +5,7 @@ import { payments, registrations } from '../db/schema';
 import { AppError, requireUuid } from '../middleware/error';
 import { authMiddleware, requireAuth } from '../middleware/auth';
 import { notify } from '../services/notify';
+import { getWaffoClient, createWaffoCheckout } from '../lib/waffo';
 
 /** 支付路由（/api/v1/payments） */
 export const paymentRoutes = new Hono<{ Variables: { user: any | null; db: Db } }>();
@@ -20,8 +21,8 @@ paymentRoutes.get('/:id', async (c) => {
   return c.json(pay);
 });
 
-// 模拟支付：确认支付。
-// 将来接真实网关时，此端点改为「创建网关支付单并返回支付链接」，真实支付结果由 webhook 回调写入。
+// 支付：已配置 Waffo 网关时创建 checkout session 并返回跳转链接；
+// 未配置时保持 mock 支付（本地开发）。
 paymentRoutes.post('/:id/pay', async (c) => {
   const id = requireUuid(c.req.param('id'), '订单');
   const user = c.get('user')!;
@@ -35,6 +36,23 @@ paymentRoutes.post('/:id/pay', async (c) => {
   const [reg] = await db.select().from(registrations).where(eq(registrations.id, pay.registrationId)).limit(1);
   if (!reg) throw new AppError('NOT_FOUND', '报名不存在', 404);
   if (reg.status !== 'pending') throw new AppError('REGISTRATION_CLOSED', '报名已处理，订单失效', 400);
+
+  // ── Waffo 网关：创建 checkout session，前端 window.open 新标签跳转 ──
+  const waffo = getWaffoClient();
+  if (waffo) {
+    const session = await createWaffoCheckout(waffo, {
+      paymentId: pay.id,
+      tournamentId: pay.tournamentId,
+      amount: Number(pay.amount),
+      successUrl: `${c.req.header('origin') ?? ''}/tournaments/${pay.tournamentId}`,
+    });
+    return c.json({
+      status: 'pending',
+      checkoutUrl: session.checkoutUrl,
+      sessionId: session.sessionId,
+      provider: 'waffo',
+    });
+  }
 
   const [updated] = await db.update(payments).set({
     status: 'paid',

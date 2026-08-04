@@ -267,7 +267,15 @@
 		if (!payOrder) return;
 		paying = true;
 		try {
-			await api.post(`/payments/${payOrder.id}/pay`);
+			const res: any = await api.post(`/payments/${payOrder.id}/pay`);
+			// Waffo 网关：返回 checkoutUrl，新标签打开托管收银台（SKILL 禁用 location.href 跳转）
+			if (res?.checkoutUrl) {
+				window.open(res.checkoutUrl, '_blank', 'noopener,noreferrer');
+				success('请在打开的支付页完成付款，支付成功后将自动回到赛事页');
+				payOrder = null;
+				await loadMyRegistrations();
+				return;
+			}
 			success('支付成功，报名等待审核');
 			payOrder = null;
 			await loadMyRegistrations();

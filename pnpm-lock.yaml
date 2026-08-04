@@ -20,6 +20,9 @@ importers:
       '@tournament-manager/shared':
         specifier: workspace:*
         version: link:../../packages/shared
+      '@waffo/pancake-ts':
+        specifier: ^0.17.0
+        version: 0.17.0
       bcryptjs:
         specifier: ^2.4.3
         version: 2.4.3
@@ -2115,6 +2118,11 @@ packages:
 
   /@types/trusted-types@2.0.7:
     resolution: {integrity: sha512-ScaPdn1dQczgbl0QFTeTOmVHFULt394XJgOQNoyVhZ6r2vLnMLJfBPd53SB52T/3G36VI1/g2MZaX0cwDuXsfw==}
+
+  /@waffo/pancake-ts@0.17.0:
+    resolution: {integrity: sha512-p9qESx5ZHhXbxO8lW6YX4chcq7YEyBin5wp0MAQOzsAd63q1wTa2RRTyhykMr/oBpwgYFfUFVWnA+RffX8aSAg==}
+    engines: {node: '>=20.0.0'}
+    dev: false
 
   /acorn-walk@8.3.2:
     resolution: {integrity: sha512-cjkyv4OtNCIeqhHrfS81QWXoCBPExR/J62oyEqepVw8WaQeSqpW2uhuLPh1m9eWhDuOo/jUXVTlifvesOWp/4A==}

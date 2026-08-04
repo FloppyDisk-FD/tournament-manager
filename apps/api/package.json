@@ -16,6 +16,7 @@
   "dependencies": {
     "@hono/zod-validator": "^0.4.2",
     "@tournament-manager/shared": "workspace:*",
+    "@waffo/pancake-ts": "^0.17.0",
     "bcryptjs": "^2.4.3",
     "drizzle-orm": "^0.44.0",
     "hono": "^4.6.14",
