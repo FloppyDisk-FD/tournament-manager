@@ -18,7 +18,7 @@
 </script>
 
 <svelte:head>
-	<title>历史赛事 — 赛事管理平台</title>
+	<title>历史赛事 — Tournix</title>
 </svelte:head>
 
 <div class="max-w-5xl mx-auto px-4 md:px-8 py-8">

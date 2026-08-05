@@ -43,7 +43,7 @@
 			<h1 class="font-black text-2xl md:text-3xl tracking-tight text-black mb-2">
 				{isRegister ? '注册' : '登录'}
 			</h1>
-			<p class="text-sm text-neutral-600 mb-6">赛事管理平台 — 管理后台</p>
+			<p class="text-sm text-neutral-600 mb-6">Tournix — 管理后台</p>
 
 			{#if error}
 				<div class="border border-accent bg-accent/10 text-accent text-sm p-3 mb-4 font-bold">{error}</div>

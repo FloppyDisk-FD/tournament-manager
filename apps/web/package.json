@@ -31,6 +31,7 @@
 		"@tournament-manager/shared": "workspace:*",
 		"clsx": "^2.1.1",
 		"dompurify": "^3.4.12",
+		"flexsearch": "^0.8.212",
 		"html-to-image": "^1.11.13",
 		"lucide-svelte": "^0.469.0",
 		"marked": "^18.0.7",

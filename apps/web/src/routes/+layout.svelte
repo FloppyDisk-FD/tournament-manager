@@ -114,7 +114,7 @@
 	<nav class="bg-black/75 backdrop-blur-md border-b-2 border-black px-4 md:px-8 h-14 flex items-center justify-between sticky top-0 z-50" aria-label="主导航">
 		<a href="/" class="font-black text-lg md:text-xl tracking-tight text-white press inline-flex items-center gap-2" aria-label="返回首页">
 			<Trophy size={20} strokeWidth={2} class="shrink-0" aria-hidden="true" />
-			赛事管理平台
+			Tournix
 		</a>
 		<div class="flex items-center gap-4 md:gap-6">
 			{#if data.authenticated}
@@ -224,8 +224,8 @@
 	</main>
 	<footer class="bg-black text-white py-8 md:py-12 px-4 md:px-8">
 		<div class="max-w-7xl mx-auto">
-			<span class="font-black text-lg md:text-xl">赛事管理平台</span>
-			<p class="text-sm text-neutral-400 mt-2">&copy; {new Date().getFullYear()} — Swiss Style Tournament System</p>
+			<span class="font-black text-lg md:text-xl">Tournix</span>
+			<p class="text-sm text-neutral-400 mt-2">&copy; {new Date().getFullYear()} — Tournix Tournament Platform</p>
 		</div>
 	</footer>
 </div>
