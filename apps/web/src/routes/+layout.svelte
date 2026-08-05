@@ -224,8 +224,21 @@
 	</main>
 	<footer class="bg-black text-white py-8 md:py-12 px-4 md:px-8">
 		<div class="max-w-7xl mx-auto">
-			<span class="font-black text-lg md:text-xl">Tournix</span>
-			<p class="text-sm text-neutral-400 mt-2">&copy; {new Date().getFullYear()} — Tournix Tournament Platform</p>
+			<div class="flex flex-col md:flex-row md:items-start md:justify-between gap-6">
+				<div>
+					<span class="font-black text-lg md:text-xl">Tournix</span>
+					<p class="text-sm text-neutral-400 mt-2">&copy; {new Date().getFullYear()} — Tournix Tournament Platform</p>
+				</div>
+				<div class="flex flex-col gap-2 md:items-end">
+					<a href="mailto:support@tournix.app" class="text-sm font-bold text-white/80 border-b border-white/40 hover:text-accent hover:border-accent transition-colors duration-150 w-fit">
+						支持：support@tournix.app
+					</a>
+					<div class="flex gap-4">
+						<a href="/privacy" class="text-sm font-bold text-white/80 border-b border-white/40 hover:text-accent hover:border-accent transition-colors duration-150">隐私政策</a>
+						<a href="/terms" class="text-sm font-bold text-white/80 border-b border-white/40 hover:text-accent hover:border-accent transition-colors duration-150">服务条款</a>
+					</div>
+				</div>
+			</div>
 		</div>
 	</footer>
 </div>

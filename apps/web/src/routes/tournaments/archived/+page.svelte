@@ -59,6 +59,9 @@
 						<div class="flex items-center gap-2 mb-1">
 							<span class="text-xs font-black uppercase tracking-widest text-neutral-400 shrink-0">#{String(tournaments.length - i).padStart(2, '0')}</span>
 							<span class="text-xs font-bold text-neutral-500 shrink-0">{FORMAT_MAP[t.format] ?? t.format}</span>
+							{#if (t.entryFee ?? 0) > 0}
+								<span class="text-[10px] font-black bg-neutral-100 border border-black px-1.5 py-0.5 shrink-0">报名费 ¥{t.entryFee}</span>
+							{/if}
 							{#if t.game}
 								<span class="text-xs text-neutral-400 truncate">{t.game}</span>
 							{/if}

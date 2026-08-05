@@ -147,6 +147,9 @@
 						<div class="flex items-center gap-2 mb-1.5">
 							<StatusBadge status={carouselItem.status} class="bg-black text-white" />
 							<span class="text-[10px] font-bold text-white/80 uppercase tracking-widest">{FORMAT_MAP[carouselItem.format] ?? carouselItem.format}</span>
+							{#if (carouselItem.entryFee ?? 0) > 0}
+								<span class="text-[10px] font-black bg-accent text-white px-1.5 py-0.5 shrink-0">报名费 ¥{carouselItem.entryFee}</span>
+							{/if}
 						</div>
 						<h3 class="font-black text-xl md:text-2xl tracking-tight text-white truncate">{carouselItem.name}</h3>
 						{#if carouselItem.game}
@@ -259,6 +262,9 @@
 							<div class="flex items-center gap-2 mb-3">
 								<StatusBadge status={t.status} />
 								<span class="text-xs text-neutral-500 font-bold">{FORMAT_MAP[t.format] ?? t.format}</span>
+								{#if (t.entryFee ?? 0) > 0}
+									<span class="ml-auto text-[10px] font-black bg-neutral-100 border border-black px-1.5 py-0.5 shrink-0">报名费 ¥{t.entryFee}</span>
+								{/if}
 							</div>
 							<h3 class="font-black text-lg md:text-xl tracking-tight text-black mb-1">{t.name}</h3>
 							{#if t.game}
