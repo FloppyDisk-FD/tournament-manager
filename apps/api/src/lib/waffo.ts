@@ -95,11 +95,11 @@ export async function queryWaffoOrder(client: WaffoPancake, paymentId: string): 
 	orderId: string;
 } | null> {
 	const result = await client.graphql.query<{
-		orders: Array<{ id: string; status: string; orderMerchantExternalId: string | null }>;
+		onetimeOrders: Array<{ id: string; status: string; orderMerchantExternalId: string | null }>;
 	}>({
-		query: `query { orders { id status orderMerchantExternalId } }`,
+		query: `query { onetimeOrders { id status orderMerchantExternalId } }`,
 	});
-	const order = (result.data?.orders ?? []).find((o) => o.orderMerchantExternalId === `pay-${paymentId}`);
+	const order = (result.data?.onetimeOrders ?? []).find((o) => o.orderMerchantExternalId === `pay-${paymentId}`);
 	if (!order) return null;
 	return { status: order.status, orderId: order.id };
 }

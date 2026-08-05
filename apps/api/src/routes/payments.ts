@@ -51,6 +51,8 @@ paymentRoutes.post('/:id/pay', async (c) => {
       amount: Number(pay.amount),
       successUrl: `${c.req.header('origin') ?? ''}/tournaments/${pay.tournamentId}`,
     });
+    // 标记 provider 为 waffo（前端靠它触发静默同步）
+    await db.update(payments).set({ provider: 'waffo' }).where(eq(payments.id, id));
     return c.json({
       status: 'pending',
       checkoutUrl: session.checkoutUrl,
