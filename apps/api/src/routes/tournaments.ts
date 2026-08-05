@@ -24,6 +24,10 @@ tournamentRoutes.get('/', async (c) => {
   const conditions = [];
   if (query.status) conditions.push(eq(tournaments.status, query.status as any));
   if (query.game) conditions.push(ilike(tournaments.game, `%${query.game}%`));
+  if (query.q) conditions.push(ilike(tournaments.name, `%${query.q}%`));
+  if (query.format) conditions.push(eq(tournaments.format, query.format as any));
+  if (query.fee === 'free') conditions.push(eq(tournaments.entryFee, 0));
+  if (query.fee === 'paid') conditions.push(sql`${tournaments.entryFee} > 0`);
   // 我的赛事：赛事管理者只看自己创建的（admin 看全部）
   if (query.mine === '1' && user && user.role !== 'admin') {
     conditions.push(eq(tournaments.createdBy, user.id));

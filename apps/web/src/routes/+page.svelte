@@ -215,10 +215,16 @@
 					<p class="text-xs font-bold text-neutral-500 mt-1">搜索「{searchQuery.trim()}」— {visibleTournaments.length} 个结果</p>
 				{/if}
 			</div>
-			<a href="/tournaments/archived" class="inline-flex items-center gap-1 text-sm font-bold text-black border-b border-black hover:text-accent hover:border-accent transition-colors duration-150">
-				历史归档
-				<ArrowRight size={13} class="shrink-0" aria-hidden="true" />
-			</a>
+			<div class="flex items-center gap-4">
+				<a href="/tournaments" class="inline-flex items-center gap-1 text-sm font-bold text-black border-b border-black hover:text-accent hover:border-accent transition-colors duration-150">
+					发现更多赛事
+					<ArrowRight size={13} class="shrink-0" aria-hidden="true" />
+				</a>
+				<a href="/tournaments/archived" class="inline-flex items-center gap-1 text-sm font-bold text-black border-b border-black hover:text-accent hover:border-accent transition-colors duration-150">
+					历史归档
+					<ArrowRight size={13} class="shrink-0" aria-hidden="true" />
+				</a>
+			</div>
 		</div>
 
 		<!-- Filter -->
