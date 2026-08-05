@@ -27,6 +27,12 @@
 	let saving = $state(false);
 
 	const canCreateTeam = $derived(getUser()?.role === 'admin' || getUser()?.role === 'team_manager');
+	const userRole = $derived(getUser()?.role ?? '');
+	const roleLabel = $derived(
+		userRole === 'admin' ? '系统管理员' :
+		userRole === 'tournament_manager' ? '赛事管理者' :
+		userRole === 'team_manager' ? '队伍管理员' : '普通用户'
+	);
 
 	onMount(async () => {
 		if (!getUser()) { loaded = true; return; }
@@ -100,7 +106,12 @@
 	<div class="flex items-baseline justify-between mb-8 flex-wrap gap-2">
 		<div>
 			<h1 class="font-black text-2xl md:text-4xl tracking-tight text-black">我的后台</h1>
-			<p class="text-sm text-neutral-600 mt-1">{getUser()?.username ?? '未登录'}</p>
+			<p class="text-sm text-neutral-600 mt-1 flex items-center gap-2 flex-wrap">
+				<span>{getUser()?.username ?? '未登录'}</span>
+				{#if userRole}
+					<span class="text-[10px] font-black bg-black text-white px-1.5 py-0.5">{roleLabel}</span>
+				{/if}
+			</p>
 		</div>
 		<span class="text-xs font-bold uppercase tracking-widest text-neutral-500">Dashboard</span>
 	</div>
@@ -123,7 +134,16 @@
 				<Users size={14} class="text-neutral-700" aria-hidden="true" />
 				<span class="text-xs font-bold uppercase tracking-widest text-neutral-700">我的队伍</span>
 			</div>
-			{#if canCreateTeam}
+			{#if !canCreateTeam}
+				<!-- 普通用户：无建队权限，引导浏览/报名 -->
+				<div class="border border-black bg-white px-4 py-6 text-center">
+					<p class="text-sm text-neutral-500 font-bold">成为「队伍管理员」后即可创建并管理队伍</p>
+					<div class="mt-3 flex items-center justify-center gap-3 flex-wrap">
+						<a href="/teams" class="text-sm font-black border border-black px-3 py-1.5 bg-black text-white hover:bg-accent hover:border-accent transition-colors duration-150">浏览队伍库</a>
+						<a href="/" class="text-sm font-bold text-black border-b border-black hover:text-accent hover:border-accent transition-colors duration-150">去报名参赛 →</a>
+					</div>
+				</div>
+			{:else}
 				<div class="border border-black bg-white mb-3">
 					<div class="flex flex-col md:flex-row gap-2 items-center p-3 border-b border-black">
 						<Input bind:value={newTeamEmoji} class="w-16 text-center" placeholder="🏆" />
@@ -138,10 +158,6 @@
 							<img src={newTeamLogoUrl} alt="头像预览" class="w-10 h-10 object-contain border border-black" />
 						</div>
 					{/if}
-				</div>
-			{:else}
-				<div class="border border-black bg-white mb-3 px-3 py-2">
-					<p class="text-sm text-neutral-500 font-bold">创建队伍需要「队伍管理员」角色权限</p>
 				</div>
 			{/if}
 			{#if myTeams.length === 0}

@@ -4,10 +4,12 @@
 	import { Menu, X } from 'lucide-svelte';
 	import { getUser, fetchUser, logout } from '$lib/stores/auth.svelte';
 
-	let { children } = $props();
+	let { children, data } = $props();
 
 	// 移动端抽屉状态（桌面端始终显示侧边栏）
 	let sidebarOpen = $state(false);
+
+	const isAdmin = $derived((data?.role ?? getUser()?.role) === 'admin');
 
 	const navGroups = $derived([
 		{
@@ -15,7 +17,8 @@
 			items: [
 				{ href: '/admin', label: '概览', en: 'Overview', exact: true },
 				{ href: '/admin/tournaments', label: '赛事管理', en: 'Tournaments', exact: false },
-				{ href: '/admin/teams', label: '队伍库', en: 'Teams', exact: false },
+				// 队伍库仅系统管理员可见（接口需要 admin 权限）
+				...(isAdmin ? [{ href: '/admin/teams', label: '队伍库', en: 'Teams', exact: false }] : []),
 			],
 		},
 	]);

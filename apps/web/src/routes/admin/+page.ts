@@ -1,4 +1,7 @@
-export const load = async ({ fetch }) => {
+export const load = async ({ fetch, parent }) => {
+	const { role } = await parent();
+	// 队伍库接口仅系统管理员可访问
+	const isAdmin = role === 'admin';
 	let stats = { tournaments: 0, ongoing: 0, completed: 0, teams: 0 };
 	let recent: any[] = [];
 	try {
@@ -12,11 +15,13 @@ export const load = async ({ fetch }) => {
 	} catch (e) {
 		console.error('[admin overview] fetch tournaments failed:', e);
 	}
-	try {
-		const teamsData = await fetch('/api/v1/teams', { credentials: 'include' }).then((r) => r.json());
-		stats.teams = Array.isArray(teamsData) ? teamsData.length : 0;
-	} catch (e) {
-		console.error('[admin overview] fetch teams failed:', e);
+	if (isAdmin) {
+		try {
+			const teamsData = await fetch('/api/v1/teams', { credentials: 'include' }).then((r) => r.json());
+			stats.teams = Array.isArray(teamsData) ? teamsData.length : 0;
+		} catch (e) {
+			console.error('[admin overview] fetch teams failed:', e);
+		}
 	}
 	return { stats, recent };
 };

@@ -213,8 +213,8 @@
 				</button>
 			{:else}
 				<a href="/login" class="text-sm font-bold text-white border-b-2 border-white hover:text-accent hover:border-accent transition-colors duration-150 link-underline inline-flex items-center gap-1.5">
-					<LayoutDashboard size={15} class="shrink-0" aria-hidden="true" />
-					管理后台
+					<User size={15} class="shrink-0" aria-hidden="true" />
+					登录 / 注册
 				</a>
 			{/if}
 		</div>
