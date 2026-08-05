@@ -98,7 +98,7 @@
 
 	async function changePassword() {
 		if (!oldPassword || !newPassword) { error('请填写当前密码和新密码'); return; }
-		if (newPassword.length < 6) { error('新密码至少 6 位'); return; }
+		if (newPassword.length < 8 || !/[A-Za-z]/.test(newPassword) || !/\d/.test(newPassword)) { error('新密码至少 8 位，且需包含字母和数字'); return; }
 		passwordSaving = true;
 		try {
 			await api.post('/auth/change-password', { old_password: oldPassword, new_password: newPassword });
@@ -288,7 +288,7 @@
 					</div>
 					<div>
 						<Label for="newPassword">新密码</Label>
-						<Input id="newPassword" type="password" bind:value={newPassword} placeholder="至少 6 位" autocomplete="new-password" />
+						<Input id="newPassword" type="password" bind:value={newPassword} placeholder="至少 8 位，含字母和数字" autocomplete="new-password" />
 					</div>
 					<div class="flex gap-2 pt-2">
 						<Button onclick={changePassword} disabled={passwordSaving} en="Update" class="rounded-none">

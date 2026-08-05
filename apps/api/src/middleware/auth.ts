@@ -10,6 +10,10 @@ import type { Db } from '../db';
 import { users } from '../db/schema';
 
 const JWT_SECRET = process.env.JWT_SECRET || 'dev-secret-change-me';
+/** 生产环境必须显式配置 JWT_SECRET（wrangler secret put JWT_SECRET / .env）。开发兜底仅本地可用。 */
+if (!process.env.JWT_SECRET && process.env.NODE_ENV === 'production') {
+  throw new Error('JWT_SECRET 未配置：生产环境必须通过 wrangler secret put JWT_SECRET 设置');
+}
 const AUTHJS_SECRET = process.env.AUTH_SECRET || JWT_SECRET;
 /** Auth.js cookie 名（作为 HKDF salt） */
 const AUTHJS_COOKIE = 'authjs.session-token';
@@ -123,9 +127,10 @@ export const requireAdmin = async (c: Context<{ Variables: Vars }>, next: Next) 
 /** 签发 JWT 并写入 httpOnly cookie（ver = token 版本，用于会话管理） */
 export function issueAuthCookie(c: Context, userId: string, role: string, tokenVersion: number = 1) {
   const token = jwt.sign({ sub: userId, role, ver: tokenVersion }, JWT_SECRET, { expiresIn: '7d' });
+  const isProd = process.env.NODE_ENV === 'production' || !!process.env.CF_PAGES;
   setCookie(c, 'auth', token, {
     httpOnly: true,
-    secure: false,
+    secure: isProd, // 生产（HTTPS）强制 secure；本地 HTTP 开发不设，否则 cookie 不生效
     sameSite: 'Lax',
     maxAge: 7 * 24 * 3600,
     path: '/',

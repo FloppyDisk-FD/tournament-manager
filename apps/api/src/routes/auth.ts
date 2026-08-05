@@ -8,12 +8,18 @@ import { users, sessions, teams, teamPlayers, tournamentTeams, stages, registrat
 import { AppError } from '../middleware/error';
 import { authMiddleware, issueAuthCookie, clearAuthCookie } from '../middleware/auth';
 import { refundRegistrationPayment } from '../services/refund';
+import { rateLimit, clientKey } from '../lib/rate-limit';
 
 const auth = new Hono<{ Variables: { user: any | null; db: Db } }>();
 
-const credentialsSchema = z.object({
+const loginSchema = z.object({
   username: z.string().min(1),
   password: z.string().min(1),
+});
+
+const registerSchema = z.object({
+  username: z.string().min(1),
+  password: z.string().min(8, '密码至少 8 位').regex(/[A-Za-z]/, '密码需包含字母').regex(/\d/, '密码需包含数字'),
   role: z.enum(['tournament_manager', 'team_manager', 'user']).optional().default('user'),
 });
 
@@ -43,7 +49,12 @@ async function recordSession(c: any, userId: string) {
 
 auth.use('*', authMiddleware);
 
-auth.post('/register', zValidator('json', credentialsSchema), async (c) => {
+auth.post('/register', zValidator('json', registerSchema), async (c) => {
+  // 注册防滥用：单 IP 每 15 分钟最多 10 次
+  const rl = rateLimit(`reg:${clientKey(c)}`, { max: 10, windowMs: 15 * 60_000 });
+  if (rl !== null) {
+    throw new AppError('RATE_LIMITED', `操作过于频繁，请 ${rl} 秒后重试`, 429);
+  }
   const { username, password, role } = c.req.valid('json');
 
   const existing = await c.get('db').select().from(users).where(eq(users.username, username)).limit(1);
@@ -60,11 +71,20 @@ auth.post('/register', zValidator('json', credentialsSchema), async (c) => {
   return c.json({ id: newUser.id, username: newUser.username, role: newUser.role });
 });
 
-auth.post('/login', zValidator('json', credentialsSchema), async (c) => {
+auth.post('/login', zValidator('json', loginSchema), async (c) => {
+  // 登录限流：IP 每 15 分钟 20 次；用户名每 15 分钟 10 次（防定向爆破）
+  const ipRl = rateLimit(`login:${clientKey(c)}`, { max: 20, windowMs: 15 * 60_000 });
+  if (ipRl !== null) {
+    throw new AppError('RATE_LIMITED', `尝试过于频繁，请 ${ipRl} 秒后重试`, 429);
+  }
   const { username, password } = c.req.valid('json');
 
   const [user] = await c.get('db').select().from(users).where(eq(users.username, username)).limit(1);
   if (!user) {
+    const uRl = rateLimit(`login-user:${username}`, { max: 10, windowMs: 15 * 60_000 });
+    if (uRl !== null) {
+      throw new AppError('RATE_LIMITED', `该账号尝试过于频繁，请 ${uRl} 秒后重试`, 429);
+    }
     throw new AppError('INVALID_CREDENTIALS', '用户名或密码错误', 401);
   }
   if (user.banned) {
@@ -179,8 +199,8 @@ auth.post('/change-password', async (c) => {
   if (!body.old_password || !body.new_password) {
     throw new AppError('INVALID_INPUT', '请填写当前密码和新密码', 400);
   }
-  if (body.new_password.length < 6) {
-    throw new AppError('INVALID_INPUT', '新密码至少 6 位', 400);
+  if (body.new_password.length < 8 || !/[A-Za-z]/.test(body.new_password) || !/\d/.test(body.new_password)) {
+    throw new AppError('INVALID_INPUT', '新密码至少 8 位，且需包含字母和数字', 400);
   }
   const [dbUser] = await c.get('db').select().from(users).where(eq(users.id, user.id)).limit(1);
   if (!dbUser) throw new AppError('NOT_FOUND', '用户不存在', 404);

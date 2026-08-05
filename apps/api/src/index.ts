@@ -28,6 +28,7 @@ import { authMiddleware, requireAuth } from './middleware/auth';
 type Bindings = {
   HYPERDRIVE: { connectionString: string };
   JWT_SECRET: string;
+  CORS_ORIGINS?: string;
   VAPID_PUBLIC_KEY?: string;
   VAPID_PRIVATE_KEY?: string;
   VAPID_SUBJECT?: string;
@@ -35,9 +36,17 @@ type Bindings = {
 
 const app = new Hono<{ Bindings: Bindings; Variables: { db: Db } }>();
 
-// CORS
+// CORS：生产域名通过环境变量 CORS_ORIGINS（逗号分隔）注入；本地开发固定放行
 app.use('*', cors({
-  origin: ['http://localhost:5173', 'http://localhost:5174', 'http://localhost:3001'],
+  origin: (origin) => {
+    if (!origin) return origin ?? ''; // 无 Origin 的请求（curl/同源）放行
+    const allow = new Set<string>();
+    for (const d of (process.env.CORS_ORIGINS ?? '').split(',').map((s) => s.trim()).filter(Boolean)) allow.add(d);
+    allow.add('http://localhost:5173');
+    allow.add('http://localhost:5174');
+    allow.add('http://localhost:3001');
+    return allow.has(origin) ? origin : '';
+  },
   credentials: true,
 }));
 
@@ -127,6 +136,9 @@ export default {
   async fetch(req: Request, env: Bindings): Promise<Response> {
     if (env.JWT_SECRET) {
       process.env.JWT_SECRET = env.JWT_SECRET;
+    }
+    if (env.CORS_ORIGINS) {
+      process.env.CORS_ORIGINS = env.CORS_ORIGINS;
     }
     return app.fetch(req, env);
   },

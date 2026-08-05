@@ -85,7 +85,8 @@
 					</div>
 					<div>
 						<Label for="regPassword">密码</Label>
-						<Input id="regPassword" name="password" type="password" bind:value={password} class="md:px-4 md:py-3" />
+						<Input id="regPassword" name="password" type="password" bind:value={password} placeholder="至少 8 位，含字母和数字" class="md:px-4 md:py-3" />
+						<p class="text-xs text-neutral-400 mt-1">至少 8 位，需包含字母和数字</p>
 					</div>
 					<Button type="submit" en="Register" class="w-full md:px-6 md:py-3">注册 →</Button>
 				</form>
