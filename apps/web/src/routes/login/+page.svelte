@@ -14,6 +14,16 @@
 	let isRegister = $state(false);
 	let registered = $state(false);
 
+	// 从 URL 读取 Auth.js 错误（登录失败跳回 /login?error=CredentialsSignin 时展示）
+	if (typeof window !== 'undefined') {
+		const urlError = new URL(window.location.href).searchParams.get('error');
+		if (urlError) {
+			error = urlError === 'CredentialsSignin' ? '用户名或密码错误' : '登录失败，请重试';
+			// 清除 URL 参数（避免刷新后重复提示）
+			history.replaceState(null, '', window.location.pathname);
+		}
+	}
+
 	const roleOptions = [
 		{ value: 'tournament_manager', label: '赛事管理者', desc: '管理自己创建的赛事' },
 		{ value: 'team_manager', label: '队伍管理员', desc: '管理自己的队伍与队员' },
@@ -26,8 +36,8 @@
 		loading = true;
 		try {
 			await signIn('credentials', { username, password, redirectTo: '/' });
-			// signIn 成功会跳转；若未跳转（已登录）则手动刷新
-			window.location.href = '/';
+			// signIn 内部会按服务端返回跳转（成功→主页，失败→/login?error=...）
+			// 注意：不要在这里额外 window.location.href='/'，会覆盖 signIn 的错误跳转
 		} catch (e: any) {
 			error = e?.message?.includes('CredentialsSignin') ? '用户名或密码错误' : (e?.message || '登录失败');
 		} finally {
