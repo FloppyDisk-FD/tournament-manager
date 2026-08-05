@@ -234,6 +234,11 @@ import { ArrowRight, ChartLine, Trophy } from 'lucide-svelte';
 			myRegistrations = Array.isArray(regs) ? regs : [];
 			myTeams = Array.isArray(teams) ? teams : [];
 			regLoaded = true;
+			// 已有 pending 的 Waffo 订单：静默同步一次（覆盖「支付完刷新页面」场景）
+			const p = Array.isArray(regs) ? regs[0]?.payment : null;
+			if (p && p.status === 'pending' && p.provider === 'waffo') {
+				pollPaymentSync(p.id);
+			}
 		} catch { /* 未登录时忽略 */ }
 	}
 
@@ -281,9 +286,12 @@ import { ArrowRight, ChartLine, Trophy } from 'lucide-svelte';
 			// Waffo 网关：返回 checkoutUrl，新标签打开托管收银台（SKILL 禁用 location.href 跳转）
 			if (res?.checkoutUrl) {
 				window.open(res.checkoutUrl, '_blank', 'noopener,noreferrer');
-				success('请在打开的支付页完成付款，支付成功后将自动回到赛事页');
+				success('请在打开的支付页完成付款，付款完成后将自动确认');
+				const pid = payOrder.id;
 				payOrder = null;
 				await loadMyRegistrations();
+				// 轮询 sync：本地无 webhook 隧道时兜底确认支付结果
+				pollPaymentSync(pid);
 				return;
 			}
 			success('支付成功，报名等待审核');
@@ -294,6 +302,29 @@ import { ArrowRight, ChartLine, Trophy } from 'lucide-svelte';
 		} finally {
 			paying = false;
 		}
+	}
+
+	let paySyncTimer: ReturnType<typeof setInterval> | undefined;
+	function pollPaymentSync(paymentId: string) {
+		if (paySyncTimer) clearInterval(paySyncTimer);
+		let attempts = 0;
+		paySyncTimer = setInterval(async () => {
+			attempts += 1;
+			try {
+				const r = await api.post<any>(`/payments/${paymentId}/sync`);
+				if (r?.status === 'paid') {
+					if (paySyncTimer) clearInterval(paySyncTimer);
+					success('支付成功，报名等待审核');
+					await loadMyRegistrations();
+				} else if (attempts >= 60) {
+					// 5 分钟未确认：停止轮询，用户可手动点「去支付」重试
+					if (paySyncTimer) clearInterval(paySyncTimer);
+					error('未确认到支付结果，请确认支付后刷新页面');
+				}
+			} catch {
+				if (attempts >= 60 && paySyncTimer) clearInterval(paySyncTimer);
+			}
+		}, 5000);
 	}
 
 	async function retryPay(p: any) {

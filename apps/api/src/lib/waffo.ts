@@ -84,3 +84,22 @@ export async function createWaffoCheckout(client: WaffoPancake, params: {
 	});
 	return session;
 }
+
+/**
+ * 主动查询 Waffo 订单状态（按 orderMerchantExternalId = `pay-{paymentId}`）。
+ * 用于本地开发没有 webhook 隧道、或 webhook 回调丢失时兜底同步订单状态。
+ * 返回 null 表示订单不存在（可能尚未创建或查询失败）。
+ */
+export async function queryWaffoOrder(client: WaffoPancake, paymentId: string): Promise<{
+	status: string;
+	orderId: string;
+} | null> {
+	const result = await client.graphql.query<{
+		orders: Array<{ id: string; status: string; orderMerchantExternalId: string | null }>;
+	}>({
+		query: `query { orders { id status orderMerchantExternalId } }`,
+	});
+	const order = (result.data?.orders ?? []).find((o) => o.orderMerchantExternalId === `pay-${paymentId}`);
+	if (!order) return null;
+	return { status: order.status, orderId: order.id };
+}
