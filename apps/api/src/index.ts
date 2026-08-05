@@ -30,6 +30,10 @@ type Bindings = {
   JWT_SECRET: string;
   AUTH_SECRET?: string;
   CORS_ORIGINS?: string;
+  WAFFO_MERCHANT_ID?: string;
+  WAFFO_PRIVATE_KEY?: string;
+  WAFFO_STORE_ID?: string;
+  WAFFO_PRODUCT_ID?: string;
   VAPID_PUBLIC_KEY?: string;
   VAPID_PRIVATE_KEY?: string;
   VAPID_SUBJECT?: string;
@@ -154,6 +158,11 @@ export default {
     if (env.CORS_ORIGINS) {
       process.env.CORS_ORIGINS = env.CORS_ORIGINS;
     }
+    // Waffo 支付网关 secrets（getWaffoClient 读 process.env）
+    if (env.WAFFO_MERCHANT_ID) process.env.WAFFO_MERCHANT_ID = env.WAFFO_MERCHANT_ID;
+    if (env.WAFFO_PRIVATE_KEY) process.env.WAFFO_PRIVATE_KEY = env.WAFFO_PRIVATE_KEY;
+    if (env.WAFFO_STORE_ID) process.env.WAFFO_STORE_ID = env.WAFFO_STORE_ID;
+    if (env.WAFFO_PRODUCT_ID) process.env.WAFFO_PRODUCT_ID = env.WAFFO_PRODUCT_ID;
     return app.fetch(req, env);
   },
 };
