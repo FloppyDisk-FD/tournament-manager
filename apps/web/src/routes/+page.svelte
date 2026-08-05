@@ -2,14 +2,12 @@
 	import { onMount } from 'svelte';
 	import { cn } from '$lib/utils';
 	import { goto } from '$app/navigation';
-	import { Index as FlexIndex } from 'flexsearch';
 	import EmptyState from '$lib/components/EmptyState.svelte';
 	import StatusBadge from '$lib/components/StatusBadge.svelte';
-	import Input from '$lib/components/Input.svelte';
 	import { FORMAT_MAP } from '$lib/constants/tournament';
 	import { detectLang, translate, type Lang, type TKey } from '$lib/stores/i18n.svelte';
 
-	import { Search, ArrowRight, ChevronLeft, ChevronRight, Trophy } from 'lucide-svelte';
+	import { ArrowRight, ChevronLeft, ChevronRight, Trophy } from 'lucide-svelte';
 
 	let lang = $state<Lang>(detectLang());
 	function t(key: TKey) { return translate(key, lang); }
@@ -32,26 +30,8 @@
 	const allTournaments = $derived(data.allTournaments ?? []);
 	const currentStatus = $derived(data.currentStatus);
 
-	// ---- flexsearch 客户端索引 ----
-	let searchIndex: FlexIndex<string> | null = null;
-	let searchQuery = $state('');
-
-	onMount(() => {
-		searchIndex = new FlexIndex({ tokenize: 'full' });
-		for (const t of allTournaments) {
-			searchIndex.add(t.id, `${t.name} ${t.game ?? ''} ${FORMAT_MAP[t.format] ?? t.format ?? ''}`);
-		}
-	});
-
-	const searchIds = $derived.by(() => {
-		const q = searchQuery.trim();
-		if (!q || !searchIndex) return null;
-		return new Set(searchIndex.search(q, { limit: 100 }) as unknown as string[]);
-	});
-
-	const visibleTournaments = $derived(tournaments.filter((t) => !searchIds || searchIds.has(t.id)));
-
 	// ---- 封面轮播（Hero 右侧滚动图，基于全量赛事，不随选项卡筛选变化） ----
+	const visibleTournaments = $derived(tournaments);
 	const carouselItems = $derived(allTournaments.filter((t) => t.coverImage ?? t.cover_image));
 	let carouselIndex = $state(0);
 	let carouselTimer: ReturnType<typeof setInterval> | undefined;
@@ -105,18 +85,6 @@
 			<p class="text-sm md:text-base text-neutral-600 max-w-xl mb-6 md:mb-8 animate-enter" style="animation-delay:150ms">
 				创建和管理你的电竞赛事。支持单败淘汰、双败淘汰、循环联赛、瑞士轮四种赛制。
 			</p>
-
-			<!-- 搜索框 -->
-			<div class="relative max-w-xl mb-6 animate-enter" style="animation-delay:200ms">
-				<Search size={16} class="absolute left-3 top-1/2 -translate-y-1/2 text-neutral-400 pointer-events-none" aria-hidden="true" />
-				<Input
-					type="search"
-					bind:value={searchQuery}
-					placeholder="搜索赛事、游戏、赛制…"
-					aria-label="搜索赛事"
-					class="pl-10 py-3 text-sm font-bold"
-				/>
-			</div>
 
 			<div class="flex flex-wrap gap-3 animate-enter" style="animation-delay:250ms">
 				<a
@@ -211,9 +179,6 @@
 		<div class="flex items-center justify-between gap-3 mb-6 flex-wrap">
 			<div>
 				<h2 class="font-black text-xl md:text-2xl tracking-tight text-black">全部赛事</h2>
-				{#if searchQuery.trim()}
-					<p class="text-xs font-bold text-neutral-500 mt-1">搜索「{searchQuery.trim()}」— {visibleTournaments.length} 个结果</p>
-				{/if}
 			</div>
 			<div class="flex items-center gap-4">
 				<a href="/tournaments" class="inline-flex items-center gap-1 text-sm font-bold text-black border-b border-black hover:text-accent hover:border-accent transition-colors duration-150">
@@ -250,8 +215,8 @@
 		{#if visibleTournaments.length === 0}
 			<div class="py-20 text-center">
 				<EmptyState
-					title={searchQuery.trim() ? '未找到匹配赛事' : '暂无赛事'}
-					description={searchQuery.trim() ? '换个关键词试试，或清除搜索' : '请前往管理后台创建'}
+					title="暂无赛事"
+					description="请前往管理后台创建，或去发现页浏览公开赛事"
 					class="bg-neutral-50 px-8 py-6"
 				/>
 			</div>
