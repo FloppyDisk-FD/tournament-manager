@@ -1,10 +1,11 @@
 import { Hono } from 'hono';
 import { eq, ilike, and, sql, inArray } from 'drizzle-orm';
 import type { Db } from '../db';
-import { tournaments, stages, matches, games, standings, tournamentTeams } from '../db/schema';
+import { tournaments, stages, matches, games, standings, tournamentTeams, registrations, payments, teams, teamPlayers } from '../db/schema';
 import { AppError, requireUuid } from '../middleware/error';
 import { authMiddleware } from '../middleware/auth';
 import { canCreateTournament, canManageTournament } from '../services/perm';
+import { refundRegistrationPayment } from '../services/refund';
 import { validateCustomFields } from '../types/custom-field';
 
 export const tournamentRoutes = new Hono<{ Variables: { user: any | null; db: Db } }>();
@@ -123,9 +124,46 @@ tournamentRoutes.put('/:id', async (c) => {
     entryFee: data.entry_fee,
     startDate: data.start_date,
     endDate: data.end_date,
-    status: data.status,
   }).where(eq(tournaments.id, id)).returning();
 
+  return c.json(updated);
+});
+
+// 赛事状态流转（显式端点，带状态机校验 + cancelled 联动）
+tournamentRoutes.post('/:id/status', async (c) => {
+  const id = c.req.param('id');
+  const db = c.get('db');
+  const [existing] = await db.select().from(tournaments).where(eq(tournaments.id, id)).limit(1);
+  if (!existing) throw new AppError('NOT_FOUND', '赛事不存在', 404);
+  if (!canManageTournament(c.get('user'), existing)) throw new AppError('FORBIDDEN', '无权管理该赛事', 403);
+
+  const body = await c.req.json() as { status?: string };
+  const next = body.status;
+  const cur = existing.status;
+  // 状态机：draft → ongoing → completed；draft → cancelled；ongoing → cancelled
+  const allowed: Record<string, string[]> = {
+    draft: ['ongoing', 'cancelled'],
+    ongoing: ['completed', 'cancelled'],
+    completed: [],
+    cancelled: [],
+  };
+  if (!next || !(allowed[cur] ?? []).includes(next)) {
+    throw new AppError('INVALID_STATUS', `无法从「${cur}」切换到「${next ?? ''}」`, 400);
+  }
+
+  // cancelled 联动：pending 报名拒绝、已支付退款、清除签到
+  if (next === 'cancelled') {
+    const regs = await db.select().from(registrations).where(eq(registrations.tournamentId, id));
+    for (const r of regs) {
+      if (r.status === 'pending') {
+        await db.update(registrations).set({ status: 'rejected', note: '赛事已取消', reviewedAt: new Date() }).where(eq(registrations.id, r.id));
+      }
+      await refundRegistrationPayment(db, r.id, { reason: '赛事已取消', env: c.env });
+    }
+    await db.update(tournamentTeams).set({ checkedIn: false }).where(eq(tournamentTeams.tournamentId, id));
+  }
+
+  const [updated] = await db.update(tournaments).set({ status: next as any }).where(eq(tournaments.id, id)).returning();
   return c.json(updated);
 });
 
@@ -246,6 +284,18 @@ tournamentRoutes.delete('/:id', async (c) => {
     await c.get('db').delete(stages).where(inArray(stages.id, stageIds));
   }
   await c.get('db').delete(tournamentTeams).where(eq(tournamentTeams.tournamentId, id));
+  // H3：清理报名（含支付级联）与赛事内创建的队伍（no action 外键，避免 500）
+  const regRows = await c.get('db').select().from(registrations).where(eq(registrations.tournamentId, id));
+  for (const r of regRows) {
+    await refundRegistrationPayment(c.get('db'), r.id, { notifyUser: false });
+  }
+  await c.get('db').delete(registrations).where(eq(registrations.tournamentId, id));
+  await c.get('db').delete(payments).where(eq(payments.tournamentId, id));
+  const innerTeams = await c.get('db').select().from(teams).where(eq(teams.tournamentId, id));
+  for (const t of innerTeams) {
+    await c.get('db').delete(teamPlayers).where(eq(teamPlayers.teamId, t.id));
+    await c.get('db').delete(teams).where(eq(teams.id, t.id));
+  }
   await c.get('db').delete(tournaments).where(eq(tournaments.id, id));
   return c.json({ message: '赛事已删除' });
 });

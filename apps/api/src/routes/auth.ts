@@ -4,9 +4,10 @@ import { zValidator } from '@hono/zod-validator';
 import { eq, desc, and } from 'drizzle-orm';
 import bcrypt from 'bcryptjs';
 import type { Db } from '../db';
-import { users, sessions } from '../db/schema';
+import { users, sessions, teams, teamPlayers, tournamentTeams, stages, registrations, payments, tournaments } from '../db/schema';
 import { AppError } from '../middleware/error';
 import { authMiddleware, issueAuthCookie, clearAuthCookie } from '../middleware/auth';
+import { refundRegistrationPayment } from '../services/refund';
 
 const auth = new Hono<{ Variables: { user: any | null; db: Db } }>();
 
@@ -214,7 +215,45 @@ auth.put('/preferences', async (c) => {
 auth.delete('/account', async (c) => {
   const user = c.get('user');
   if (!user) throw new AppError('UNAUTHORIZED', '请先登录', 401);
-  await c.get('db').delete(users).where(eq(users.id, user.id));
+  const db = c.get('db');
+
+  // H1：清理所有引用该用户的外键记录（no action 的 5 张表），避免删除 500
+  const uid = user.id;
+
+  // 1. 用户拥有的全局队伍（含选手、赛事关联）
+  const ownedTeams = await db.select().from(teams).where(eq(teams.ownerId, uid));
+  for (const t of ownedTeams) {
+    await db.delete(teamPlayers).where(eq(teamPlayers.teamId, t.id));
+    await db.delete(tournamentTeams).where(eq(tournamentTeams.teamId, t.id));
+    await db.delete(teams).where(eq(teams.id, t.id));
+  }
+
+  // 2. 用户创建的赛事（含其报名/支付/赛程/比赛）
+  const hosted = await db.select().from(tournaments).where(eq(tournaments.createdBy, uid));
+  for (const t of hosted) {
+    const regs = await db.select().from(registrations).where(eq(registrations.tournamentId, t.id));
+    for (const r of regs) {
+      await refundRegistrationPayment(db, r.id, { notifyUser: false });
+      await db.delete(registrations).where(eq(registrations.id, r.id));
+    }
+    await db.delete(payments).where(eq(payments.tournamentId, t.id));
+    await db.delete(tournamentTeams).where(eq(tournamentTeams.tournamentId, t.id));
+    await db.delete(stages).where(eq(stages.tournamentId, t.id));
+    await db.delete(tournaments).where(eq(tournaments.id, t.id));
+  }
+
+  // 3. 用户报名的记录（含支付退款）
+  const myRegs = await db.select().from(registrations).where(eq(registrations.userId, uid));
+  for (const r of myRegs) {
+    await refundRegistrationPayment(db, r.id, { notifyUser: false });
+    await db.delete(registrations).where(eq(registrations.id, r.id));
+  }
+
+  // 4. 孤儿支付单（理论上已被 2/3 覆盖，防御性清理）
+  await db.delete(payments).where(eq(payments.userId, uid));
+
+  // 5. 删除用户（notifications/predictions/sessions 为 cascade，自动清理）
+  await db.delete(users).where(eq(users.id, uid));
   clearAuthCookie(c);
   return c.json({ message: '账号已注销' });
 });

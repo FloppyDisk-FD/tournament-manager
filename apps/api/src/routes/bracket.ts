@@ -393,6 +393,8 @@ bracketRoutes.post('/:id/reset', async (c) => {
     await c.get('db').delete(stages).where(inArray(stages.id, stageIds));
   }
   await c.get('db').update(tournaments).set({ status: 'draft' }).where(eq(tournaments.id, id));
+  // L2：重置赛程同时清除签到状态
+  await c.get('db').update(tournamentTeams).set({ checkedIn: false, checkedInAt: null }).where(eq(tournamentTeams.tournamentId, id));
   return c.json({ message: '赛程已重置' });
 });
 

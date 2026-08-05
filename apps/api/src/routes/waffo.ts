@@ -1,9 +1,10 @@
 import { Hono } from 'hono';
 import { eq } from 'drizzle-orm';
 import type { Db } from '../db';
-import { payments, registrations } from '../db/schema';
+import { payments, registrations, tournaments } from '../db/schema';
 import { getWaffoClient } from '../lib/waffo';
 import { notify } from '../services/notify';
+import { refundPayment } from '../services/refund';
 
 /**
  * Waffo Pancake webhook（/api/v1/webhooks/waffo）
@@ -58,6 +59,13 @@ waffoWebhookRoutes.post('/waffo', async (c) => {
 		}
 
 		if (pay.status !== 'paid') {
+			// M2：赛事已取消/结束 → 拒绝入账并自动退款（用户不该为已关闭赛事付钱）
+			const [tournament] = await db.select().from(tournaments).where(eq(tournaments.id, pay.tournamentId)).limit(1);
+			if (!tournament || tournament.status !== 'draft') {
+				await refundPayment(db, paymentId, { reason: '赛事已关闭，支付自动退回', env: c.env });
+				console.log(`[waffo] order.completed 但赛事已关闭，支付单 ${paymentId} 已退款`);
+				return c.json({ ok: true, error: 'TOURNAMENT_CLOSED_REFUNDED' });
+			}
 			await db.update(payments).set({
 				status: 'paid',
 				provider: 'waffo',

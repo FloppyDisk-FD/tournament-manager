@@ -9,6 +9,9 @@ import { updateStandings } from '../services/standings';
 
 /** 检查赛事是否全部比赛结束，若是则将赛事状态更新为 completed */
 async function checkTournamentComplete(db: Db, tournamentId: string) {
+  const [tournament] = await db.select({ status: tournaments.status }).from(tournaments).where(eq(tournaments.id, tournamentId)).limit(1);
+  // M1：仅进行中的赛事可自动完成（cancelled/completed 不被覆盖）
+  if (!tournament || tournament.status !== 'ongoing') return;
   const tournamentStages = await db.select({ id: stages.id }).from(stages).where(eq(stages.tournamentId, tournamentId));
   if (tournamentStages.length === 0) return;
   const stageIds = tournamentStages.map((s) => s.id);
@@ -58,6 +61,10 @@ matchRoutes.put('/:id/score', async (c) => {
 
   const [tournament] = await c.get('db').select().from(tournaments).where(eq(tournaments.id, stage.tournamentId)).limit(1);
   if (!tournament) throw new AppError('NOT_FOUND', '赛事不存在', 404);
+  // M1：已取消/已结束的赛事不允许录入比分
+  if (tournament.status === 'cancelled' || tournament.status === 'completed') {
+    throw new AppError('TOURNAMENT_CLOSED', '赛事已关闭，无法录入比分', 400);
+  }
 
   const data = await c.req.json() as { games: { game_number: number; winner_id: string; map?: string; duration?: number }[] };
 
@@ -122,8 +129,10 @@ matchRoutes.put('/:id/score', async (c) => {
       }
     }
 
-    // 更新积分榜
-    await updateStandings(c.get('db'), tournament.id, match.stageId);
+    // 更新积分榜（M5：仅循环赛/瑞士轮有积分榜，避免单败/双败数据污染）
+    if (tournament.format === 'round_robin' || tournament.format === 'swiss') {
+      await updateStandings(c.get('db'), tournament.id, match.stageId);
+    }
   } else if (data.games.length > 0) {
     // 已录入比分但未决出胜负 → 比赛进行中
     updates.status = 'in_progress';

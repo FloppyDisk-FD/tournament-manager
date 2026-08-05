@@ -1,10 +1,11 @@
 import { Hono } from 'hono';
 import { eq, and, inArray, isNull, or, desc } from 'drizzle-orm';
 import type { Db } from '../db';
-import { teams, teamPlayers, tournaments, tournamentTeams, matches, stages, registrations, payments } from '../db/schema';
+import { teams, teamPlayers, tournaments, tournamentTeams, matches, stages, registrations, payments, standings } from '../db/schema';
 import { AppError, requireUuid } from '../middleware/error';
 import { authMiddleware, requireAuth } from '../middleware/auth';
 import { isAdmin, canManageTeam, canManageTournament, canCreateTeam } from '../services/perm';
+import { refundRegistrationPayment } from '../services/refund';
 
 // 公开队伍信息（赛程图 hover 详情等场景，无需登录）
 export const publicTeamRoutes = new Hono<{ Variables: { user: any | null; db: Db } }>();
@@ -245,6 +246,18 @@ globalTeamRoutes.delete('/:teamId', async (c) => {
   if (!canManageTeam(c.get('user'), existing)) throw new AppError('FORBIDDEN', '无权管理该队伍', 403);
   await c.get('db').delete(teamPlayers).where(eq(teamPlayers.teamId, teamId));
   await c.get('db').delete(tournamentTeams).where(eq(tournamentTeams.teamId, teamId));
+  // H6：清理报名（含支付退款）、比赛引用、积分榜（no action 外键，避免 500）
+  const regRows = await c.get('db').select().from(registrations).where(eq(registrations.teamId, teamId));
+  for (const r of regRows) {
+    await refundRegistrationPayment(c.get('db'), r.id, { notifyUser: false });
+  }
+  await c.get('db').delete(registrations).where(eq(registrations.teamId, teamId));
+  await c.get('db').update(matches).set({
+    team1Id: null, team2Id: null, winnerId: null, loserId: null,
+  }).where(or(eq(matches.team1Id, teamId), eq(matches.team2Id, teamId)));
+  await c.get('db').update(matches).set({ winnerId: null }).where(eq(matches.winnerId, teamId));
+  await c.get('db').update(matches).set({ loserId: null }).where(eq(matches.loserId, teamId));
+  await c.get('db').delete(standings).where(eq(standings.teamId, teamId));
   await c.get('db').delete(teams).where(eq(teams.id, teamId));
   return c.json({ message: '队伍已删除' });
 });

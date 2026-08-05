@@ -6,6 +6,7 @@ import { AppError, requireUuid } from '../middleware/error';
 import { authMiddleware, requireAuth } from '../middleware/auth';
 import { canManageTournament } from '../services/perm';
 import { notify } from '../services/notify';
+import { refundRegistrationPayment } from '../services/refund';
 import { validateAnswers } from '../types/custom-field';
 import type { CustomField } from '../types/custom-field';
 
@@ -59,12 +60,13 @@ registrationRoutes.post('/:id/registrations', async (c) => {
     )).limit(1);
   if (dup.length > 0) throw new AppError('ALREADY_REGISTERED', '你已报名过该赛事', 400);
 
-  // 重新申请：清除旧的 rejected 报名（含其支付记录），避免重复记录
+  // 重新申请：清除旧的 rejected 报名（先退款，再删记录避免 paid 丢失）
   const oldRegs = await db.select().from(registrations)
     .where(and(eq(registrations.tournamentId, id), eq(registrations.userId, user.id)))
     .limit(10);
   for (const oldReg of oldRegs) {
     if (oldReg.status === 'rejected') {
+      await refundRegistrationPayment(db, oldReg.id, { reason: '重新报名，旧订单退款', env: c.env });
       await db.delete(registrations).where(eq(registrations.id, oldReg.id));
     }
   }
@@ -245,6 +247,9 @@ registrationRoutes.post('/:id/registrations/:rid/reject', async (c) => {
     note: (body.note ?? '').trim() || null,
     reviewedAt: new Date(),
   }).where(eq(registrations.id, rid));
+
+  // 已支付 → 自动退款（H2：避免拒绝后钱悬空）
+  await refundRegistrationPayment(db, rid, { reason: '报名被拒绝', env: c.env });
 
   await notify(db, reg.userId, 'registration', '报名被拒绝',
     `《${reg.teamName}》报名未通过${body.note ? `：${body.note}` : ''}。`, `/tournaments/${id}`, c.env);
