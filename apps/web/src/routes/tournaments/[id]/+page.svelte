@@ -528,7 +528,7 @@ import { ArrowRight, ChartLine, Trophy } from 'lucide-svelte';
 								<p class="text-sm text-neutral-500 font-bold">登录后可报名参赛</p>
 								<a href="/login?redirect=/tournaments/{data.tournament.id}" class="text-sm font-bold text-black border-b border-black hover:text-accent hover:border-accent transition-colors duration-150">去登录 →</a>
 							</div>
-						{:else if myReg}
+						{:else if myReg && !showRegForm}
 							<div class="flex items-center justify-between gap-3 flex-wrap">
 								<div class="flex items-center gap-3 flex-wrap">
 									<StatusBadge status={myReg.status} map={REGISTRATION_STATUS_MAP} />
