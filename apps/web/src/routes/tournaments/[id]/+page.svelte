@@ -243,6 +243,14 @@ import { ArrowRight, ChartLine, Trophy } from 'lucide-svelte';
 
 	const myReg = $derived(myRegistrations[0] ?? null);
 
+	/** 打开报名表单：预填自定义字段默认值，避免 bind:value={undefined} 触发 Svelte props_invalid_value */
+	function openRegForm() {
+		const defaults: Record<string, string> = {};
+		for (const f of customFields) defaults[f.key] = '';
+		regAnswers = defaults;
+		showRegForm = true;
+	}
+
 	async function submitRegistration() {
 		if (!regTeamId) { error('请选择队伍'); return; }
 		regSubmitting = true;
@@ -549,7 +557,7 @@ import { ArrowRight, ChartLine, Trophy } from 'lucide-svelte';
 									<button onclick={cancelRegistration} class="text-sm font-bold text-accent border-b border-accent hover:opacity-70 transition-opacity duration-150">取消报名</button>
 								{/if}
 								{#if myReg.status === 'rejected' && teams.length < t.maxTeams}
-									<button onclick={() => (showRegForm = true)} class="text-sm font-black border border-black px-3 py-1.5 bg-black text-white hover:bg-accent hover:border-accent transition-colors duration-150">重新申请</button>
+									<button onclick={openRegForm} class="text-sm font-black border border-black px-3 py-1.5 bg-black text-white hover:bg-accent hover:border-accent transition-colors duration-150">重新申请</button>
 								{/if}
 							</div>
 						{:else if teams.length >= t.maxTeams}
@@ -567,7 +575,7 @@ import { ArrowRight, ChartLine, Trophy } from 'lucide-svelte';
 									{#if t.entryFee > 0}
 										<span class="text-xs font-black bg-neutral-100 border border-black px-1.5 py-0.5">报名费 ¥{t.entryFee}</span>
 									{/if}
-									<Button onclick={() => (showRegForm = true)} en="Register" class="rounded-none">报名参赛 →</Button>
+									<Button onclick={openRegForm} en="Register" class="rounded-none">报名参赛 →</Button>
 								</div>
 							{/if}
 						{:else}
