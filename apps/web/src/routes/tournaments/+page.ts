@@ -1,37 +1,26 @@
 import type { PageLoad } from './$types';
 
 /**
- * 公开赛事发现页：SSR 初始数据（支持 query 参数：q/status/game/format/fee/page）
+ * 公开赛事发现页：SSR 拉全量赛事（≤100），客户端 flexsearch 即时过滤 + 筛选。
+ * 服务端只负责初始数据与 SEO；搜索/筛选/分页全在浏览器执行。
  */
 export const load: PageLoad = async ({ url, fetch }) => {
-	const params = new URLSearchParams();
+	// 保留 query 参数以支持分享链接/SEO 深链
 	const q = url.searchParams.get('q') ?? '';
 	const status = url.searchParams.get('status') ?? '';
-	const game = url.searchParams.get('game') ?? '';
 	const format = url.searchParams.get('format') ?? '';
 	const fee = url.searchParams.get('fee') ?? '';
-	const page = url.searchParams.get('page') ?? '1';
-
-	if (q) params.set('q', q);
-	if (status) params.set('status', status);
-	if (game) params.set('game', game);
-	if (format) params.set('format', format);
-	if (fee) params.set('fee', fee);
-	params.set('page', page);
-	params.set('limit', '12');
 
 	try {
-		const res = await fetch(`/api/v1/tournaments?${params.toString()}`);
+		const res = await fetch('/api/v1/tournaments?limit=100');
 		if (!res.ok) throw new Error('加载失败');
 		const data = await res.json();
 		return {
 			tournaments: data.items ?? [],
 			total: data.total ?? 0,
-			page: Number(page) || 1,
-			limit: data.limit ?? 12,
-			filters: { q, status, game, format, fee },
+			filters: { q, status, format, fee },
 		};
 	} catch {
-		return { tournaments: [], total: 0, page: 1, limit: 12, filters: { q, status, game, format, fee } };
+		return { tournaments: [], total: 0, filters: { q, status, format, fee } };
 	}
 };
