@@ -48,3 +48,4 @@ test-*.js
 
 # Reasonix desktop metadata
 .reasonix/
+tmp/browser-test/
