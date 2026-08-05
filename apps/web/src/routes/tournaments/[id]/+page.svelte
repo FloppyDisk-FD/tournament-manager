@@ -510,7 +510,7 @@ import { ArrowRight, ChartLine, Trophy } from 'lucide-svelte';
 			</div>
 
 			<div class="grid grid-cols-1 lg:grid-cols-2 gap-4 mb-8">
-				{#if t.status === 'draft'}
+				{#if t.status === 'draft' || t.status === 'ongoing'}
 					<div class="border border-black bg-white">
 					<div class="relative overflow-hidden flex items-center justify-between px-4 py-3 bg-black text-white">
 						<div class="flex items-center gap-2 relative z-10">
@@ -600,6 +600,25 @@ import { ArrowRight, ChartLine, Trophy } from 'lucide-svelte';
 						{/if}
 					</div>
 				</div>
+				{:else if t.status === 'completed' || t.status === 'cancelled'}
+					<div class="border border-black bg-white">
+						<div class="relative overflow-hidden flex items-center justify-between px-4 py-3 bg-black text-white">
+							<div class="flex items-center gap-2 relative z-10">
+								<span class="inline-block w-1 h-1 bg-neutral-500 shrink-0" aria-hidden="true"></span>
+								<span class="font-black text-base tracking-tight">报名参赛</span>
+							</div>
+							<span
+								class="pointer-events-none absolute right-2 top-1/2 -translate-y-1/2 text-4xl leading-none font-black uppercase tracking-widest whitespace-nowrap select-none text-white/15"
+								style="-webkit-mask-image: linear-gradient(to right, transparent, black); mask-image: linear-gradient(to right, transparent, black)"
+							>Register</span>
+						</div>
+						<div class="p-4">
+							<p class="text-sm font-bold text-neutral-500">
+								{t.status === 'completed' ? '赛事已结束，报名已截止' : '赛事已取消，报名已关闭'}
+							</p>
+						</div>
+					</div>
+				{/if}
 
 				{#if payOrder}
 					<div class="mt-4 border border-black">
@@ -621,7 +640,6 @@ import { ArrowRight, ChartLine, Trophy } from 'lucide-svelte';
 						</div>
 					</div>
 				{/if}
-			{/if}
 
 				{#if myEntryTeams.length > 0}
 					<div class="border border-black bg-white">
