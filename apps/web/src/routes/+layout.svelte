@@ -6,7 +6,6 @@
 	import { getUser, logout } from '$lib/stores/auth.svelte';
 	import Toast from '$lib/components/Toast.svelte';
 	import CookieConsent from '$lib/components/CookieConsent.svelte';
-	import FeedbackForm from '$lib/components/FeedbackForm.svelte';
 	import { success, error, info } from '$lib/stores/toast.svelte';
 	import { isPushSupported, getPushSubscription, enablePush, disablePush } from '$lib/push';
 	import { beforeNavigate, afterNavigate } from '$app/navigation';
@@ -272,7 +271,6 @@
 					</a>
 					<div class="flex gap-4 items-center">
 						<button type="button" onclick={toggleLang} class="text-sm font-bold text-white/80 border-b border-white/40 hover:text-accent hover:border-accent transition-colors duration-150" aria-label="Switch language">{t('lang.name')}</button>
-						<FeedbackForm />
 						<a href="/faq" class="text-sm font-bold text-white/80 border-b border-white/40 hover:text-accent hover:border-accent transition-colors duration-150">{t('footer.help')}</a>
 						<a href="/privacy" class="text-sm font-bold text-white/80 border-b border-white/40 hover:text-accent hover:border-accent transition-colors duration-150">{t('footer.privacy')}</a>
 						<a href="/terms" class="text-sm font-bold text-white/80 border-b border-white/40 hover:text-accent hover:border-accent transition-colors duration-150">{t('footer.terms')}</a>
