@@ -1,10 +1,10 @@
 import { Hono } from 'hono';
 import { z } from 'zod';
 import { zValidator } from '@hono/zod-validator';
-import { eq } from 'drizzle-orm';
+import { eq, desc, and } from 'drizzle-orm';
 import bcrypt from 'bcryptjs';
 import type { Db } from '../db';
-import { users } from '../db/schema';
+import { users, sessions } from '../db/schema';
 import { AppError } from '../middleware/error';
 import { authMiddleware, issueAuthCookie, clearAuthCookie } from '../middleware/auth';
 
@@ -15,6 +15,30 @@ const credentialsSchema = z.object({
   password: z.string().min(1),
   role: z.enum(['tournament_manager', 'team_manager', 'user']).optional().default('user'),
 });
+
+/** 从 User-Agent 提取简短的设备名 */
+function deviceNameFromUA(ua: string | null | undefined): string {
+  if (!ua) return '未知设备';
+  if (ua.includes('Windows')) return 'Windows';
+  if (ua.includes('Macintosh') || ua.includes('Mac OS')) return 'macOS';
+  if (ua.includes('iPhone')) return 'iPhone';
+  if (ua.includes('iPad')) return 'iPad';
+  if (ua.includes('Android')) return 'Android';
+  if (ua.includes('Linux')) return 'Linux';
+  return '未知设备';
+}
+
+async function recordSession(c: any, userId: string) {
+  const ua = c.req.header('user-agent') ?? null;
+  try {
+    await c.get('db').insert(sessions).values({
+      userId,
+      deviceName: deviceNameFromUA(ua),
+      userAgent: ua,
+      ip: c.req.header('x-forwarded-for')?.split(',')[0]?.trim() ?? null,
+    });
+  } catch { /* 会话记录失败不阻塞登录 */ }
+}
 
 auth.use('*', authMiddleware);
 
@@ -29,7 +53,8 @@ auth.post('/register', zValidator('json', credentialsSchema), async (c) => {
   const passwordHash = await bcrypt.hash(password, 10);
   const [newUser] = await c.get('db').insert(users).values({ username, passwordHash, role: role }).returning();
 
-  issueAuthCookie(c, newUser.id, newUser.role);
+  issueAuthCookie(c, newUser.id, newUser.role, newUser.tokenVersion ?? 1);
+  await recordSession(c, newUser.id);
   c.status(201);
   return c.json({ id: newUser.id, username: newUser.username, role: newUser.role });
 });
@@ -41,13 +66,17 @@ auth.post('/login', zValidator('json', credentialsSchema), async (c) => {
   if (!user) {
     throw new AppError('INVALID_CREDENTIALS', '用户名或密码错误', 401);
   }
+  if (user.banned) {
+    throw new AppError('BANNED', '账号已被封禁，请联系管理员', 403);
+  }
 
   const valid = await bcrypt.compare(password, user.passwordHash);
   if (!valid) {
     throw new AppError('INVALID_CREDENTIALS', '用户名或密码错误', 401);
   }
 
-  issueAuthCookie(c, user.id, user.role);
+  issueAuthCookie(c, user.id, user.role, user.tokenVersion ?? 1);
+  await recordSession(c, user.id);
   return c.json({ id: user.id, username: user.username, role: user.role });
 });
 
@@ -95,6 +124,99 @@ auth.put('/me', async (c) => {
     bio: body.bio ?? null,
   }).where(eq(users.id, user.id));
   return c.json({ message: '个人资料已更新' });
+});
+
+// ===== 会话管理 =====
+
+// 会话列表（登录设备）
+auth.get('/sessions', async (c) => {
+  const user = c.get('user');
+  if (!user) throw new AppError('UNAUTHORIZED', '请先登录', 401);
+  const list = await c.get('db').select().from(sessions)
+    .where(eq(sessions.userId, user.id))
+    .orderBy(desc(sessions.lastActiveAt))
+    .limit(50);
+  return c.json(list.map((s) => ({
+    id: s.id,
+    deviceName: s.deviceName,
+    ip: s.ip,
+    createdAt: s.createdAt,
+    lastActiveAt: s.lastActiveAt,
+  })));
+});
+
+// 登出指定设备（删除会话记录）
+auth.delete('/sessions/:id', async (c) => {
+  const user = c.get('user');
+  if (!user) throw new AppError('UNAUTHORIZED', '请先登录', 401);
+  const sessionId = c.req.param('id');
+  await c.get('db').delete(sessions).where(and(eq(sessions.id, sessionId), eq(sessions.userId, user.id)));
+  return c.json({ message: '已登出该设备' });
+});
+
+// 登出所有其他设备（token_version +1，旧 token 全部失效；保留当前会话记录）
+auth.post('/sessions/revoke-others', async (c) => {
+  const user = c.get('user');
+  if (!user) throw new AppError('UNAUTHORIZED', '请先登录', 401);
+  const [dbUser] = await c.get('db').select().from(users).where(eq(users.id, user.id)).limit(1);
+  if (!dbUser) throw new AppError('NOT_FOUND', '用户不存在', 404);
+  const nextVersion = (dbUser.tokenVersion ?? 1) + 1;
+  await c.get('db').update(users).set({ tokenVersion: nextVersion }).where(eq(users.id, user.id));
+  // 清空会话记录（当前 cookie 因 tokenVersion 已更新而继续有效）
+  await c.get('db').delete(sessions).where(eq(sessions.userId, user.id));
+  // 重新签发当前 cookie（带新版本）
+  issueAuthCookie(c, user.id, user.role, nextVersion);
+  return c.json({ message: '其他设备已全部登出' });
+});
+
+// ===== 修改密码 =====
+
+auth.post('/change-password', async (c) => {
+  const user = c.get('user');
+  if (!user) throw new AppError('UNAUTHORIZED', '请先登录', 401);
+  const body = await c.req.json() as { old_password?: string; new_password?: string };
+  if (!body.old_password || !body.new_password) {
+    throw new AppError('INVALID_INPUT', '请填写当前密码和新密码', 400);
+  }
+  if (body.new_password.length < 6) {
+    throw new AppError('INVALID_INPUT', '新密码至少 6 位', 400);
+  }
+  const [dbUser] = await c.get('db').select().from(users).where(eq(users.id, user.id)).limit(1);
+  if (!dbUser) throw new AppError('NOT_FOUND', '用户不存在', 404);
+  const valid = await bcrypt.compare(body.old_password, dbUser.passwordHash);
+  if (!valid) throw new AppError('INVALID_CREDENTIALS', '当前密码错误', 400);
+  const passwordHash = await bcrypt.hash(body.new_password, 10);
+  await c.get('db').update(users).set({ passwordHash }).where(eq(users.id, user.id));
+  return c.json({ message: '密码已更新' });
+});
+
+// ===== 通知偏好 =====
+
+// 获取通知偏好
+auth.get('/preferences', async (c) => {
+  const user = c.get('user');
+  if (!user) throw new AppError('UNAUTHORIZED', '请先登录', 401);
+  const [dbUser] = await c.get('db').select({ preferences: users.preferences }).from(users).where(eq(users.id, user.id)).limit(1);
+  return c.json(dbUser?.preferences ?? {});
+});
+
+// 更新通知偏好
+auth.put('/preferences', async (c) => {
+  const user = c.get('user');
+  if (!user) throw new AppError('UNAUTHORIZED', '请先登录', 401);
+  const body = await c.req.json() as Record<string, unknown>;
+  await c.get('db').update(users).set({ preferences: body }).where(eq(users.id, user.id));
+  return c.json({ message: '偏好已保存' });
+});
+
+// ===== 注销账号 =====
+
+auth.delete('/account', async (c) => {
+  const user = c.get('user');
+  if (!user) throw new AppError('UNAUTHORIZED', '请先登录', 401);
+  await c.get('db').delete(users).where(eq(users.id, user.id));
+  clearAuthCookie(c);
+  return c.json({ message: '账号已注销' });
 });
 
 export { auth as authRoutes };

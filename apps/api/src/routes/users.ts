@@ -1,8 +1,9 @@
 import { Hono } from 'hono';
-import { eq, desc } from 'drizzle-orm';
+import { eq, desc, ilike, or } from 'drizzle-orm';
 import type { Db } from '../db';
 import { users, registrations, tournaments } from '../db/schema';
 import { AppError, requireUuid } from '../middleware/error';
+import { authMiddleware, requireAdmin } from '../middleware/auth';
 
 // 公开用户主页（/api/v1/users，无需登录）
 export const userProfileRoutes = new Hono<{ Variables: { user: any | null; db: Db } }>();
@@ -50,4 +51,75 @@ userProfileRoutes.get('/:userId/profile', async (c) => {
     registrations: regs,
     hosted,
   });
+});
+
+// ===== 管理员：用户管理（仅系统管理员） =====
+export const adminUserRoutes = new Hono<{ Variables: { user: any | null; db: Db } }>();
+adminUserRoutes.use('*', authMiddleware, requireAdmin);
+
+// 用户列表（支持搜索 username/displayName，分页）
+adminUserRoutes.get('/', async (c) => {
+  const q = c.req.query('q')?.trim() ?? '';
+  const page = Number(c.req.query('page')) || 1;
+  const limit = Math.min(Number(c.req.query('limit')) || 20, 100);
+  const offset = (page - 1) * limit;
+  const db = c.get('db');
+
+  const conditions = q
+    ? [or(ilike(users.username, `%${q}%`), ilike(users.displayName, `%${q}%`))]
+    : undefined;
+  const where = conditions?.length ? conditions[0] : undefined;
+
+  const [items, countRows] = await Promise.all([
+    db.select({
+      id: users.id,
+      username: users.username,
+      displayName: users.displayName,
+      role: users.role,
+      banned: users.banned,
+      avatarUrl: users.avatarUrl,
+      createdAt: users.createdAt,
+    }).from(users).where(where).orderBy(desc(users.createdAt)).limit(limit).offset(offset),
+    db.select({ count: users.id }).from(users).where(where),
+  ]);
+
+  return c.json({
+    items,
+    total: countRows.length,
+    page,
+    limit,
+  });
+});
+
+// 封禁 / 解封
+adminUserRoutes.post('/:userId/ban', async (c) => {
+  const { userId } = c.req.param();
+  requireUuid(userId, '用户');
+  const body = await c.req.json() as { banned?: boolean };
+  const banned = !!body.banned;
+  const [target] = await c.get('db').select().from(users).where(eq(users.id, userId)).limit(1);
+  if (!target) throw new AppError('NOT_FOUND', '用户不存在', 404);
+  if (target.role === 'admin') throw new AppError('FORBIDDEN', '不能封禁管理员账号', 403);
+  await c.get('db').update(users).set({ banned }).where(eq(users.id, userId));
+  return c.json({ message: banned ? '已封禁该用户' : '已解封该用户' });
+});
+
+// 调整角色
+adminUserRoutes.post('/:userId/role', async (c) => {
+  const { userId } = c.req.param();
+  requireUuid(userId, '用户');
+  const body = await c.req.json() as { role?: string };
+  const role = body.role;
+  if (!role || !['admin', 'tournament_manager', 'team_manager', 'user'].includes(role)) {
+    throw new AppError('INVALID_INPUT', '无效的角色', 400);
+  }
+  const [target] = await c.get('db').select().from(users).where(eq(users.id, userId)).limit(1);
+  if (!target) throw new AppError('NOT_FOUND', '用户不存在', 404);
+  // 不允许把最后一个 admin 降级
+  if (target.role === 'admin' && role !== 'admin') {
+    const admins = await c.get('db').select({ id: users.id }).from(users).where(eq(users.role, 'admin'));
+    if (admins.length <= 1) throw new AppError('FORBIDDEN', '不能降级唯一的系统管理员', 403);
+  }
+  await c.get('db').update(users).set({ role: role as any }).where(eq(users.id, userId));
+  return c.json({ message: '角色已更新' });
 });

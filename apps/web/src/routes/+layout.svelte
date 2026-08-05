@@ -193,7 +193,7 @@
 				</div>
 				<a href="/profile" class="text-sm font-bold text-white border-b-2 border-white hover:text-accent hover:border-accent transition-colors duration-150 link-underline inline-flex items-center gap-1.5">
 					<User size={15} class="shrink-0" aria-hidden="true" />
-					个人资料
+					账户设置
 				</a>
 				{#if data.role && data.role !== 'tournament_manager'}
 					<a href="/dashboard" class="text-sm font-bold text-white border-b-2 border-white hover:text-accent hover:border-accent transition-colors duration-150 link-underline inline-flex items-center gap-1.5">
@@ -234,6 +234,7 @@
 						支持：support@tournix.app
 					</a>
 					<div class="flex gap-4">
+						<a href="/faq" class="text-sm font-bold text-white/80 border-b border-white/40 hover:text-accent hover:border-accent transition-colors duration-150">帮助中心</a>
 						<a href="/privacy" class="text-sm font-bold text-white/80 border-b border-white/40 hover:text-accent hover:border-accent transition-colors duration-150">隐私政策</a>
 						<a href="/terms" class="text-sm font-bold text-white/80 border-b border-white/40 hover:text-accent hover:border-accent transition-colors duration-150">服务条款</a>
 					</div>

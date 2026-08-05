@@ -18,15 +18,29 @@ export const users = pgTable('users', {
   username: varchar('username', { length: 50 }).notNull().unique(),
   passwordHash: varchar('password_hash').notNull(),
   role: roleEnum('role').notNull().default('user'),
-  avatarUrl: varchar('avatar_url'),
+  avatarUrl: text('avatar_url'),
   displayName: varchar('display_name', { length: 50 }),
   bio: text('bio'),
+  tokenVersion: integer('token_version').notNull().default(1),
+  preferences: jsonb('preferences').notNull().default({}),
+  banned: boolean('banned').notNull().default(false),
   createdAt: timestamp('created_at').notNull().defaultNow(),
 });
 
 export const usersRelations = relations(users, ({ many }) => ({
   tournaments: many(tournaments),
 }));
+
+// 登录设备会话（会话管理）
+export const sessions = pgTable('sessions', {
+  id: uuid('id').primaryKey().defaultRandom(),
+  userId: uuid('user_id').notNull().references(() => users.id, { onDelete: 'cascade' }),
+  deviceName: varchar('device_name', { length: 100 }),
+  userAgent: text('user_agent'),
+  ip: varchar('ip', { length: 45 }),
+  createdAt: timestamp('created_at').notNull().defaultNow(),
+  lastActiveAt: timestamp('last_active_at').notNull().defaultNow(),
+});
 
 // Tournaments
 export const tournaments = pgTable('tournaments', {
