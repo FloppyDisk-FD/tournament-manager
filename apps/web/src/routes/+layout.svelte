@@ -3,7 +3,7 @@
 	import { onMount } from 'svelte';
 	import { Trophy, LayoutDashboard, LogOut, Bell, User, LayoutGrid } from 'lucide-svelte';
 	import { api } from '$lib/api/client';
-	import { fetchUser, getUser, logout } from '$lib/stores/auth.svelte';
+	import { getUser, logout } from '$lib/stores/auth.svelte';
 	import Toast from '$lib/components/Toast.svelte';
 	import { success, error, info } from '$lib/stores/toast.svelte';
 	import { isPushSupported, getPushSubscription, enablePush, disablePush } from '$lib/push';
@@ -94,9 +94,6 @@
 	}
 
 	onMount(() => {
-		if (data.authenticated && !getUser()) {
-			fetchUser();
-		}
 		if (data.authenticated) {
 			loadNotifications();
 			initPush();

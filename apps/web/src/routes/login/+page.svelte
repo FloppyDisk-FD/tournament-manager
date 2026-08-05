@@ -1,9 +1,10 @@
 <script lang="ts">
-	import { login, register } from '$lib/stores/auth.svelte';
-	import { goto } from '$app/navigation';
+	import { signIn } from '@auth/sveltekit/client';
 	import Button from '$lib/components/Button.svelte';
 	import Input from '$lib/components/Input.svelte';
 	import Label from '$lib/components/Label.svelte';
+
+	let { form } = $props();
 
 	let username = $state('');
 	let password = $state('');
@@ -11,6 +12,7 @@
 	let error = $state('');
 	let loading = $state(false);
 	let isRegister = $state(false);
+	let registered = $state(false);
 
 	const roleOptions = [
 		{ value: 'tournament_manager', label: '赛事管理者', desc: '管理自己创建的赛事' },
@@ -18,22 +20,26 @@
 		{ value: 'user', label: '普通用户', desc: '浏览赛事与报名' },
 	];
 
-	async function submit() {
+	async function doLogin() {
 		error = '';
+		if (!username || !password) { error = '请输入用户名和密码'; return; }
 		loading = true;
 		try {
-			if (isRegister) {
-				await register(username, password, regRole);
-			} else {
-				await login(username, password);
-			}
-			// invalidateAll 强制重跑所有 load，刷新导航/页面登录态
-			await goto('/', { invalidateAll: true });
+			await signIn('credentials', { username, password, redirectTo: '/' });
+			// signIn 成功会跳转；若未跳转（已登录）则手动刷新
+			window.location.href = '/';
 		} catch (e: any) {
-			error = e.message || (isRegister ? '注册失败' : '登录失败');
+			error = e?.message?.includes('CredentialsSignin') ? '用户名或密码错误' : (e?.message || '登录失败');
 		} finally {
 			loading = false;
 		}
+	}
+
+	function onRegisterSuccess() {
+		registered = true;
+		// 注册成功后自动切换回登录态并预填用户名
+		isRegister = false;
+		setTimeout(() => doLogin(), 50);
 	}
 </script>
 
@@ -48,9 +54,15 @@
 			{#if error}
 				<div class="border border-accent bg-accent/10 text-accent text-sm p-3 mb-4 font-bold">{error}</div>
 			{/if}
+			{#if form?.error}
+				<div class="border border-accent bg-accent/10 text-accent text-sm p-3 mb-4 font-bold">{form.error}</div>
+			{/if}
+			{#if registered}
+				<div class="border border-black bg-black text-white text-sm p-3 mb-4 font-bold">注册成功，正在登录…</div>
+			{/if}
 
-			<div class="space-y-4">
-				{#if isRegister}
+			{#if isRegister}
+				<form method="POST" action="?/register" class="space-y-4">
 					<div>
 						<Label>选择角色</Label>
 						<div class="space-y-2">
@@ -67,27 +79,39 @@
 							{/each}
 						</div>
 					</div>
-				{/if}
-				<div>
-					<Label for="username">用户名</Label>
-					<Input id="username" type="text" bind:value={username} class="md:px-4 md:py-3" />
+					<div>
+						<Label for="regUsername">用户名</Label>
+						<Input id="regUsername" name="username" type="text" bind:value={username} class="md:px-4 md:py-3" />
+					</div>
+					<div>
+						<Label for="regPassword">密码</Label>
+						<Input id="regPassword" name="password" type="password" bind:value={password} class="md:px-4 md:py-3" />
+					</div>
+					<Button type="submit" en="Register" class="w-full md:px-6 md:py-3">注册 →</Button>
+				</form>
+			{:else}
+				<div class="space-y-4">
+					<div>
+						<Label for="username">用户名</Label>
+						<Input id="username" type="text" bind:value={username} onkeydown={(e: KeyboardEvent) => e.key === 'Enter' && doLogin()} class="md:px-4 md:py-3" />
+					</div>
+					<div>
+						<Label for="password">密码</Label>
+						<Input id="password" type="password" bind:value={password} onkeydown={(e: KeyboardEvent) => e.key === 'Enter' && doLogin()} class="md:px-4 md:py-3" />
+					</div>
+					<Button onclick={doLogin} disabled={loading} en="Sign In" class="w-full md:px-6 md:py-3">
+						{loading ? '登录中...' : '登录 →'}
+					</Button>
 				</div>
-				<div>
-					<Label for="password">密码</Label>
-					<Input id="password" type="password" bind:value={password} onkeydown={(e: KeyboardEvent) => e.key === 'Enter' && submit()} class="md:px-4 md:py-3" />
-				</div>
-				<Button onclick={submit} disabled={loading} en={isRegister ? 'Register' : 'Sign In'} class="w-full md:px-6 md:py-3">
-					{loading ? (isRegister ? '注册中...' : '登录中...') : (isRegister ? '注册 →' : '登录 →')}
-				</Button>
-			</div>
+			{/if}
 
 			<div class="mt-6 pt-4 border-t border-black/20 text-center text-sm">
 				{#if isRegister}
 					<span class="text-neutral-600">已有账号？</span>
-					<button onclick={() => isRegister = false} class="font-bold text-black border-b border-black hover:text-accent hover:border-accent transition-colors duration-150">去登录 →</button>
+					<button type="button" onclick={() => (isRegister = false)} class="font-bold text-black border-b border-black hover:text-accent hover:border-accent transition-colors duration-150">去登录 →</button>
 				{:else}
 					<span class="text-neutral-600">没有账号？</span>
-					<button onclick={() => isRegister = true} class="font-bold text-black border-b border-black hover:text-accent hover:border-accent transition-colors duration-150">去注册 →</button>
+					<button type="button" onclick={() => (isRegister = true)} class="font-bold text-black border-b border-black hover:text-accent hover:border-accent transition-colors duration-150">去注册 →</button>
 				{/if}
 			</div>
 		</div>

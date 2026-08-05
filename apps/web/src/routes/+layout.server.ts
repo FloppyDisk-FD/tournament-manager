@@ -1,15 +1,21 @@
-/** 从 JWT payload 解码 role（仅用于 UI 显示判断，不做安全边界） */
-function decodeRole(token: string): string | undefined {
-	try {
-		const payload = token.split('.')[1];
-		const json = JSON.parse(Buffer.from(payload, 'base64url').toString('utf8'));
-		return json?.role;
-	} catch {
-		return undefined;
-	}
-}
+import type { RequestEvent } from '@sveltejs/kit';
 
-export const load = async ({ cookies }) => {
-	const token = cookies.get('auth');
-	return { authenticated: !!token, role: token ? decodeRole(token) : undefined };
+/**
+ * 读取 Auth.js 会话（SvelteKit 服务端）。
+ * 通过 auth 的 locals 获取 session（由 Auth.js handle 注入）。
+ */
+export const load = async (event: RequestEvent) => {
+	// Auth.js 通过 handle 挂载 event.locals.auth()
+	const auth = (event.locals as any).auth as (() => Promise<any>) | undefined;
+	let user: { id: string; username: string; role: string } | null = null;
+	try {
+		const session = auth ? await auth() : null;
+		const su = session?.user;
+		if (su?.id) {
+			user = { id: su.id, username: su.name ?? '', role: su.role ?? 'user' };
+		}
+	} catch {
+		user = null;
+	}
+	return { authenticated: !!user, user, role: user?.role };
 };

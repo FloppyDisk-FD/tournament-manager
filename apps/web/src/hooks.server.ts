@@ -13,7 +13,9 @@
  * - 浏览器 /api/* 请求由 vite proxy 转发，不经过 handle。
  */
 import { dev } from '$app/environment';
+import { sequence } from '@sveltejs/kit/hooks';
 import type { Handle, HandleFetch } from '@sveltejs/kit';
+import { handle as authHandle } from '$lib/server/auth';
 
 /** 本地 API 端口（与 vite.config.ts 的 proxy 目标一致） */
 const LOCAL_API = 'http://localhost:3001';
@@ -29,7 +31,7 @@ function buildApiRequest(method: string, headers: Headers, body: ReadableStream<
 	return new Request(targetUrl, init);
 }
 
-export const handle: Handle = async ({ event, resolve }) => {
+export const handle: Handle = sequence(authHandle, async ({ event, resolve }) => {
 	if (dev) {
 		// 本地开发：/api/* 由 vite proxy 处理，SvelteKit handle 不介入
 		return resolve(event);
@@ -53,7 +55,7 @@ export const handle: Handle = async ({ event, resolve }) => {
 		event.url.search,
 	);
 	return api.fetch(req);
-};
+});
 
 export const handleFetch: HandleFetch = async ({ event, request, fetch }) => {
 	// 注意：handleFetch 的 event 是页面请求的 event（如首页 /），

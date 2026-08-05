@@ -15,11 +15,13 @@
   },
   "dependencies": {
     "@hono/zod-validator": "^0.4.2",
+    "@panva/hkdf": "^1.2.1",
     "@tournament-manager/shared": "workspace:*",
     "@waffo/pancake-ts": "^0.17.0",
     "bcryptjs": "^2.4.3",
     "drizzle-orm": "^0.44.0",
     "hono": "^4.6.14",
+    "jose": "^6.2.8",
     "jsonwebtoken": "^9.0.2",
     "postgres": "^3.4.0",
     "zod": "^3.24.1"

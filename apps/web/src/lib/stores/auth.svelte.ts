@@ -1,46 +1,44 @@
-import { api } from '$lib/api/client';
-import { goto } from '$app/navigation';
 import { browser } from '$app/environment';
+import { page } from '$app/state';
 
-let currentUser = $state<{ id: string; username: string; role: string } | null>(null);
-
-export function getUser() {
-	return currentUser;
+/**
+ * Auth.js 会话访问：
+ * - 用户信息来自 +layout.server.ts 的 load（data.user / data.role）
+ * - 组件内通过 $app/state 的 page.data 读取（SSR 就绪，无内存 store 竞态）
+ */
+export interface AuthUser {
+	id: string;
+	username: string;
+	role: string;
 }
 
-export async function fetchUser() {
-	if (!browser) return;
-	try {
-		const user = await api.get<{ id: string; username: string; role: string } | null>('/auth/me');
-		if (user) {
-			currentUser = user;
-		}
-	} catch {
-		// 未登录或网络错误，不清除已有状态
-	}
-}
-
-export async function login(username: string, password: string) {
-	currentUser = await api.post<{ id: string; username: string; role: string }>('/auth/login', { username, password });
-	return currentUser;
-}
-
-export async function register(username: string, password: string, role = 'user') {
-	currentUser = await api.post<{ id: string; username: string; role: string }>('/auth/register', { username, password, role });
-	return currentUser;
-}
-
-export async function logout() {
-	await api.post('/auth/logout');
-	currentUser = null;
-	// invalidateAll 强制重跑所有 load，刷新导航的登录态（避免旧 data 残留）
-	await goto('/', { invalidateAll: true });
+export function getUser(): AuthUser | null {
+	const data = page.data as any;
+	return data?.user ?? null;
 }
 
 export function isLoggedIn() {
-	return currentUser !== null;
+	return !!getUser();
 }
 
 export function isAdmin() {
-	return currentUser?.role === 'admin';
+	return getUser()?.role === 'admin';
+}
+
+export function isTournamentManager() {
+	const r = getUser()?.role;
+	return r === 'admin' || r === 'tournament_manager';
+}
+
+/** 登出：调 Auth.js 的 signOut 端点后刷新页面 */
+export async function logout() {
+	if (!browser) return;
+	// Auth.js signOut：先 POST /auth/signout 清 session，再回首页
+	await fetch('/auth/signout', {
+		method: 'POST',
+		credentials: 'include',
+		headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+		body: new URLSearchParams({ callbackUrl: '/' }),
+	});
+	window.location.href = '/';
 }

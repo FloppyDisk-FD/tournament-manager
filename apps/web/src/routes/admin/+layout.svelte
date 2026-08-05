@@ -2,7 +2,7 @@
 	import { onMount } from 'svelte';
 	import { page } from '$app/state';
 	import { Menu, X } from 'lucide-svelte';
-	import { getUser, fetchUser, logout } from '$lib/stores/auth.svelte';
+	import { getUser, logout } from '$lib/stores/auth.svelte';
 
 	let { children, data } = $props();
 
@@ -32,9 +32,6 @@
 	}
 
 	onMount(() => {
-		if (!getUser()) {
-			fetchUser();
-		}
 		// ESC 关闭抽屉
 		const onKey = (e: KeyboardEvent) => {
 			if (e.key === 'Escape') sidebarOpen = false;

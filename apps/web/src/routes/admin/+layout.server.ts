@@ -1,38 +1,26 @@
 import { redirect, error } from '@sveltejs/kit';
 
 /**
- * admin 树守卫：不仅校验已登录，还校验角色为 admin。
- *
- * 直接解码 cookie 里的 JWT 不验签是不安全的（可伪造 role），
- * 这里复用后端 /auth/me 端点做真实校验：
- * - 401/失败 → 未登录或 token 无效 → 重定向登录
- * - 200 但 role 非 admin → 403
- * （真正的写操作安全边界仍在 API 的 requireAdmin，此处负责 UI 层拦截）
+ * admin 树守卫：校验 Auth.js 会话 + 角色。
+ * - 无会话 → 重定向登录
+ * - 角色非 admin/tournament_manager → 403
+ * （真正的写操作安全边界仍在 API 的 requireAdmin / canManageTournament）
  */
-export const load = async ({ cookies, fetch }) => {
-	const token = cookies.get('auth');
-	if (!token) {
-		throw redirect(302, '/login');
-	}
-
-	let role: string | undefined;
+export const load = async (event) => {
+	const auth = (event.locals as any).auth as (() => Promise<any>) | undefined;
+	let session = null;
 	try {
-		// SSR fetch 自动携带请求 cookie，经 handleFetch 转发到 API
-		const res = await fetch('/api/v1/auth/me');
-		if (!res.ok) {
-			throw redirect(302, '/login');
-		}
-		const me = await res.json();
-		role = me?.role;
-	} catch (err) {
-		// 避免把 redirect 错误吞掉重定向成 500
-		if (err && typeof err === 'object' && 'status' in err) throw err;
+		session = auth ? await auth() : null;
+	} catch {
+		session = null;
+	}
+	const user = session?.user;
+	if (!user?.id) {
 		throw redirect(302, '/login');
 	}
-
+	const role = user.role ?? 'user';
 	if (role !== 'admin' && role !== 'tournament_manager') {
 		throw error(403, '需要赛事管理者或系统管理员权限');
 	}
-
-	return { authenticated: true, role };
+	return { authenticated: true, role, user: { id: user.id, username: user.name ?? '', role } };
 };
