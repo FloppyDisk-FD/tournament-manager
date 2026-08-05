@@ -25,6 +25,7 @@
 	}
 
 	const tournaments = $derived(data.tournaments);
+	const allTournaments = $derived(data.allTournaments ?? []);
 	const currentStatus = $derived(data.currentStatus);
 
 	// ---- flexsearch 客户端索引 ----
@@ -33,7 +34,7 @@
 
 	onMount(() => {
 		searchIndex = new FlexIndex({ tokenize: 'full' });
-		for (const t of tournaments) {
+		for (const t of allTournaments) {
 			searchIndex.add(t.id, `${t.name} ${t.game ?? ''} ${FORMAT_MAP[t.format] ?? t.format ?? ''}`);
 		}
 	});
@@ -46,8 +47,8 @@
 
 	const visibleTournaments = $derived(tournaments.filter((t) => !searchIds || searchIds.has(t.id)));
 
-	// ---- 封面轮播（Hero 右侧滚动图） ----
-	const carouselItems = $derived(tournaments.filter((t) => t.coverImage ?? t.cover_image));
+	// ---- 封面轮播（Hero 右侧滚动图，基于全量赛事，不随选项卡筛选变化） ----
+	const carouselItems = $derived(allTournaments.filter((t) => t.coverImage ?? t.cover_image));
 	let carouselIndex = $state(0);
 	let carouselTimer: ReturnType<typeof setInterval> | undefined;
 

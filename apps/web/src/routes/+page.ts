@@ -1,20 +1,31 @@
 export const load = async ({ fetch, url }) => {
 	const status = url.searchParams.get('status') ?? '';
 	let tournaments: any[] = [];
+	let allTournaments: any[] = [];
 	let total = 0;
 	try {
-		// 拉全量（API 上限 100）供首页搜索索引与轮播使用
+		// 列表：按当前状态筛选
 		const qs = status ? `?status=${encodeURIComponent(status)}&limit=100` : '?limit=100';
-		const res = await fetch(`/api/v1/tournaments${qs}`, { credentials: 'include' });
-		if (res.ok) {
-			const data = await res.json();
+		const [listRes, allRes] = await Promise.all([
+			fetch(`/api/v1/tournaments${qs}`, { credentials: 'include' }),
+			// 全量：轮播图与搜索索引不随选项卡变化
+			fetch('/api/v1/tournaments?limit=100', { credentials: 'include' }),
+		]);
+		if (listRes.ok) {
+			const data = await listRes.json();
 			tournaments = data.items ?? [];
 			total = data.total ?? 0;
 		} else {
-			console.error('[+page] API returned', res.status, await res.text().catch(() => ''));
+			console.error('[+page] API returned', listRes.status, await listRes.text().catch(() => ''));
+		}
+		if (allRes.ok) {
+			const data = await allRes.json();
+			allTournaments = data.items ?? [];
+		} else {
+			console.error('[+page] all API returned', allRes.status);
 		}
 	} catch (err) {
 		console.error('[+page] fetch failed:', err);
 	}
-	return { tournaments, total, currentStatus: status };
+	return { tournaments, allTournaments, total, currentStatus: status };
 };
