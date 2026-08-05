@@ -5,13 +5,12 @@
  */
 const buckets = new Map<string, { count: number; resetAt: number }>();
 
-/** 清理过期桶（防内存泄漏） */
-setInterval(() => {
-  const now = Date.now();
+/** 惰性清理过期桶（不依赖定时器——Workers 禁止全局 setInterval） */
+function sweepExpired(now: number) {
   for (const [k, v] of buckets) {
     if (v.resetAt <= now) buckets.delete(k);
   }
-}, 60_000).unref?.();
+}
 
 export interface RateLimitOptions {
   /** 窗口内最大次数 */
@@ -23,6 +22,7 @@ export interface RateLimitOptions {
 /** 返回 null 表示放行；返回数字表示剩余等待秒数（被限流） */
 export function rateLimit(key: string, opts: RateLimitOptions): number | null {
   const now = Date.now();
+  sweepExpired(now);
   const cur = buckets.get(key);
   if (!cur || cur.resetAt <= now) {
     buckets.set(key, { count: 1, resetAt: now + opts.windowMs });

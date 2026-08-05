@@ -9,12 +9,21 @@ import { AppError } from './error';
 import type { Db } from '../db';
 import { users } from '../db/schema';
 
-const JWT_SECRET = process.env.JWT_SECRET || 'dev-secret-change-me';
-/** 生产环境必须显式配置 JWT_SECRET（wrangler secret put JWT_SECRET / .env）。开发兜底仅本地可用。 */
-if (!process.env.JWT_SECRET && process.env.NODE_ENV === 'production') {
-  throw new Error('JWT_SECRET 未配置：生产环境必须通过 wrangler secret put JWT_SECRET 设置');
+/**
+ * JWT 密钥按需读取：
+ * - 本地 dev：process.env.JWT_SECRET（.env 加载）
+ * - Workers：index.ts fetch 入口把 env.JWT_SECRET 注入 process.env 后读取
+ * - 缺失时抛错（拒绝用 dev 兜底密钥签名，防生产用已知密钥伪造 token）
+ */
+export function getJWTSecret(): string {
+  const s = process.env.JWT_SECRET;
+  if (!s) throw new Error('JWT_SECRET 未配置：请通过 wrangler secret put JWT_SECRET 或 .env 设置');
+  return s;
 }
-const AUTHJS_SECRET = process.env.AUTH_SECRET || JWT_SECRET;
+
+function getAuthJsSecret(): string {
+  return process.env.AUTH_SECRET || getJWTSecret();
+}
 /** Auth.js cookie 名（作为 HKDF salt） */
 const AUTHJS_COOKIE = 'authjs.session-token';
 const AUTHJS_SECURE_COOKIE = '__Secure-authjs.session-token';
@@ -38,7 +47,7 @@ async function decodeAuthJsToken(token: string): Promise<{ sub: string; role: st
   try {
     for (const salt of [AUTHJS_COOKIE, AUTHJS_SECURE_COOKIE]) {
       try {
-        const key = await deriveAuthJsKey(AUTHJS_SECRET, salt);
+        const key = await deriveAuthJsKey(getAuthJsSecret(), salt);
         const { payload } = await jwtDecrypt(token, key, {
           contentEncryptionAlgorithms: ['A256CBC-HS512', 'A256GCM'],
           keyManagementAlgorithms: ['dir'],
@@ -89,7 +98,7 @@ export const authMiddleware = async (c: Context<{ Variables: Vars }>, next: Next
     return;
   }
   try {
-    const payload = jwt.verify(token, JWT_SECRET) as { sub: string; role: string; ver?: number };
+    const payload = jwt.verify(token, getJWTSecret()) as { sub: string; role: string; ver?: number };
     const [dbUser] = await c.get('db').select({ tokenVersion: users.tokenVersion, banned: users.banned }).from(users).where(eq(users.id, payload.sub)).limit(1);
     if (!dbUser || dbUser.banned || (payload.ver ?? 1) !== dbUser.tokenVersion) {
       c.set('user', null);
@@ -126,7 +135,7 @@ export const requireAdmin = async (c: Context<{ Variables: Vars }>, next: Next) 
 
 /** 签发 JWT 并写入 httpOnly cookie（ver = token 版本，用于会话管理） */
 export function issueAuthCookie(c: Context, userId: string, role: string, tokenVersion: number = 1) {
-  const token = jwt.sign({ sub: userId, role, ver: tokenVersion }, JWT_SECRET, { expiresIn: '7d' });
+  const token = jwt.sign({ sub: userId, role, ver: tokenVersion }, getJWTSecret(), { expiresIn: '7d' });
   const isProd = process.env.NODE_ENV === 'production' || !!process.env.CF_PAGES;
   setCookie(c, 'auth', token, {
     httpOnly: true,
