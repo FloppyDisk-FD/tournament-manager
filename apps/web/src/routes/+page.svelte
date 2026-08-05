@@ -7,8 +7,12 @@
 	import StatusBadge from '$lib/components/StatusBadge.svelte';
 	import Input from '$lib/components/Input.svelte';
 	import { FORMAT_MAP } from '$lib/constants/tournament';
+	import { detectLang, translate, type Lang, type TKey } from '$lib/stores/i18n.svelte';
 
 	import { Search, ArrowRight, ChevronLeft, ChevronRight, Trophy } from 'lucide-svelte';
+
+	let lang = $state<Lang>(detectLang());
+	function t(key: TKey) { return translate(key, lang); }
 
 	let { data } = $props();
 

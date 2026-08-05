@@ -6,11 +6,18 @@
 	import { getUser, logout } from '$lib/stores/auth.svelte';
 	import Toast from '$lib/components/Toast.svelte';
 	import CookieConsent from '$lib/components/CookieConsent.svelte';
+	import FeedbackForm from '$lib/components/FeedbackForm.svelte';
 	import { success, error, info } from '$lib/stores/toast.svelte';
 	import { isPushSupported, getPushSubscription, enablePush, disablePush } from '$lib/push';
 	import { beforeNavigate, afterNavigate } from '$app/navigation';
+	import { detectLang, setLang, translate, type Lang, type TKey } from '$lib/stores/i18n.svelte';
 
 	let { children, data } = $props();
+
+	// 多语言
+	let lang = $state<Lang>(detectLang());
+	function t(key: TKey) { return translate(key, lang); }
+	function toggleLang() { lang = lang === 'zh' ? 'en' : 'zh'; setLang(lang); }
 
 	// 顶部导航进度条（瑞士风格：2px 红色细线）
 	let navigating = $state(false);
@@ -141,7 +148,7 @@
 							if (!notifLoaded) loadNotifications();
 							notifOpen = !notifOpen;
 						}}
-						class="relative p-1.5 press text-white"
+						class="relative p-2.5 press text-white"
 						aria-label="通知"
 					>
 						<Bell size={18} class="shrink-0" aria-hidden="true" />
@@ -210,34 +217,47 @@
 				</div>
 				<a href="/profile" class="text-sm font-bold text-white border-b-2 border-white hover:text-accent hover:border-accent transition-colors duration-150 link-underline inline-flex items-center gap-1.5">
 					<User size={15} class="shrink-0" aria-hidden="true" />
-					账户设置
+					{t('nav.profile')}
 				</a>
 				{#if data.role && data.role !== 'tournament_manager'}
 					<a href="/dashboard" class="text-sm font-bold text-white border-b-2 border-white hover:text-accent hover:border-accent transition-colors duration-150 link-underline inline-flex items-center gap-1.5">
 						<LayoutGrid size={15} class="shrink-0" aria-hidden="true" />
-						我的后台
+						{t('nav.dashboard')}
 					</a>
 				{/if}
 				{#if data.role === 'admin' || data.role === 'tournament_manager'}
 					<a href="/admin" class="text-sm font-bold text-white border-b-2 border-white hover:text-accent hover:border-accent transition-colors duration-150 link-underline inline-flex items-center gap-1.5">
 						<LayoutDashboard size={15} class="shrink-0" aria-hidden="true" />
-						管理后台
+						{t('nav.admin')}
 					</a>
 				{/if}
-				<button onclick={logout} class="text-sm font-bold text-neutral-400 hover:text-accent transition-colors duration-150 press inline-flex items-center gap-1.5" aria-label="退出登录">
+				<button onclick={logout} class="text-sm font-bold text-neutral-400 hover:text-accent transition-colors duration-150 press inline-flex items-center gap-1.5" aria-label={t('nav.logout')}>
 					<LogOut size={15} class="shrink-0" aria-hidden="true" />
-					退出
+					{t('nav.logout')}
 				</button>
 			{:else}
 				<a href="/login" class="text-sm font-bold text-white border-b-2 border-white hover:text-accent hover:border-accent transition-colors duration-150 link-underline inline-flex items-center gap-1.5">
 					<User size={15} class="shrink-0" aria-hidden="true" />
-					登录 / 注册
+					{t('nav.login')}
 				</a>
 			{/if}
 		</div>
 	</nav>
 	<main id="main-content" class="flex-1" tabindex="-1">
-		{@render children()}
+		<svelte:boundary onerror={(error) => console.error('[error-boundary]', error)}>
+			{@render children()}
+			{#snippet failed()}
+				<div class="min-h-[40vh] flex items-center justify-center px-4">
+					<div class="w-full max-w-md text-center border-2 border-black bg-white p-6">
+						<div class="font-black text-2xl tracking-tight mb-2">页面出错了</div>
+						<p class="text-sm text-neutral-500 font-bold mb-4">渲染时发生异常，请刷新重试。如果持续出现，请通过页面底部的反馈入口联系我们。</p>
+						<a href="/" class="inline-flex items-center gap-1.5 text-sm font-black border-2 border-black px-4 py-2 bg-black text-white hover:bg-accent hover:border-accent transition-colors duration-150">
+							返回首页
+						</a>
+					</div>
+				</div>
+			{/snippet}
+		</svelte:boundary>
 	</main>
 	<footer class="bg-black text-white py-8 md:py-12 px-4 md:px-8">
 		<div class="max-w-7xl mx-auto">
@@ -248,12 +268,14 @@
 				</div>
 				<div class="flex flex-col gap-2 md:items-end">
 					<a href="mailto:support@tournix.app" class="text-sm font-bold text-white/80 border-b border-white/40 hover:text-accent hover:border-accent transition-colors duration-150 w-fit">
-						支持：support@tournix.app
+						{t('footer.support')}
 					</a>
-					<div class="flex gap-4">
-						<a href="/faq" class="text-sm font-bold text-white/80 border-b border-white/40 hover:text-accent hover:border-accent transition-colors duration-150">帮助中心</a>
-						<a href="/privacy" class="text-sm font-bold text-white/80 border-b border-white/40 hover:text-accent hover:border-accent transition-colors duration-150">隐私政策</a>
-						<a href="/terms" class="text-sm font-bold text-white/80 border-b border-white/40 hover:text-accent hover:border-accent transition-colors duration-150">服务条款</a>
+					<div class="flex gap-4 items-center">
+						<button type="button" onclick={toggleLang} class="text-sm font-bold text-white/80 border-b border-white/40 hover:text-accent hover:border-accent transition-colors duration-150" aria-label="Switch language">{t('lang.name')}</button>
+						<FeedbackForm />
+						<a href="/faq" class="text-sm font-bold text-white/80 border-b border-white/40 hover:text-accent hover:border-accent transition-colors duration-150">{t('footer.help')}</a>
+						<a href="/privacy" class="text-sm font-bold text-white/80 border-b border-white/40 hover:text-accent hover:border-accent transition-colors duration-150">{t('footer.privacy')}</a>
+						<a href="/terms" class="text-sm font-bold text-white/80 border-b border-white/40 hover:text-accent hover:border-accent transition-colors duration-150">{t('footer.terms')}</a>
 					</div>
 				</div>
 			</div>

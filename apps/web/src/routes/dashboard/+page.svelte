@@ -202,7 +202,7 @@
 													/>
 													<Input bind:value={p.game_id} placeholder="游戏 ID" class="flex-1" />
 													<button type="button" onclick={() => (editPlayers = editPlayers.filter((_, j) => j !== i))}
-														class="text-sm font-bold text-accent border border-accent px-2 py-1 hover:opacity-70 transition-opacity duration-150">×</button>
+														class="text-sm font-bold text-accent border border-accent px-3 py-1.5 hover:opacity-70 transition-opacity duration-150">×</button>
 												</div>
 												<div class="flex gap-2 items-center px-1 pb-1">
 													<Input bind:value={p.avatar_url} placeholder="选手头像图片 URL（可选）" class="flex-1" />

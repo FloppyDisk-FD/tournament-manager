@@ -398,12 +398,43 @@ import { ArrowRight, ChartLine, Trophy } from 'lucide-svelte';
 
 	const t = $derived(data.tournament);
 	const teams = $derived(data.teams);
+
+	// JSON-LD Event schema（SEO 结构化数据）
+	const jsonLd = $derived(JSON.stringify({
+		'@context': 'https://schema.org',
+		'@type': 'Event',
+		name: t.name,
+		description: t.description ?? t.game ?? '',
+		startDate: t.startDate ?? t.start_date ?? undefined,
+		eventStatus: 'https://schema.org/EventScheduled',
+		eventAttendanceMode: 'https://schema.org/OfflineEventAttendanceMode',
+		organizer: { '@type': 'Organization', name: 'Tournix' },
+		location: { '@type': 'VirtualLocation', name: 'Online' },
+		...(t.maxTeams ? { maximumAttendeeCapacity: t.maxTeams } : {}),
+		...(t.entryFee ? { offers: { '@type': 'Offer', price: t.entryFee, priceCurrency: 'CNY', availability: 'https://schema.org/InStock' } } : {}),
+	}));
 	const sortedTeams = $derived([...(teams ?? [])].sort((a: any, b: any) => (a.seed ?? 0) - (b.seed ?? 0)));
 </script>
 
+<svelte:head>
+	<title>{t.name} — Tournix</title>
+	<meta name="description" content="{t.game ?? ''} · {FORMAT_MAP[t.format] ?? ''} · {teams.length}/{t.maxTeams} 队 · {TOURNAMENT_STATUS_MAP[t.status]?.label ?? t.status}" />
+	<meta property="og:title" content="{t.name} — Tournix" />
+	<meta property="og:description" content="{t.game ?? ''} · {FORMAT_MAP[t.format] ?? ''} · {teams.length}/{t.maxTeams} 队" />
+	<meta property="og:type" content="website" />
+</svelte:head>
+
+{@html `<script type="application/ld+json">${jsonLd}</script>`}
+
 <div class="max-w-7xl mx-auto px-4 md:px-8 lg:px-16 py-8 md:py-12 animate-enter">
 	<div class="mb-6">
-		<BackLink href="/">← 返回首页</BackLink>
+		<nav aria-label="面包屑" class="flex items-center gap-1.5 text-sm flex-wrap">
+			<a href="/" class="font-bold text-black border-b border-black hover:text-accent hover:border-accent transition-colors duration-150">首页</a>
+			<span class="text-neutral-400 font-bold" aria-hidden="true">/</span>
+			<a href="/tournaments" class="font-bold text-black border-b border-black hover:text-accent hover:border-accent transition-colors duration-150">赛事</a>
+			<span class="text-neutral-400 font-bold" aria-hidden="true">/</span>
+			<span class="font-black text-black truncate max-w-[200px]">{t.name}</span>
+		</nav>
 	</div>
 
 	{#if t.coverImage ?? t.cover_image}
