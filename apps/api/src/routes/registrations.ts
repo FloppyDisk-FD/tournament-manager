@@ -9,11 +9,17 @@ import { notify } from '../services/notify';
 import { refundRegistrationPayment } from '../services/refund';
 import { validateAnswers } from '../types/custom-field';
 import type { CustomField } from '../types/custom-field';
+import { idempotencyMiddleware } from '../middleware/idempotency';
+import { writeAudit } from '../services/audit';
 
 /** 选手自助报名路由（/api/v1/tournaments/:id/registrations） */
 export const registrationRoutes = new Hono<{ Variables: { user: any | null; db: Db } }>();
 registrationRoutes.use('*', authMiddleware, requireAuth);
 registrationRoutes.use('/:id/*', async (c, next) => { requireUuid(c.req.param('id'), '赛事'); await next(); });
+// 幂等：防重复报名 / 重复审核操作
+registrationRoutes.use('/:id/registrations', idempotencyMiddleware);
+registrationRoutes.use('/:id/registrations/:rid/approve', idempotencyMiddleware);
+registrationRoutes.use('/:id/registrations/:rid/reject', idempotencyMiddleware);
 
 /** 计算某赛事已占用队伍数（已入队 + 待审/已通过报名） */
 async function occupiedCount(db: Db, tournamentId: string) {
@@ -107,6 +113,13 @@ registrationRoutes.post('/:id/registrations', async (c) => {
     `《${tournament.name}》报名已提交，队伍「${team.name}」${payment ? '请完成支付后等待审核。' : '等待主办方审核。'}`, `/tournaments/${id}`, c.env);
 
   c.status(201);
+  await writeAudit(db, {
+    userId: user.id,
+    action: 'registration.submitted',
+    category: 'registration',
+    detail: { tournamentId: id, teamId, registrationId: reg.id, tournamentName: tournament.name },
+    ip: c.req.header('x-forwarded-for')?.split(',')[0]?.trim() ?? null,
+  });
   return c.json({ ...reg, payment });
 });
 

@@ -313,3 +313,25 @@ export const pushSubscriptions = pgTable('push_subscriptions', {
 export const pushSubscriptionsRelations = relations(pushSubscriptions, ({ one }) => ({
   user: one(users, { fields: [pushSubscriptions.userId], references: [users.id] }),
 }));
+
+// Idempotency Keys — 表单幂等提交（防重复创建报名/支付等）
+export const idempotencyKeys = pgTable('idempotency_keys', {
+  id: uuid('id').primaryKey().defaultRandom(),
+  key: varchar('key', { length: 64 }).notNull(),
+  userId: uuid('user_id').notNull().references(() => users.id, { onDelete: 'cascade' }),
+  path: varchar('path', { length: 200 }).notNull(),
+  responseStatus: integer('response_status').notNull(),
+  responseBody: text('response_body').notNull(),
+  createdAt: timestamp('created_at').notNull().defaultNow(),
+});
+
+// Audit Logs — 关键操作审计 + 前端错误上报
+export const auditLogs = pgTable('audit_logs', {
+  id: uuid('id').primaryKey().defaultRandom(),
+  userId: uuid('user_id').references(() => users.id, { onDelete: 'set null' }),
+  action: varchar('action', { length: 50 }).notNull(),
+  category: varchar('category', { length: 30 }).notNull(), // payment / registration / error / auth
+  detail: jsonb('detail').notNull().default({}),
+  ip: varchar('ip', { length: 45 }),
+  createdAt: timestamp('created_at').notNull().defaultNow(),
+});

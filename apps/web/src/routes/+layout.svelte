@@ -5,6 +5,7 @@
 	import { api } from '$lib/api/client';
 	import { getUser, logout } from '$lib/stores/auth.svelte';
 	import Toast from '$lib/components/Toast.svelte';
+	import CookieConsent from '$lib/components/CookieConsent.svelte';
 	import { success, error, info } from '$lib/stores/toast.svelte';
 	import { isPushSupported, getPushSubscription, enablePush, disablePush } from '$lib/push';
 	import { beforeNavigate, afterNavigate } from '$app/navigation';
@@ -98,6 +99,25 @@
 			loadNotifications();
 			initPush();
 		}
+		// 前端错误上报（生产监控）：捕获未处理错误 → POST /api/v1/monitor/errors
+		const reportError = (message: string, stack?: string) => {
+			try {
+				fetch('/api/v1/monitor/errors', {
+					method: 'POST',
+					headers: { 'Content-Type': 'application/json' },
+					credentials: 'include',
+					body: JSON.stringify({ message, stack, url: window.location.href }),
+				}).catch(() => {});
+			} catch { /* 上报失败忽略 */ }
+		};
+		const onWindowError = (e: ErrorEvent) => reportError(e.message, e.error?.stack);
+		const onRejection = (e: PromiseRejectionEvent) => reportError('Unhandled promise rejection', String(e.reason));
+		window.addEventListener('error', onWindowError);
+		window.addEventListener('unhandledrejection', onRejection);
+		return () => {
+			window.removeEventListener('error', onWindowError);
+			window.removeEventListener('unhandledrejection', onRejection);
+		};
 	});
 </script>
 
@@ -242,3 +262,4 @@
 </div>
 
 <Toast />
+		<CookieConsent />

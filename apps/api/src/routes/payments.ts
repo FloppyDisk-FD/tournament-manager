@@ -6,10 +6,13 @@ import { AppError, requireUuid } from '../middleware/error';
 import { authMiddleware, requireAuth } from '../middleware/auth';
 import { notify } from '../services/notify';
 import { getWaffoClient, createWaffoCheckout, queryWaffoOrder } from '../lib/waffo';
+import { idempotencyMiddleware } from '../middleware/idempotency';
+import { writeAudit } from '../services/audit';
 
 /** 支付路由（/api/v1/payments） */
 export const paymentRoutes = new Hono<{ Variables: { user: any | null; db: Db } }>();
 paymentRoutes.use('*', authMiddleware, requireAuth);
+paymentRoutes.use('/:id/pay', idempotencyMiddleware);
 
 // 查询订单（本人或系统管理员）
 paymentRoutes.get('/:id', async (c) => {
@@ -70,6 +73,14 @@ paymentRoutes.post('/:id/pay', async (c) => {
   await notify(db, user.id, 'payment', '支付成功',
     `《${reg.teamName}》报名费 ¥${pay.amount} 已支付，等待主办方审核。`, `/tournaments/${pay.tournamentId}`, c.env);
 
+  await writeAudit(db, {
+    userId: user.id,
+    action: 'payment.paid',
+    category: 'payment',
+    detail: { paymentId: id, registrationId: pay.registrationId, amount: pay.amount, provider: 'mock' },
+    ip: c.req.header('x-forwarded-for')?.split(',')[0]?.trim() ?? null,
+  });
+
   return c.json(updated);
 });
 
@@ -102,6 +113,14 @@ paymentRoutes.post('/:id/sync', async (c) => {
       providerOrderId: order.orderId,
       paidAt: new Date(),
     }).where(eq(payments.id, id)).returning();
+
+    await writeAudit(db, {
+      userId: user.id,
+      action: 'payment.paid',
+      category: 'payment',
+      detail: { paymentId: id, registrationId: pay.registrationId, amount: pay.amount, provider: 'waffo', orderId: order.orderId, synced: true },
+      ip: c.req.header('x-forwarded-for')?.split(',')[0]?.trim() ?? null,
+    });
 
     const [reg] = await db.select().from(registrations).where(eq(registrations.id, pay.registrationId)).limit(1);
     if (reg) {

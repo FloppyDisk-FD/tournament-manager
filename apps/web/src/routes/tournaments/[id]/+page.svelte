@@ -253,14 +253,17 @@ import { ArrowRight, ChartLine, Trophy } from 'lucide-svelte';
 		const defaults: Record<string, string> = {};
 		for (const f of customFields) defaults[f.key] = '';
 		regAnswers = defaults;
+		regIdemKey = crypto.randomUUID();
 		showRegForm = true;
 	}
 
+	let regIdemKey = $state('');
+	let payIdemKey = $state('');
 	async function submitRegistration() {
 		if (!regTeamId) { error('请选择队伍'); return; }
 		regSubmitting = true;
 		try {
-			const res = await api.post<any>(`/tournaments/${data.tournament.id}/registrations`, { team_id: regTeamId, answers: regAnswers });
+			const res = await api.post<any>(`/tournaments/${data.tournament.id}/registrations`, { team_id: regTeamId, answers: regAnswers }, regIdemKey);
 			showRegForm = false;
 			regTeamId = '';
 			regAnswers = {};
@@ -282,7 +285,7 @@ import { ArrowRight, ChartLine, Trophy } from 'lucide-svelte';
 		if (!payOrder) return;
 		paying = true;
 		try {
-			const res: any = await api.post(`/payments/${payOrder.id}/pay`);
+			const res: any = await api.post(`/payments/${payOrder.id}/pay`, undefined, payIdemKey);
 			// Waffo 网关：返回 checkoutUrl，新标签打开托管收银台（SKILL 禁用 location.href 跳转）
 			if (res?.checkoutUrl) {
 				window.open(res.checkoutUrl, '_blank', 'noopener,noreferrer');
@@ -329,6 +332,7 @@ import { ArrowRight, ChartLine, Trophy } from 'lucide-svelte';
 
 	async function retryPay(p: any) {
 		payOrder = p;
+		payIdemKey = crypto.randomUUID();
 	}
 
 	async function cancelRegistration() {

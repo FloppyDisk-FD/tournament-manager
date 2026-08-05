@@ -1,9 +1,14 @@
 const BASE = '/api/v1';
 
-async function request<T>(method: string, path: string, body?: unknown): Promise<T> {
+async function request<T>(method: string, path: string, body?: unknown, idempotencyKey?: string): Promise<T> {
+	const headers: Record<string, string> = { 'Content-Type': 'application/json' };
+	// 写操作默认带幂等 key（组件可在操作开始时生成并复用，重试同 key 防重复创建）
+	if (idempotencyKey || (method !== 'GET' && typeof crypto !== 'undefined' && crypto?.randomUUID)) {
+		headers['Idempotency-Key'] = idempotencyKey ?? crypto.randomUUID();
+	}
 	const res = await fetch(`${BASE}${path}`, {
 		method,
-		headers: { 'Content-Type': 'application/json' },
+		headers,
 		credentials: 'include',
 		body: body ? JSON.stringify(body) : undefined,
 	});
@@ -30,7 +35,7 @@ async function request<T>(method: string, path: string, body?: unknown): Promise
 
 export const api = {
 	get: <T = unknown>(path: string) => request<T>('GET', path),
-	post: <T = unknown>(path: string, body?: unknown) => request<T>('POST', path, body),
-	put: <T = unknown>(path: string, body?: unknown) => request<T>('PUT', path, body),
-	del: <T = unknown>(path: string, body?: unknown) => request<T>('DELETE', path, body),
+	post: <T = unknown>(path: string, body?: unknown, key?: string) => request<T>('POST', path, body, key),
+	put: <T = unknown>(path: string, body?: unknown, key?: string) => request<T>('PUT', path, body, key),
+	del: <T = unknown>(path: string, body?: unknown, key?: string) => request<T>('DELETE', path, body, key),
 };
