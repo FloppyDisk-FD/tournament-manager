@@ -28,6 +28,7 @@ import { authMiddleware, requireAuth } from './middleware/auth';
 type Bindings = {
   HYPERDRIVE: { connectionString: string };
   JWT_SECRET: string;
+  AUTH_SECRET?: string;
   CORS_ORIGINS?: string;
   VAPID_PUBLIC_KEY?: string;
   VAPID_PRIVATE_KEY?: string;
@@ -146,6 +147,9 @@ export default {
   async fetch(req: Request, env: Bindings): Promise<Response> {
     if (env.JWT_SECRET) {
       process.env.JWT_SECRET = env.JWT_SECRET;
+    }
+    if (env.AUTH_SECRET) {
+      process.env.AUTH_SECRET = env.AUTH_SECRET;
     }
     if (env.CORS_ORIGINS) {
       process.env.CORS_ORIGINS = env.CORS_ORIGINS;
