@@ -30,7 +30,7 @@
 </script>
 
 <div class="min-h-screen bg-white px-4 md:px-8 py-6 max-w-5xl mx-auto">
-	<BackLink href="/admin/teams" class="mb-4 inline-block">← 队伍库</BackLink>
+	<BackLink href="/teams" class="mb-4 inline-block">← 队伍库</BackLink>
 
 	{#if !loaded}
 		<div class="border border-black bg-white p-6 text-sm font-bold text-neutral-500">加载中…</div>

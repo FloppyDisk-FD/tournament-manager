@@ -8,6 +8,28 @@ import { isAdmin, canManageTeam, canManageTournament, canCreateTeam } from '../s
 
 // 公开队伍信息（赛程图 hover 详情等场景，无需登录）
 export const publicTeamRoutes = new Hono<{ Variables: { user: any | null; db: Db } }>();
+// 公开队伍库列表（观众浏览，无需登录）
+publicTeamRoutes.get('/', async (c) => {
+  const db = c.get('db');
+  const allTeams = await db
+    .select()
+    .from(teams)
+    .where(and(isNull(teams.tournamentId), eq(teams.status, 'active')))
+    .orderBy(teams.name);
+  if (allTeams.length === 0) return c.json([]);
+  const teamIds = allTeams.map((t) => t.id);
+  const players = await db.select().from(teamPlayers).where(inArray(teamPlayers.teamId, teamIds));
+  const countByTeam = new Map<string, number>();
+  for (const p of players) countByTeam.set(p.teamId, (countByTeam.get(p.teamId) ?? 0) + 1);
+  return c.json(allTeams.map((t) => ({
+    id: t.id,
+    name: t.name,
+    logoEmoji: t.logoEmoji,
+    logoUrl: t.logoUrl,
+    status: t.status,
+    playerCount: countByTeam.get(t.id) ?? 0,
+  })));
+});
 publicTeamRoutes.get('/:teamId', async (c) => {
   const { teamId } = c.req.param();
   requireUuid(teamId, '队伍');
