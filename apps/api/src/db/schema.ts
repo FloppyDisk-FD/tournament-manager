@@ -274,6 +274,7 @@ export const payments = pgTable('payments', {
   provider: varchar('provider', { length: 20 }).notNull().default('mock'),
   providerOrderId: varchar('provider_order_id', { length: 100 }),
   paidAt: timestamp('paid_at'),
+  refundedAt: timestamp('refunded_at'),
   createdAt: timestamp('created_at').notNull().defaultNow(),
 });
 

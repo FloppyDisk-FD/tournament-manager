@@ -1,7 +1,7 @@
 import { Hono } from 'hono';
 import { eq, and, inArray, isNull, or, desc } from 'drizzle-orm';
 import type { Db } from '../db';
-import { teams, teamPlayers, tournaments, tournamentTeams, matches, stages } from '../db/schema';
+import { teams, teamPlayers, tournaments, tournamentTeams, matches, stages, registrations, payments } from '../db/schema';
 import { AppError, requireUuid } from '../middleware/error';
 import { authMiddleware, requireAuth } from '../middleware/auth';
 import { isAdmin, canManageTeam, canManageTournament, canCreateTeam } from '../services/perm';
@@ -452,6 +452,25 @@ teamRoutes.delete('/:teamId', async (c) => {
   if (!entry) throw new AppError('NOT_FOUND', '队伍不在此赛事中', 404);
 
   await c.get('db').delete(tournamentTeams).where(eq(tournamentTeams.id, entry.id));
+
+  // 联动：处理该队伍在此赛事的报名记录（移除 = 拒绝报名）
+  const [reg] = await c.get('db').select().from(registrations)
+    .where(and(eq(registrations.tournamentId, id), eq(registrations.teamId, teamId))).limit(1);
+  if (reg) {
+    // 已支付 → 自动退款（mock 环境直接标记 refunded；真实网关留适配）
+    const [pay] = await c.get('db').select().from(payments)
+      .where(eq(payments.registrationId, reg.id)).limit(1);
+    if (pay && pay.status === 'paid') {
+      // TODO: provider === 'waffo' 时调用 Waffo 退款 API（refund 端点）
+      await c.get('db').update(payments)
+        .set({ status: 'refunded', refundedAt: new Date() })
+        .where(eq(payments.id, pay.id));
+    }
+    // 报名置为拒绝，注明原因；前端显示后可重新申请
+    await c.get('db').update(registrations)
+      .set({ status: 'rejected', note: '已被主办方移除，报名已关闭' })
+      .where(eq(registrations.id, reg.id));
+  }
 
   // 如果队伍绑定了此赛事（旧数据），删除它及其选手
   const [team] = await c.get('db').select().from(teams).where(eq(teams.id, teamId)).limit(1);

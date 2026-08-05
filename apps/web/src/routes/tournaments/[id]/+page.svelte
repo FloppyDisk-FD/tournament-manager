@@ -534,17 +534,22 @@ import { ArrowRight, ChartLine, Trophy } from 'lucide-svelte';
 									<StatusBadge status={myReg.status} map={REGISTRATION_STATUS_MAP} />
 									{#if myReg.payment?.status === 'paid'}
 										<span class="text-xs font-bold bg-black text-white px-1.5 py-0.5">已支付 ¥{myReg.payment.amount}</span>
+									{:else if myReg.payment?.status === 'refunded'}
+										<span class="text-xs font-bold bg-neutral-200 text-black border border-black px-1.5 py-0.5">已退款 ¥{myReg.payment.amount}</span>
 									{/if}
 									<span class="text-sm font-black">{myReg.teamName}</span>
 									{#if myReg.status === 'rejected' && myReg.note}
 										<span class="text-xs text-neutral-500 font-bold">原因：{myReg.note}</span>
 									{/if}
 								</div>
-								{#if myReg.payment && myReg.payment.status !== 'paid'}
+								{#if myReg.payment && myReg.payment.status === 'pending'}
 									<button onclick={() => retryPay(myReg.payment)} class="text-sm font-bold text-accent border-b border-accent hover:opacity-70 transition-opacity duration-150">去支付</button>
 								{/if}
 								{#if myReg.status === 'pending' && myReg.payment?.status !== 'paid'}
 									<button onclick={cancelRegistration} class="text-sm font-bold text-accent border-b border-accent hover:opacity-70 transition-opacity duration-150">取消报名</button>
+								{/if}
+								{#if myReg.status === 'rejected' && teams.length < t.maxTeams}
+									<button onclick={() => (showRegForm = true)} class="text-sm font-black border border-black px-3 py-1.5 bg-black text-white hover:bg-accent hover:border-accent transition-colors duration-150">重新申请</button>
 								{/if}
 							</div>
 						{:else if teams.length >= t.maxTeams}

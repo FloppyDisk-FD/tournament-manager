@@ -59,6 +59,16 @@ registrationRoutes.post('/:id/registrations', async (c) => {
     )).limit(1);
   if (dup.length > 0) throw new AppError('ALREADY_REGISTERED', '你已报名过该赛事', 400);
 
+  // 重新申请：清除旧的 rejected 报名（含其支付记录），避免重复记录
+  const oldRegs = await db.select().from(registrations)
+    .where(and(eq(registrations.tournamentId, id), eq(registrations.userId, user.id)))
+    .limit(10);
+  for (const oldReg of oldRegs) {
+    if (oldReg.status === 'rejected') {
+      await db.delete(registrations).where(eq(registrations.id, oldReg.id));
+    }
+  }
+
   // 满员校验
   if (await occupiedCount(db, id) >= tournament.maxTeams) {
     throw new AppError('TEAM_LIMIT_EXCEEDED', '赛事队伍名额已满', 400);
