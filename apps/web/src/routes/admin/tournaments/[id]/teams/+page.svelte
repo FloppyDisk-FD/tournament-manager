@@ -242,7 +242,9 @@
 
 			{#if showBatch}
 				<div>
+					<label for="batchNames" class="block text-xs font-bold text-neutral-600 mb-1">批量添加队伍（每行一个名称）</label>
 					<textarea
+						id="batchNames"
 						bind:value={batchNames}
 						rows="5"
 						placeholder="每行一个队伍名称"

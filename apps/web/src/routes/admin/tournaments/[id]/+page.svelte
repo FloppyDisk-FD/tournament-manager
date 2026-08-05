@@ -350,9 +350,9 @@
 				</button>
 				{#if bannerOpen && t.status === 'draft'}
 					<div class="px-4 pb-4">
-						<label class="block text-sm font-bold text-black mb-2">Banner 图片 URL</label>
+						<label for="bannerUrl" class="block text-sm font-bold text-black mb-2">Banner 图片 URL</label>
 						<div class="flex gap-0">
-							<Input type="url" bind:value={bannerUrl} placeholder="https://..." class="flex-1" />
+							<Input id="bannerUrl" type="url" bind:value={bannerUrl} placeholder="https://..." class="flex-1" />
 							<Button onclick={saveBanner} en="Save" class="px-4">保存</Button>
 							<button onclick={() => { bannerOpen = false; bannerUrl = t.coverImage ?? t.cover_image ?? ''; }}
 								class="border border-l-0 border-black bg-white text-black font-bold px-4 py-2 text-sm hover:bg-neutral-100 transition-colors duration-150">取消</button>
@@ -446,8 +446,8 @@
 				{#if sponsorPanelOpen}
 					<div class="px-4 pb-4 space-y-4">
 						<div>
-							<label class="block text-sm font-bold text-black mb-2">Banner 广告位图片 URL</label>
-							<Input type="url" bind:value={bannerInput} placeholder="https://... 赛事页顶部展示的横幅图" />
+							<label for="bannerInput" class="block text-sm font-bold text-black mb-2">Banner 广告位图片 URL</label>
+							<Input id="bannerInput" type="url" bind:value={bannerInput} placeholder="https://... 赛事页顶部展示的横幅图" />
 							{#if bannerInput}
 								<div class="mt-2 border border-black overflow-hidden">
 									<img src={bannerInput} alt="banner preview" class="w-full h-28 object-cover" />
@@ -582,7 +582,7 @@
 						{#if !t.rules}
 							<p class="text-sm text-neutral-400 font-bold">尚未添加规则，公开页不显示规则区块。</p>
 						{/if}
-						<textarea bind:value={rulesInput} rows="10"
+						<textarea id="rulesInput" bind:value={rulesInput} rows="10"
 							class="w-full rounded-none border border-black font-mono px-3 py-2 text-sm bg-white focus:outline-none focus:border-accent"
 							placeholder="支持 Markdown：## 标题、- 列表、**加粗**、[链接](url)&#10;&#10;## 赛制&#10;- 单败淘汰 BO3，每队 5 人&#10;&#10;## 奖品&#10;- 冠军：¥500 + 奖杯&#10;&#10;## 联系方式&#10;- QQ 群：123456&#10;- 邮箱：contact@example.com"></textarea>
 						<div class="flex items-center gap-3">

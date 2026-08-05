@@ -61,6 +61,16 @@ app.use('*', cors({
  *   远端数据库（如 Neon）每次新建 client 都会触发 TCP/TLS/认证多次握手，
  *   网络延迟高时会让每个请求慢几百毫秒。
  */
+// 请求体大小限制：Content-Length 超过 2MB 直接 413（防大 body 打爆 Workers）
+const MAX_BODY_BYTES = 2 * 1024 * 1024;
+app.use('*', async (c, next) => {
+  const len = Number(c.req.header('content-length') ?? 0);
+  if (len > MAX_BODY_BYTES) {
+    return c.json({ error: { code: 'PAYLOAD_TOO_LARGE', message: '请求体过大（上限 2MB）' } }, 413);
+  }
+  await next();
+});
+
 app.use('*', async (c, next) => {
   const hyperdriveStr = c.env.HYPERDRIVE?.connectionString;
   if (hyperdriveStr) {

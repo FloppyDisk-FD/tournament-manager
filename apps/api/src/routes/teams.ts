@@ -1,5 +1,5 @@
 import { Hono } from 'hono';
-import { eq, and, inArray, isNull, or, desc } from 'drizzle-orm';
+import { eq, and, inArray, isNull, or, desc, sql } from 'drizzle-orm';
 import type { Db } from '../db';
 import { teams, teamPlayers, tournaments, tournamentTeams, matches, stages, registrations, payments, standings } from '../db/schema';
 import { AppError, requireUuid } from '../middleware/error';
@@ -149,7 +149,15 @@ globalTeamRoutes.use('*', authMiddleware, requireAuth);
 globalTeamRoutes.get('/', async (c) => {
   const user = c.get('user')!;
   if (!isAdmin(user)) throw new AppError('FORBIDDEN', '需要系统管理员权限', 403);
-  const allTeams = await c.get('db').select().from(teams).where(isNull(teams.tournamentId));
+  const query = c.req.query();
+  const page = Number(query.page) || 1;
+  const limit = Math.min(Number(query.limit) || 50, 200);
+  const offset = (page - 1) * limit;
+  const [allTeams, countRows] = await Promise.all([
+    c.get('db').select().from(teams).where(isNull(teams.tournamentId)).limit(limit).offset(offset),
+    c.get('db').select({ c: sql`count(*)::int` }).from(teams).where(isNull(teams.tournamentId)),
+  ]);
+  const total = countRows[0]?.c ?? 0;
   const teamIds = allTeams.map((t) => t.id);
   if (teamIds.length === 0) return c.json([]);
   const players = await c.get('db').select().from(teamPlayers).where(inArray(teamPlayers.teamId, teamIds));
@@ -159,6 +167,7 @@ globalTeamRoutes.get('/', async (c) => {
     arr.push(p);
     playersByTeam.set(p.teamId, arr);
   }
+  c.header('X-Total-Count', String(total));
   return c.json(allTeams.map((t) => ({ ...t, players: playersByTeam.get(t.id) ?? [] })));
 });
 

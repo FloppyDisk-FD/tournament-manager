@@ -129,8 +129,8 @@
 			<label for="thirdPlace" class="text-sm font-bold">启用三四名决赛</label>
 		</div>
 		<div>
-			<label class="block text-sm font-bold text-black mb-1">描述</label>
-			<textarea bind:value={description} rows="3"
+			<label for="description" class="block text-sm font-bold text-black mb-1">描述</label>
+			<textarea id="description" bind:value={description} rows="3"
 				class="w-full border border-black font-sans px-3 py-2 text-sm bg-white focus:outline-none focus:border-accent"></textarea>
 		</div>
 		<div>

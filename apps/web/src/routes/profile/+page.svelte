@@ -152,6 +152,23 @@
 		}
 	}
 
+	/** 导出个人数据（GDPR）：下载 JSON 文件 */
+	async function exportData() {
+		try {
+			const data = await api.get<any>(`/users/me/export`);
+			const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+			const url = URL.createObjectURL(blob);
+			const a = document.createElement('a');
+			a.href = url;
+			a.download = `tournix-export-${data?.user?.username ?? 'me'}.json`;
+			a.click();
+			URL.revokeObjectURL(url);
+			success('个人数据已导出');
+		} catch (e: any) {
+			error(e.message || '导出失败');
+		}
+	}
+
 	function fmtTime(iso?: string): string {
 		if (!iso) return '—';
 		const d = new Date(iso);
@@ -304,6 +321,16 @@
 				<div class="px-4 py-2 bg-black text-white flex items-center gap-2">
 					<Trash2 size={14} class="shrink-0 text-accent" aria-hidden="true" />
 					<span class="text-xs font-black uppercase tracking-widest text-white/70">危险区</span>
+				</div>
+				<div class="p-4 border-b border-black flex items-center justify-between gap-3 flex-wrap">
+					<div>
+						<div class="text-sm font-black">导出我的数据</div>
+						<p class="text-xs text-neutral-500 font-bold mt-0.5">下载你的账号、报名、赛事与队伍数据（JSON）</p>
+					</div>
+					<button
+						onclick={exportData}
+						class="text-sm font-bold border border-black px-3 py-1.5 hover:bg-neutral-100 transition-colors duration-150"
+					>导出数据</button>
 				</div>
 				<div class="p-4 flex items-center justify-between gap-3 flex-wrap">
 					<div>

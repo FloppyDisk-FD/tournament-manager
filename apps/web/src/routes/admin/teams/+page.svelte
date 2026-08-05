@@ -186,12 +186,12 @@
 			<h2 class="font-black text-lg tracking-tight text-black mb-4">新建队伍</h2>
 			<div class="grid grid-cols-1 md:grid-cols-3 gap-0 border border-black">
 				<div class="border-b md:border-b-0 md:border-r border-black p-3">
-					<label class="block text-xs font-bold text-neutral-600 mb-1">队名</label>
-					<Input bind:value={newName} placeholder="例如：火焰战队" />
+					<label for="newName" class="block text-xs font-bold text-neutral-600 mb-1">队名</label>
+					<Input id="newName" bind:value={newName} placeholder="例如：火焰战队" />
 				</div>
 				<div class="border-b md:border-b-0 md:border-r border-black p-3">
-					<label class="block text-xs font-bold text-neutral-600 mb-1">Logo Emoji</label>
-					<Input maxlength="10" bind:value={newEmoji} placeholder="🏆" />
+					<label for="newEmoji" class="block text-xs font-bold text-neutral-600 mb-1">Logo Emoji</label>
+					<Input id="newEmoji" maxlength="10" bind:value={newEmoji} placeholder="🏆" />
 					<div class="flex flex-wrap gap-1 mt-2">
 						{#each emojiPresets as em}
 							<button
@@ -207,8 +207,8 @@
 					</div>
 				</div>
 				<div class="p-3">
-					<label class="block text-xs font-bold text-neutral-600 mb-1">Logo URL（可选）</label>
-					<Input bind:value={newLogoUrl} placeholder="https://..." />
+					<label for="newLogoUrl" class="block text-xs font-bold text-neutral-600 mb-1">Logo URL（可选）</label>
+					<Input id="newLogoUrl" bind:value={newLogoUrl} placeholder="https://..." />
 				</div>
 			</div>
 			<div class="mt-4">
@@ -307,8 +307,8 @@
 									</div>
 									<div class="space-y-3">
 										<div>
-											<label class="block text-xs font-bold text-neutral-600 mb-1">Logo Emoji</label>
-											<Input maxlength="10" bind:value={editDraft!.logo_emoji} />
+											<label for="editEmoji" class="block text-xs font-bold text-neutral-600 mb-1">Logo Emoji</label>
+											<Input id="editEmoji" maxlength="10" bind:value={editDraft!.logo_emoji} />
 											<div class="flex flex-wrap gap-1 mt-2">
 												{#each emojiPresets as em}
 													<button
@@ -324,8 +324,8 @@
 											</div>
 										</div>
 										<div>
-											<label class="block text-xs font-bold text-neutral-600 mb-1">Logo URL（可选）</label>
-											<Input bind:value={editDraft!.logo_url} placeholder="https://..." />
+											<label for="editLogoUrl" class="block text-xs font-bold text-neutral-600 mb-1">Logo URL（可选）</label>
+											<Input id="editLogoUrl" bind:value={editDraft!.logo_url} placeholder="https://..." />
 										</div>
 									</div>
 								</div>
