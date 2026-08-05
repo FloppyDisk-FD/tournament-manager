@@ -14,7 +14,7 @@
 	import { success, error } from '$lib/stores/toast.svelte';
 	import { resolveLiveEmbed, type LiveEmbed } from '$lib/utils/live';
 	import { renderMarkdown } from '$lib/utils/markdown';
-import { ArrowRight } from 'lucide-svelte';
+import { ArrowRight, ChartLine, Trophy } from 'lucide-svelte';
 
 	let { data } = $props();
 
@@ -724,9 +724,15 @@ import { ArrowRight } from 'lucide-svelte';
 											<span class="text-[10px] font-black text-accent ml-1">我</span>
 										{/if}
 									</span>
-									<span class="ml-auto flex items-center gap-2 shrink-0">
-										<span class="text-[10px] font-bold text-neutral-400 tabular-nums">预测 {row.votes} 场</span>
-										<span class="text-sm font-black tabular-nums border border-black px-1.5 py-0.5">{row.correct} 分</span>
+									<span class="ml-auto flex items-center gap-3 shrink-0">
+										<span class="inline-flex items-center gap-1 text-[10px] font-bold text-neutral-400 tabular-nums">
+											<ChartLine size={12} class="shrink-0" aria-hidden="true" />
+											预测 {row.votes} 场
+										</span>
+										<span class="inline-flex items-center gap-1 text-sm font-black tabular-nums border border-black px-1.5 py-0.5">
+											<Trophy size={12} class="shrink-0 text-accent" aria-hidden="true" />
+											{row.correct} 分
+										</span>
 									</span>
 								</div>
 							{/each}
