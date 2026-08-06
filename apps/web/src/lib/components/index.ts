@@ -15,3 +15,5 @@ export { default as SeedRankingPanel } from './SeedRankingPanel.svelte';
 export { default as PlayerEditCard } from './PlayerEditCard.svelte';
 export { default as Skeleton } from './Skeleton.svelte';
 export { default as Toast } from './Toast.svelte';
+export { default as TournamentCard } from './TournamentCard.svelte';
+export { default as HeroHeader } from './HeroHeader.svelte';

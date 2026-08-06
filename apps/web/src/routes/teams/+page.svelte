@@ -1,26 +1,14 @@
 <script lang="ts">
 	import { Users } from 'lucide-svelte';
+	import HeroHeader from '$lib/components/HeroHeader.svelte';
 
 	let { data } = $props();
 	const teams: any[] = $derived(data.teams ?? []);
 </script>
 
 <div class="max-w-5xl mx-auto px-4 md:px-8 py-8 md:py-12 animate-enter">
-	<!-- 黑底标题栏 -->
-	<div class="relative overflow-hidden bg-black text-white px-4 py-5 mb-8">
-		<div class="relative z-10">
-			<div class="flex items-center gap-2 mb-1">
-				<span class="inline-block w-1 h-1 bg-accent" aria-hidden="true"></span>
-				<span class="text-xs font-black uppercase tracking-widest text-white/60">Team Library</span>
-			</div>
-			<h1 class="font-black text-2xl md:text-3xl tracking-tight">队伍库</h1>
-			<p class="text-sm text-white/70 mt-1">共 {teams.length} 支队伍</p>
-		</div>
-		<span
-			class="pointer-events-none absolute right-2 top-1/2 -translate-y-1/2 text-5xl md:text-6xl leading-none font-black uppercase tracking-widest whitespace-nowrap select-none text-white/15"
-			style="-webkit-mask-image: linear-gradient(to right, transparent, black); mask-image: linear-gradient(to right, transparent, black)"
-			aria-hidden="true">Teams</span>
-	</div>
+	<!-- 黑底标题栏（公共组件） -->
+	<HeroHeader title="队伍库" en="Teams" badge="Team Library" subtitle={`共 ${teams.length} 支队伍`} class="mb-8" />
 
 	{#if teams.length === 0}
 		<div class="border border-black bg-white text-center py-16">

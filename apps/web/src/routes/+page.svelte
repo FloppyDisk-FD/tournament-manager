@@ -4,6 +4,7 @@
 	import { goto } from '$app/navigation';
 	import EmptyState from '$lib/components/EmptyState.svelte';
 	import StatusBadge from '$lib/components/StatusBadge.svelte';
+	import TournamentCard from '$lib/components/TournamentCard.svelte';
 	import { FORMAT_MAP } from '$lib/constants/tournament';
 	import { detectLang, translate, type Lang, type TKey } from '$lib/stores/i18n.svelte';
 
@@ -240,34 +241,7 @@
 		{:else}
 			<div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-0 border-l border-t border-black">
 				{#each visibleTournaments as t, i (t.id)}
-					<a
-						href="/tournaments/{t.id}"
-						class="block border-r border-b border-black bg-white hover:bg-neutral-50 transition-colors duration-150 group animate-enter lift flex flex-col"
-						style="animation-delay:{Math.min(i * 40, 320)}ms"
-					>
-						{#if t.coverImage ?? t.cover_image}
-						<div class="h-32 overflow-hidden border-b border-black">
-							<img src={t.coverImage ?? t.cover_image} alt={t.name} class="w-full h-full object-cover transition-opacity duration-150 group-hover:opacity-90" />
-						</div>
-					{/if}
-						<div class="p-4 md:p-6 flex-1 flex flex-col">
-							<div class="flex items-center gap-2 mb-3">
-								<StatusBadge status={t.status} />
-								<span class="text-xs text-neutral-500 font-bold">{FORMAT_MAP[t.format] ?? t.format}</span>
-								{#if (t.entryFee ?? 0) > 0}
-									<span class="ml-auto text-[10px] font-black bg-neutral-100 border border-black px-1.5 py-0.5 shrink-0">报名费 ¥{t.entryFee}</span>
-								{/if}
-							</div>
-							<h3 class="font-black text-lg md:text-xl tracking-tight text-black mb-1">{t.name}</h3>
-							{#if t.game}
-								<p class="text-sm text-neutral-600">{t.game}</p>
-							{/if}
-							<div class="text-sm font-bold text-black flex items-center gap-1 mt-auto pt-4">
-								<span>查看详情</span>
-								<span class="transition-transform duration-150 group-hover:translate-x-1">→</span>
-							</div>
-						</div>
-					</a>
+					<TournamentCard tournament={t} variant="home" delay={i * 40} />
 				{/each}
 			</div>
 		{/if}
