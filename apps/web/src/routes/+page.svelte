@@ -156,8 +156,10 @@
 									carouselIndex = i;
 									resetTimer();
 								}}
-								class={cn('w-2 h-2 border border-white transition-colors duration-150', i === carouselIndex ? 'bg-white' : 'bg-white/30 hover:bg-white/60')}
-							></button>
+								class={cn('h-8 w-8 flex items-center justify-center transition-colors duration-150', i === carouselIndex ? 'text-white' : 'text-white/30 hover:text-white/60')}
+							>
+								<span class={cn('block w-2 h-2 border border-white', i === carouselIndex ? 'bg-white' : 'bg-white/30')} aria-hidden="true"></span>
+							</button>
 						{/each}
 					</div>
 				{/if}

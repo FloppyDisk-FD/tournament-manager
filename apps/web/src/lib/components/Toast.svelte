@@ -37,7 +37,7 @@
 					<span class="flex-1 text-sm font-bold leading-snug">{t.message}</span>
 					<button
 						onclick={() => dismiss(t.id)}
-						class="shrink-0 opacity-60 hover:opacity-100 transition-opacity duration-150 px-1 text-sm"
+						class="shrink-0 opacity-60 hover:opacity-100 transition-opacity duration-150 p-2 text-sm inline-flex items-center justify-center min-w-[32px] min-h-[32px]"
 						aria-label="关闭通知"
 					>✕</button>
 				</div>

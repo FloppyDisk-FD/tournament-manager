@@ -123,7 +123,7 @@
 				<h2 class="font-black text-lg tracking-tight text-black">管理后台</h2>
 				<p class="text-xs text-neutral-500 font-bold uppercase tracking-widest mt-1">Admin Console</p>
 			</div>
-			<button onclick={() => (sidebarOpen = false)} class="p-1.5 press" aria-label="关闭菜单">
+			<button onclick={() => (sidebarOpen = false)} class="p-3 press" aria-label="关闭菜单">
 				<X size={18} aria-hidden="true" />
 			</button>
 		</div>

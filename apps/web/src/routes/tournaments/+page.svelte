@@ -121,7 +121,7 @@
 			<div class="flex-1">
 				<Input id="discover-q" type="search" bind:value={qInput} placeholder="搜索赛事名称或游戏..." onkeydown={(e: KeyboardEvent) => e.key === 'Enter' && applySearch()} class="pr-10" />
 			</div>
-			<button type="button" onclick={applySearch} class="border-2 border-black bg-black text-white px-4 py-2 text-sm font-black hover:bg-accent hover:border-accent transition-colors duration-150 inline-flex items-center gap-1.5 shrink-0">
+			<button type="button" onclick={applySearch} class="border-2 border-black bg-black text-white px-4 py-2 min-h-[44px] text-sm font-black hover:bg-accent hover:border-accent transition-colors duration-150 inline-flex items-center gap-1.5 shrink-0">
 				<Search size={14} class="shrink-0" aria-hidden="true" />
 				搜索
 			</button>
@@ -160,11 +160,11 @@
 		<!-- 分页 -->
 		{#if totalPages > 1}
 			<nav class="flex items-center justify-center gap-2 mt-8" aria-label="分页">
-				<button type="button" onclick={() => goPage(pageNum - 1)} disabled={pageNum <= 1} class="border border-black px-3 py-1.5 text-sm font-bold bg-white hover:bg-neutral-100 disabled:opacity-40 disabled:cursor-not-allowed inline-flex items-center gap-1">
+				<button type="button" onclick={() => goPage(pageNum - 1)} disabled={pageNum <= 1} class="border border-black px-3 py-1.5 min-h-[44px] min-w-[44px] text-sm font-bold bg-white hover:bg-neutral-100 disabled:opacity-40 disabled:cursor-not-allowed inline-flex items-center gap-1">
 					<ChevronLeft size={14} class="shrink-0" aria-hidden="true" />上一页
 				</button>
 				<span class="text-sm font-black tabular-nums px-2">{pageNum} / {totalPages}</span>
-				<button type="button" onclick={() => goPage(pageNum + 1)} disabled={pageNum >= totalPages} class="border border-black px-3 py-1.5 text-sm font-bold bg-white hover:bg-neutral-100 disabled:opacity-40 disabled:cursor-not-allowed inline-flex items-center gap-1">
+				<button type="button" onclick={() => goPage(pageNum + 1)} disabled={pageNum >= totalPages} class="border border-black px-3 py-1.5 min-h-[44px] min-w-[44px] text-sm font-bold bg-white hover:bg-neutral-100 disabled:opacity-40 disabled:cursor-not-allowed inline-flex items-center gap-1">
 					下一页<ChevronRight size={14} class="shrink-0" aria-hidden="true" />
 				</button>
 			</nav>

@@ -214,28 +214,28 @@
 						</div>
 					{/if}
 				</div>
-				<a href="/profile" class="text-sm font-bold text-white border-b-2 border-white hover:text-accent hover:border-accent transition-colors duration-150 link-underline inline-flex items-center gap-1.5">
+				<a href="/profile" class="py-2 text-sm font-bold text-white border-b-2 border-white hover:text-accent hover:border-accent transition-colors duration-150 link-underline inline-flex items-center gap-1.5">
 					<User size={15} class="shrink-0" aria-hidden="true" />
 					{t('nav.profile')}
 				</a>
 				{#if data.role && data.role !== 'tournament_manager'}
-					<a href="/dashboard" class="text-sm font-bold text-white border-b-2 border-white hover:text-accent hover:border-accent transition-colors duration-150 link-underline inline-flex items-center gap-1.5">
+					<a href="/dashboard" class="py-2 text-sm font-bold text-white border-b-2 border-white hover:text-accent hover:border-accent transition-colors duration-150 link-underline inline-flex items-center gap-1.5">
 						<LayoutGrid size={15} class="shrink-0" aria-hidden="true" />
 						{t('nav.dashboard')}
 					</a>
 				{/if}
 				{#if data.role === 'admin' || data.role === 'tournament_manager'}
-					<a href="/admin" class="text-sm font-bold text-white border-b-2 border-white hover:text-accent hover:border-accent transition-colors duration-150 link-underline inline-flex items-center gap-1.5">
+					<a href="/admin" class="py-2 text-sm font-bold text-white border-b-2 border-white hover:text-accent hover:border-accent transition-colors duration-150 link-underline inline-flex items-center gap-1.5">
 						<LayoutDashboard size={15} class="shrink-0" aria-hidden="true" />
 						{t('nav.admin')}
 					</a>
 				{/if}
-				<button onclick={logout} class="text-sm font-bold text-neutral-400 hover:text-accent transition-colors duration-150 press inline-flex items-center gap-1.5" aria-label={t('nav.logout')}>
+				<button onclick={logout} class="py-2 text-sm font-bold text-neutral-400 hover:text-accent transition-colors duration-150 press inline-flex items-center gap-1.5" aria-label={t('nav.logout')}>
 					<LogOut size={15} class="shrink-0" aria-hidden="true" />
 					{t('nav.logout')}
 				</button>
 			{:else}
-				<a href="/login" class="text-sm font-bold text-white border-b-2 border-white hover:text-accent hover:border-accent transition-colors duration-150 link-underline inline-flex items-center gap-1.5">
+				<a href="/login" class="py-2 text-sm font-bold text-white border-b-2 border-white hover:text-accent hover:border-accent transition-colors duration-150 link-underline inline-flex items-center gap-1.5">
 					<User size={15} class="shrink-0" aria-hidden="true" />
 					{t('nav.login')}
 				</a>
