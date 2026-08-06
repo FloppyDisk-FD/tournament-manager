@@ -26,12 +26,13 @@
 		goto(target);
 	}
 
-	const tournaments = $derived(data.tournaments);
 	const allTournaments = $derived(data.allTournaments ?? []);
 	const currentStatus = $derived(data.currentStatus);
 
-	// ---- 封面轮播（Hero 右侧滚动图，基于全量赛事，不随选项卡筛选变化） ----
-	const visibleTournaments = $derived(tournaments);
+	// 状态筛选在客户端执行（服务端只拉一次全量数据）
+	const visibleTournaments = $derived(
+		allTournaments.filter((t) => !currentStatus || t.status === currentStatus),
+	);
 	const carouselItems = $derived(allTournaments.filter((t) => t.coverImage ?? t.cover_image));
 	let carouselIndex = $state(0);
 	let carouselTimer: ReturnType<typeof setInterval> | undefined;
