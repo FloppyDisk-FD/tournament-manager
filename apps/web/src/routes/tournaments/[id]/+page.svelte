@@ -629,7 +629,7 @@ import { ArrowRight, ChartLine, Trophy } from 'lucide-svelte';
 							{:else}
 								<div class="flex items-center gap-3 flex-wrap">
 									{#if t.entryFee > 0}
-										<span class="text-xs font-black bg-neutral-100 border border-black px-1.5 py-0.5">报名费 ¥{t.entryFee}</span>
+										<span class="text-xs font-black bg-black text-white border border-black px-2 py-1 inline-flex items-center">报名费 ¥{t.entryFee}</span>
 									{/if}
 									<Button onclick={openRegForm} en="Register" class="rounded-none">报名参赛 →</Button>
 								</div>
