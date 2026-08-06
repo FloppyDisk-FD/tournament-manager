@@ -12,6 +12,8 @@
 	let matches = $state(data.matches ?? []);
 	let editingMatch = $state<string | null>(null);
 	let gameScores = $state<Record<number, { home: number; away: number }>>({});
+	/** 编辑中的比赛时间输入（datetime-local 字符串） */
+	let matchTimeInput = $state('');
 	let generating = $state(false);
 	let justCompleted = $state<string | null>(null);
 	let submitting = $state<string | null>(null);
@@ -72,6 +74,43 @@
 		gameScores = {};
 		for (let i = 0; i < games; i++) {
 			gameScores[i] = { home: 0, away: 0 };
+		}
+		// 预填比赛时间（datetime-local 格式，本地时区）
+		if (match.scheduled_at) {
+			const d = new Date(match.scheduled_at);
+			matchTimeInput = formatDateTimeLocal(d);
+		} else {
+			matchTimeInput = '';
+		}
+	}
+
+	/** Date → datetime-local 字符串（本地时区） */
+	function formatDateTimeLocal(d: Date): string {
+		const pad = (n: number) => String(n).padStart(2, '0');
+		return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`;
+	}
+
+	/** 时间显示格式化 */
+	function fmtTime(iso: string | null | undefined): string {
+		if (!iso) return '未排期';
+		const d = new Date(iso);
+		if (Number.isNaN(d.getTime())) return '未排期';
+		const pad = (n: number) => String(n).padStart(2, '0');
+		return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())} ${pad(d.getHours())}:${pad(d.getMinutes())}`;
+	}
+
+	/** 保存比赛时间 */
+	async function saveSchedule(match: any) {
+		if (!matchTimeInput) { error('请选择比赛时间'); return; }
+		submitting = match.id;
+		try {
+			await api.put(`/matches/${match.id}/schedule`, { scheduled_at: new Date(matchTimeInput).toISOString() });
+			matches = await api.get<any[]>(`/tournaments/${data.tournament.id}/matches`).then(r => Array.isArray(r) ? r : []);
+			success('比赛时间已更新');
+		} catch (e: any) {
+			error(e.message || '保存失败');
+		} finally {
+			submitting = null;
 		}
 	}
 
@@ -140,12 +179,17 @@
 				<div class="flex items-baseline gap-3 mb-3">
 					<span class="text-xs font-bold uppercase tracking-widest text-neutral-500">{group.stageName}</span>
 					<span class="font-black text-lg md:text-xl tracking-tight">第 {group.round} 轮</span>
-				</div>
-				<div class="space-y-2">
+				</div>				<div class="space-y-2">
 					{#each group.matches as match, mi}
 						{@const win = winnerSide(match)}
 						{@const decided = win !== null}
 						<div class="relative border border-black bg-white p-4 {justCompleted === match.id ? 'animate-flash' : ''} {decided ? 'border-l-2 border-l-black' : ''} transition-colors duration-150">
+							{#if match.scheduled_at && editingMatch !== match.id}
+								<div class="mb-2 flex items-center gap-1.5 text-xs font-bold text-neutral-500">
+									<span class="inline-block w-1.5 h-1.5 bg-accent" aria-hidden="true"></span>
+									比赛时间：{fmtTime(match.scheduled_at)}
+								</div>
+							{/if}
 							<div class="flex items-center justify-between">
 								<div class="flex items-center gap-4 flex-1">
 									<div class="flex-1 text-sm text-right {win === 1 ? 'font-black' : win === 2 ? 'opacity-40 font-medium' : 'font-bold'}">
@@ -179,7 +223,15 @@
 	</div>
 						</div>
 							{#if editingMatch === match.id}
-								<div class="mt-4 pt-4 border-t border-black/20">
+								<div class="mt-4 pt-4 border-t border-black/20 space-y-4">
+									<!-- 比赛时间编辑 -->
+									<div class="flex items-center gap-3 flex-wrap">
+										<label for="match-time-{match.id}" class="text-xs font-black uppercase tracking-widest text-neutral-500 shrink-0">比赛时间</label>
+										<Input id="match-time-{match.id}" type="datetime-local" bind:value={matchTimeInput} class="w-auto min-w-[200px]" />
+										<Button onclick={() => saveSchedule(match)} disabled={submitting === match.id} en="Save" class="rounded-none text-xs">
+											{submitting === match.id ? '保存中...' : '保存时间'}
+										</Button>
+									</div>
 									<div class="space-y-2">
 										{#each Object.entries(gameScores) as [idx, score]}
 											<div class="flex items-center gap-4">
