@@ -24,8 +24,8 @@
 	<div class="flex items-center gap-4 relative z-10 flex-wrap">
 		{#if logoUrlOf(team)}
 			<img src={logoUrlOf(team)} alt={team.name} width={56} height={56} class="w-14 h-14 md:w-16 md:h-16 object-contain bg-white p-1 border border-white/30 shrink-0" />
-		{:else if team.logo_emoji}
-			<div class="w-14 h-14 md:w-16 md:h-16 flex items-center justify-center border border-white/30 bg-white/10 text-3xl shrink-0" aria-hidden="true">{team.logo_emoji}</div>
+		{:else if team.logo_emoji ?? team.logoEmoji}
+			<div class="w-14 h-14 md:w-16 md:h-16 flex items-center justify-center border border-white/30 bg-white/10 text-3xl shrink-0" aria-hidden="true">{team.logo_emoji ?? team.logoEmoji}</div>
 		{/if}
 		<div class="min-w-0">
 			<div class="flex items-center gap-3 flex-wrap">

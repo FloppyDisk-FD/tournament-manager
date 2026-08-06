@@ -56,8 +56,9 @@
 		if (!getUser()) { loaded = true; return; }
 		try {
 			profile = await api.get<any>('/auth/me');
-			avatarUrl = profile?.avatar_url ?? '';
-			displayName = profile?.display_name ?? '';
+			// API 返回 camelCase（avatarUrl/displayName）——双兜底兼容
+			avatarUrl = profile?.avatarUrl ?? profile?.avatar_url ?? '';
+			displayName = profile?.displayName ?? profile?.display_name ?? '';
 			bio = profile?.bio ?? '';
 		} catch { /* ignore */ } finally {
 			loaded = true;

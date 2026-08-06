@@ -8,6 +8,7 @@
 	import Select from '$lib/components/Select.svelte';
 	import StatusBadge from '$lib/components/StatusBadge.svelte';
 	import { REGISTRATION_STATUS_MAP, PLAYER_ROLE_MAP } from '$lib/constants/tournament';
+	import { normalizePlayer } from '$lib/utils/normalize';
 	import { success, error } from '$lib/stores/toast.svelte';
 
 	let myTeams = $state<any[]>([]);
@@ -74,7 +75,9 @@
 			editTeamId = null;
 		} else {
 			editTeamId = teamId;
-			editPlayers = (players ?? []).map((p: any) => ({ ...p }));
+			// normalize 成 snake_case：API 返回的 players 是 camelCase（playerName 等），
+			// 编辑表单按 snake_case 绑定——不归一化会全空 → 保存时清空队员数据
+			editPlayers = (players ?? []).map((p: any) => normalizePlayer(p));
 		}
 	}
 
@@ -171,10 +174,10 @@
 							<div class="relative overflow-hidden flex items-center justify-between gap-3 px-3 py-2 bg-black text-white">
 								<div class="flex items-center gap-2 relative z-10 min-w-0">
 									<span class="inline-block w-1 h-1 bg-accent shrink-0" aria-hidden="true"></span>
-									{#if tm.logo_url}
-										<img src={tm.logo_url} alt={tm.name} class="w-5 h-5 object-contain shrink-0" />
+									{#if tm.logoUrl ?? tm.logo_url}
+										<img src={tm.logoUrl ?? tm.logo_url} alt={tm.name} class="w-5 h-5 object-contain shrink-0" />
 									{:else}
-										<span class="shrink-0">{tm.logo_emoji || '🏆'}</span>
+										<span class="shrink-0">{(tm.logoEmoji ?? tm.logo_emoji) || '🏆'}</span>
 									{/if}
 									<span class="text-sm font-black truncate">{tm.name}</span>
 								</div>
