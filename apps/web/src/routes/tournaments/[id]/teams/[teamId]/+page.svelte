@@ -1,6 +1,7 @@
 <script lang="ts">
   import { cn } from '$lib/utils';
   import BackLink from '$lib/components/BackLink.svelte';
+  import TeamHeader from '$lib/components/TeamHeader.svelte';
   import { Star } from 'lucide-svelte';
   import { PLAYER_ROLE_MAP } from '$lib/constants/tournament';
 
@@ -38,8 +39,9 @@
 
 <div class="max-w-7xl mx-auto px-4 md:px-8 lg:px-16 py-8 md:py-12 animate-enter">
   <!-- 返回链接 -->
-  <div class="mb-6">
+  <div class="mb-6 flex items-center justify-between gap-3 flex-wrap">
     <BackLink href="/tournaments/{data.tournamentId}">← 返回赛事</BackLink>
+    <a href="/teams/{data.teamId}" class="text-sm font-bold text-black border-b border-black hover:text-accent hover:border-accent transition-colors duration-150">队伍全局主页 →</a>
   </div>
 
   {#if !t}
@@ -49,36 +51,8 @@
       <p class="text-sm text-neutral-500 mt-1">队伍可能已被移出赛事</p>
     </div>
   {:else}
-    <!-- 队伍头部 -->
-    <div class="relative overflow-hidden bg-black text-white px-4 py-4 mb-6">
-      <div class="flex items-center gap-4 relative z-10 flex-wrap">
-        {#if t.logo_url}
-          <img src={t.logo_url} alt={t.name} width={64} height={64} class="w-14 h-14 md:w-16 md:h-16 object-contain bg-white p-1 border border-white/30 shrink-0" />
-        {:else if t.logo_emoji}
-          <div class="w-14 h-14 md:w-16 md:h-16 flex items-center justify-center border border-white/30 bg-white/10 text-3xl shrink-0">
-            {t.logo_emoji}
-          </div>
-        {/if}
-        <div class="min-w-0">
-          <div class="flex items-center gap-3 flex-wrap">
-            <h1 class="font-black text-xl md:text-2xl tracking-tight text-white">{t.name}</h1>
-            {#if t.status}
-              <span class="inline-flex items-center gap-1.5 text-[10px] font-black uppercase tracking-widest text-white/80 border border-white/40 px-2 py-0.5">
-                <span class="w-1.5 h-1.5 bg-accent"></span>
-                {t.status === 'active' ? '活跃' : t.status === 'eliminated' ? '已淘汰' : t.status === 'withdrawn' ? '已退出' : t.status}
-              </span>
-            {/if}
-          </div>
-          {#if t.seed || t.group_label}
-            <div class="text-xs font-bold text-white/60 mt-1">
-              种子 #{t.seed}{#if t.seed && t.group_label} · {/if}{#if t.group_label}分组 {t.group_label}{/if}
-            </div>
-          {/if}
-        </div>
-      </div>
-      <span class="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-4xl md:text-5xl leading-none font-black uppercase tracking-widest whitespace-nowrap select-none text-white/10" style="-webkit-mask-image: linear-gradient(to left, black, transparent); mask-image: linear-gradient(to left, black, transparent)" aria-hidden="true">TEAM</span>
-    </div>
-
+    <!-- 队伍头部（公共组件） -->
+    <TeamHeader team={t} showSeed={true} />
     <!-- 统计网格 -->
     <div class="grid grid-cols-2 md:grid-cols-4 gap-0 border-l border-t border-black mb-8">
       {#each [

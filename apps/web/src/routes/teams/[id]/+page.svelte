@@ -3,17 +3,13 @@
 	import { page } from '$app/state';
 	import { api } from '$lib/api/client';
 	import BackLink from '$lib/components/BackLink.svelte';
-	import StatusBadge from '$lib/components/StatusBadge.svelte';
 	import PanelHeader from '$lib/components/PanelHeader.svelte';
+	import TeamHeader from '$lib/components/TeamHeader.svelte';
 
 	let profile = $state<any>(null);
 	let loaded = $state(false);
 
 	const teamId = $derived(page.params.id);
-
-	function logoUrlOf(t: any) {
-		return t?.logoUrl ?? t?.logo_url ?? null;
-	}
 
 	onMount(async () => {
 		try {
@@ -37,21 +33,8 @@
 	{:else if !profile}
 		<div class="border border-black bg-white p-6 text-sm font-bold text-neutral-500">队伍不存在或已被删除</div>
 	{:else}
-		<!-- 标题栏 -->
-		<div class="relative overflow-hidden bg-black text-white px-4 py-3 mb-6">
-			<div class="flex items-center gap-3 relative z-10">
-				{#if logoUrlOf(profile)}
-					<img src={logoUrlOf(profile)} alt={profile.name} class="w-9 h-9 object-contain bg-white p-0.5 border border-white/30 shrink-0" />
-				{:else if profile.logoEmoji}
-					<span class="w-9 h-9 flex items-center justify-center border border-white/30 shrink-0 text-lg leading-none">{profile.logoEmoji}</span>
-				{/if}
-				<div class="flex items-center gap-2">
-					<h1 class="font-black text-lg tracking-tight">{profile.name}</h1>
-					<StatusBadge status={profile.status} />
-				</div>
-			</div>
-			<span class="absolute right-3 top-1/2 -translate-y-1/2 text-2xl font-black tracking-widest text-white/10 select-none pointer-events-none [mask-image:linear-gradient(to_left,black,transparent)]" aria-hidden="true">TEAM</span>
-		</div>
+		<!-- 标题栏（公共组件） -->
+		<TeamHeader team={profile} showSeed={false} />
 
 		<div class="grid grid-cols-1 md:grid-cols-2 gap-6">
 			<!-- 战绩统计 -->
@@ -92,6 +75,7 @@
 							<li class="flex items-center justify-between gap-3 px-4 py-2.5">
 								<a href="/tournaments/{t.tournamentId}" class="text-sm font-bold hover:text-accent transition-colors duration-150 truncate">{t.tournamentName}</a>
 								<div class="flex items-center gap-2 shrink-0">
+									<a href="/tournaments/{t.tournamentId}/teams/{teamId}" class="text-[10px] font-bold text-accent border-b border-accent hover:opacity-70 transition-opacity duration-150" title="本赛事内详情（种子/分组/积分）">赛事详情 →</a>
 									{#if t.seed != null}
 										<span class="text-[10px] font-black border border-black px-1.5 py-0.5 tabular-nums">#{t.seed}</span>
 									{/if}
