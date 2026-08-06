@@ -61,11 +61,16 @@
 	// 判断哪一方是胜者（基于比分）
 	function winnerSide(match: any): 0 | 1 | 2 | null {
 		if (match.status !== 'completed') return null;
-		const s1 = match.team1Score ?? 0;
-		const s2 = match.team2Score ?? 0;
+		const s1 = match.team1Score ?? match.team1_score ?? 0;
+		const s2 = match.team2Score ?? match.team2_score ?? 0;
 		if (s1 > s2) return 1;
 		if (s2 > s1) return 2;
 		return null;
+	}
+
+	/** 兼容扁平字段与嵌套对象（API 返回 team1_id / team1.name） */
+	function teamId(match: any, n: 1 | 2): string | null {
+		return (n === 1 ? match.team1Id ?? match.team1_id ?? match.team1?.id : match.team2Id ?? match.team2_id ?? match.team2?.id) ?? null;
 	}
 
 	function startEdit(match: any) {
@@ -119,8 +124,8 @@
 		const games = Object.entries(gameScores).map(([idx, s]) => {
 			const gameNumber = Number(idx) + 1;
 			let winnerId: string | null = null;
-			if (s.home > s.away) winnerId = match.team1Id;
-			else if (s.away > s.home) winnerId = match.team2Id;
+			if (s.home > s.away) winnerId = teamId(match, 1);
+			else if (s.away > s.home) winnerId = teamId(match, 2);
 			return { game_number: gameNumber, winner_id: winnerId };
 		});
 		try {
@@ -193,13 +198,13 @@
 							<div class="flex items-center justify-between">
 								<div class="flex items-center gap-4 flex-1">
 									<div class="flex-1 text-sm text-right {win === 1 ? 'font-black' : win === 2 ? 'opacity-40 font-medium' : 'font-bold'}">
-										{match.team1Name ?? 'TBD'}
+										{match.team1?.name ?? match.team1Name ?? 'TBD'}
 									</div>
 									<div class="px-3 py-1 bg-black text-white text-sm font-bold tabular-nums {justCompleted === match.id ? 'animate-pop' : ''}">
-										{match.team1Score ?? 0} : {match.team2Score ?? 0}
+										{match.team1Score ?? match.team1_score ?? 0} : {match.team2Score ?? match.team2_score ?? 0}
 									</div>
 									<div class="flex-1 text-sm {win === 2 ? 'font-black' : win === 1 ? 'opacity-40 font-medium' : 'font-bold'}">
-										{match.team2Name ?? 'TBD'}
+										{match.team2?.name ?? match.team2Name ?? 'TBD'}
 									</div>
 								</div>
 								<div class="ml-4 flex items-center gap-2">
@@ -209,7 +214,7 @@
 									<button onclick={() => editingMatch = null} class="text-sm font-bold text-neutral-500 border-b border-neutral-500 hover:text-black hover:border-black transition-colors duration-150">
 										← 取消
 									</button>
-								{:else if !match.team1Id || !match.team2Id}
+								{:else if !teamId(match, 1) || !teamId(match, 2)}
 									<span class="flex items-center gap-1.5 text-[10px] font-bold uppercase tracking-wider text-neutral-400">
 										<span class="w-1.5 h-1.5 bg-neutral-400 status-dot"></span>
 										待定
