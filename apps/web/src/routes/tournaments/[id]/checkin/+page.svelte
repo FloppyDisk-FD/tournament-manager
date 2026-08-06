@@ -38,7 +38,22 @@
 			</div>
 
 			{#if !loaded}
-				<div class="skeleton h-16 w-full" aria-hidden="true"></div>
+				<div class="space-y-2" aria-hidden="true">
+					<div class="border border-black bg-white px-3 py-3 flex items-center justify-between gap-3">
+						<div class="flex items-center gap-2">
+							<div class="skeleton h-6 w-6"></div>
+							<div class="skeleton h-4 w-28"></div>
+						</div>
+						<div class="skeleton h-8 w-20"></div>
+					</div>
+					<div class="border border-black bg-white px-3 py-3 flex items-center justify-between gap-3">
+						<div class="flex items-center gap-2">
+							<div class="skeleton h-6 w-6"></div>
+							<div class="skeleton h-4 w-24"></div>
+						</div>
+						<div class="skeleton h-8 w-20"></div>
+					</div>
+				</div>
 			{:else if !tournament}
 				<p class="text-sm text-neutral-500 font-bold text-center py-4">赛事不存在</p>
 			{:else if !getUser()}

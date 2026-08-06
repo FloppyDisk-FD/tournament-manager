@@ -1,5 +1,7 @@
 <script lang="ts">
 	import { onMount } from 'svelte';
+	import { goto } from '$app/navigation';
+	import { page } from '$app/state';
 	import { Index as FlexIndex } from 'flexsearch';
 	import Input from '$lib/components/Input.svelte';
 	import EmptyState from '$lib/components/EmptyState.svelte';
@@ -24,13 +26,39 @@
 		searchIndex = idx;
 	});
 
-	// ---- 搜索/筛选状态 ----
-	let searchQ = $state(data.filters?.q ?? '');
-	let searchStatus = $state(data.filters?.status ?? '');
-	let searchFormat = $state(data.filters?.format ?? '');
-	let searchFee = $state(data.filters?.fee ?? '');
-	let pageNum = $state(1);
+	// ---- 搜索/筛选状态（URL 为唯一状态源：可分享/收藏/刷新保留）----
+	const sp = $derived(page.url.searchParams);
+	const searchQ = $derived(sp.get('q') ?? '');
+	const searchStatus = $derived(sp.get('status') ?? '');
+	const searchFormat = $derived(sp.get('format') ?? '');
+	const searchFee = $derived(sp.get('fee') ?? '');
+	const pageNum = $derived(Math.max(1, Number(sp.get('page')) || 1));
 	const PER_PAGE = 12;
+
+	/** 本地输入缓冲（搜索框打字用，回车/失焦才写入 URL） */
+	let qInput = $state(searchQ);
+	$effect(() => { qInput = searchQ; });
+
+	/** 更新 URL 查询参数（触发 load 重跑，深链接保留） */
+	function updateQuery(patch: Record<string, string>, resetPage = false) {
+		const url = new URL(page.url);
+		for (const [k, v] of Object.entries(patch)) {
+			if (v) url.searchParams.set(k, v);
+			else url.searchParams.delete(k);
+		}
+		if (resetPage) url.searchParams.delete('page');
+		goto(url.pathname + url.search);
+	}
+	function applySearch() {
+		updateQuery({ q: qInput.trim() }, true);
+	}
+	function applyFilter(kind: 'status' | 'format' | 'fee', v: string) {
+		updateQuery({ [kind]: v }, true);
+	}
+	function goPage(p: number) {
+		const total = totalPages;
+		updateQuery({ page: String(Math.max(1, Math.min(p, total))) });
+	}
 
 	const STATUS_OPTIONS = [
 		{ value: '', label: '全部状态' },
@@ -72,22 +100,9 @@
 	const totalPages = $derived(Math.max(1, Math.ceil(filtered.length / PER_PAGE)));
 	const paged = $derived(filtered.slice((pageNum - 1) * PER_PAGE, pageNum * PER_PAGE));
 
-	// 筛选变化时回到第一页（依赖筛选条件，不含 pageNum）
-	$effect(() => {
-		void searchQ; void searchStatus; void searchFormat; void searchFee;
-		pageNum = 1;
-	});
-
-	function goPage(p: number) {
-		pageNum = Math.max(1, Math.min(totalPages, p));
-		window.scrollTo({ top: 0, behavior: 'smooth' });
-	}
-
 	function clearFilters() {
-		searchQ = '';
-		searchStatus = '';
-		searchFormat = '';
-		searchFee = '';
+		qInput = '';
+		updateQuery({ q: '', status: '', format: '', fee: '' }, true);
 	}
 </script>
 
@@ -104,22 +119,22 @@
 	<div class="border-2 border-black bg-white p-4 mb-6 space-y-3">
 		<div class="flex gap-0">
 			<div class="flex-1">
-				<Input id="discover-q" type="search" bind:value={searchQ} placeholder="搜索赛事名称或游戏..." class="pr-10" />
+				<Input id="discover-q" type="search" bind:value={qInput} placeholder="搜索赛事名称或游戏..." onkeydown={(e: KeyboardEvent) => e.key === 'Enter' && applySearch()} class="pr-10" />
 			</div>
-			<button type="button" onclick={() => window.scrollTo({ top: 0, behavior: 'smooth' })} class="border-2 border-black bg-black text-white px-4 py-2 text-sm font-black hover:bg-accent hover:border-accent transition-colors duration-150 inline-flex items-center gap-1.5 shrink-0">
+			<button type="button" onclick={applySearch} class="border-2 border-black bg-black text-white px-4 py-2 text-sm font-black hover:bg-accent hover:border-accent transition-colors duration-150 inline-flex items-center gap-1.5 shrink-0">
 				<Search size={14} class="shrink-0" aria-hidden="true" />
 				搜索
 			</button>
 		</div>
 		<div class="flex flex-wrap gap-2 items-center">
 			<label class="text-xs font-black uppercase tracking-widest text-neutral-400">筛选</label>
-			<select bind:value={searchStatus} class="border border-black font-sans px-2 py-1.5 text-sm bg-white focus:outline-none">
+			<select value={searchStatus} onchange={(e: Event) => applyFilter('status', (e.target as HTMLSelectElement).value)} class="border border-black font-sans px-2 py-1.5 text-sm bg-white focus:outline-none">
 				{#each STATUS_OPTIONS as o}<option value={o.value}>{o.label}</option>{/each}
 			</select>
-			<select bind:value={searchFormat} class="border border-black font-sans px-2 py-1.5 text-sm bg-white focus:outline-none">
+			<select value={searchFormat} onchange={(e: Event) => applyFilter('format', (e.target as HTMLSelectElement).value)} class="border border-black font-sans px-2 py-1.5 text-sm bg-white focus:outline-none">
 				{#each FORMAT_OPTIONS as o}<option value={o.value}>{o.label}</option>{/each}
 			</select>
-			<select bind:value={searchFee} class="border border-black font-sans px-2 py-1.5 text-sm bg-white focus:outline-none">
+			<select value={searchFee} onchange={(e: Event) => applyFilter('fee', (e.target as HTMLSelectElement).value)} class="border border-black font-sans px-2 py-1.5 text-sm bg-white focus:outline-none">
 				{#each FEE_OPTIONS as o}<option value={o.value}>{o.label}</option>{/each}
 			</select>
 			<a href="/tournaments/archived" class="text-xs font-bold text-black border-b border-black hover:text-accent hover:border-accent transition-colors duration-150 inline-flex items-center gap-1">已结束赛事 <ArrowRight size={11} class="shrink-0" aria-hidden="true" /></a>

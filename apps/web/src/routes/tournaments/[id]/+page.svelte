@@ -260,8 +260,31 @@ import { ArrowRight, ChartLine, Trophy } from 'lucide-svelte';
 
 	let regIdemKey = $state('');
 	let payIdemKey = $state('');
+	/** 表单行内校验：字段级错误（key → 中文错误） */
+	let regErrors = $state<Record<string, string>>({});
+
+	function validateRegField(f: { key: string; label: string; type?: string; required?: boolean; options?: string[] }): boolean {
+		const val = (regAnswers[f.key] ?? '').toString().trim();
+		if (f.required && !val) {
+			regErrors[f.key] = `请填写「${f.label}」`;
+			return false;
+		}
+		if (f.type === 'select' && val && f.options && !f.options.includes(val)) {
+			regErrors[f.key] = `「${f.label}」选项无效`;
+			return false;
+		}
+		delete regErrors[f.key];
+		return true;
+	}
+
 	async function submitRegistration() {
 		if (!regTeamId) { error('请选择队伍'); return; }
+		// 提交前全量行内校验：任一必填缺失则阻止提交并提示
+		let valid = true;
+		for (const f of customFields) {
+			if (!validateRegField(f)) valid = false;
+		}
+		if (!valid) { error('请完善报名信息'); return; }
 		regSubmitting = true;
 		try {
 			const res = await api.post<any>(`/tournaments/${data.tournament.id}/registrations`, { team_id: regTeamId, answers: regAnswers }, regIdemKey);
@@ -647,12 +670,15 @@ import { ArrowRight, ChartLine, Trophy } from 'lucide-svelte';
 											<div>
 												<Label for={`cf-${f.key}`}>{f.label}{f.required ? ' *' : ''}</Label>
 												{#if f.type === 'select'}
-													<Select id={`cf-${f.key}`} bind:value={regAnswers[f.key]} placeholder="请选择" options={(f.options ?? []).map((opt: string) => ({ value: opt, label: opt }))} />
+													<Select id={`cf-${f.key}`} bind:value={regAnswers[f.key]} placeholder="请选择" options={(f.options ?? []).map((opt: string) => ({ value: opt, label: opt }))} onblur={() => validateRegField(f)} aria-invalid={regErrors[f.key] ? 'true' : 'false'} />
 												{:else if f.type === 'textarea'}
-													<textarea id={`cf-${f.key}`} bind:value={regAnswers[f.key]} rows="3"
-														class="w-full rounded-none border border-black font-sans px-3 py-2 text-sm bg-white focus:outline-none focus:border-accent"></textarea>
+													<textarea id={`cf-${f.key}`} bind:value={regAnswers[f.key]} rows="3" onblur={() => validateRegField(f)}
+														class="w-full rounded-none border border-black font-sans px-3 py-2 text-sm bg-white focus:outline-none focus:border-accent {regErrors[f.key] ? 'border-accent' : ''}"></textarea>
 												{:else}
-													<Input id={`cf-${f.key}`} type={f.type === 'number' ? 'number' : 'text'} bind:value={regAnswers[f.key]} placeholder={f.placeholder ?? ''} />
+													<Input id={`cf-${f.key}`} type={f.type === 'number' ? 'number' : 'text'} bind:value={regAnswers[f.key]} placeholder={f.placeholder ?? ''} onblur={() => validateRegField(f)} aria-invalid={regErrors[f.key] ? 'true' : 'false'} />
+												{/if}
+												{#if regErrors[f.key]}
+													<p class="text-xs font-bold text-accent mt-1" role="alert">{regErrors[f.key]}</p>
 												{/if}
 											</div>
 										{/each}

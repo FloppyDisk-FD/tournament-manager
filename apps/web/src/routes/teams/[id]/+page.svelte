@@ -29,7 +29,22 @@
 	<BackLink href="/teams" class="mb-4 inline-block">← 队伍库</BackLink>
 
 	{#if !loaded}
-		<div class="border border-black bg-white p-6 text-sm font-bold text-neutral-500">加载中…</div>
+		<!-- 骨架屏：标题栏 + 内容区 -->
+		<div class="mb-6" aria-hidden="true">
+			<div class="skeleton h-20 w-full mb-4"></div>
+			<div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+				<div class="border border-black bg-white p-4">
+					<div class="skeleton h-4 w-24 mb-3"></div>
+					<div class="skeleton h-5 w-3/4 mb-2"></div>
+					<div class="skeleton h-4 w-1/2"></div>
+				</div>
+				<div class="border border-black bg-white p-4">
+					<div class="skeleton h-4 w-24 mb-3"></div>
+					<div class="skeleton h-5 w-2/3 mb-2"></div>
+					<div class="skeleton h-4 w-1/3"></div>
+				</div>
+			</div>
+		</div>
 	{:else if !profile}
 		<div class="border border-black bg-white p-6 text-sm font-bold text-neutral-500">队伍不存在或已被删除</div>
 	{:else}
