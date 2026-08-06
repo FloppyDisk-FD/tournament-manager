@@ -17,8 +17,8 @@
 	const filters = [
 		{ value: '', label: '全部' },
 		{ value: 'ongoing', label: '进行中' },
-		{ value: 'completed', label: '已结束' },
-		{ value: 'draft', label: '未开始' },
+		{ value: 'completed', label: '已结束', href: '/tournaments/archived' },
+		{ value: 'draft', label: '报名中' },
 	];
 
 	function setFilter(status: string) {
@@ -195,20 +195,36 @@
 		<!-- Filter -->
 		<div class="flex flex-wrap gap-0 mb-8 border border-black w-full" role="tablist" aria-label="赛事状态筛选">
 			{#each filters as f, i}
-				<button
-					role="tab"
-					aria-selected={currentStatus === f.value}
-					onclick={() => setFilter(f.value)}
-					class={cn(
-						'flex-1 min-w-0 px-4 md:px-6 py-2 md:py-3 text-sm font-bold transition-opacity duration-150 active:opacity-70 press',
-						i > 0 ? 'border-l border-black' : '',
-						currentStatus === f.value
-							? 'bg-black text-white'
-							: 'bg-white text-black hover:bg-neutral-100'
-					)}
-				>
-					{f.label}
-				</button>
+				{#if f.href}
+					<a
+						href={f.href}
+						class={cn(
+							'flex-1 min-w-0 px-4 md:px-6 py-2 md:py-3 text-sm font-bold transition-opacity duration-150 press inline-flex items-center justify-center gap-1',
+							i > 0 ? 'border-l border-black' : '',
+							currentStatus === f.value
+								? 'bg-black text-white'
+								: 'bg-white text-black hover:bg-neutral-100'
+						)}
+					>
+						{f.label}
+						<ArrowRight size={12} class="shrink-0" aria-hidden="true" />
+					</a>
+				{:else}
+					<button
+						role="tab"
+						aria-selected={currentStatus === f.value}
+						onclick={() => setFilter(f.value)}
+						class={cn(
+							'flex-1 min-w-0 px-4 md:px-6 py-2 md:py-3 text-sm font-bold transition-opacity duration-150 active:opacity-70 press',
+							i > 0 ? 'border-l border-black' : '',
+							currentStatus === f.value
+								? 'bg-black text-white'
+								: 'bg-white text-black hover:bg-neutral-100'
+						)}
+					>
+						{f.label}
+					</button>
+				{/if}
 			{/each}
 		</div>
 

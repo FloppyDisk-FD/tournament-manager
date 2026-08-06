@@ -34,7 +34,6 @@
 		{ value: '', label: '全部状态' },
 		{ value: 'draft', label: '报名中' },
 		{ value: 'ongoing', label: '进行中' },
-		{ value: 'completed', label: '已结束' },
 	];
 	const FORMAT_OPTIONS = [
 		{ value: '', label: '全部赛制' },
@@ -137,6 +136,7 @@
 			<select bind:value={searchFee} class="border border-black font-sans px-2 py-1.5 text-sm bg-white focus:outline-none">
 				{#each FEE_OPTIONS as o}<option value={o.value}>{o.label}</option>{/each}
 			</select>
+			<a href="/tournaments/archived" class="text-xs font-bold text-black border-b border-black hover:text-accent hover:border-accent transition-colors duration-150 inline-flex items-center gap-1">已结束赛事 <ArrowRight size={11} class="shrink-0" aria-hidden="true" /></a>
 			{#if (searchQ || searchStatus || searchFormat || searchFee)}
 				<button type="button" onclick={clearFilters} class="text-xs font-bold text-accent border-b border-accent hover:opacity-70 transition-opacity duration-150">清除筛选</button>
 			{/if}

@@ -21,7 +21,7 @@ export interface StatusVariant {
 
 /** 赛事状态 → 徽章 */
 export const TOURNAMENT_STATUS_MAP: Record<string, StatusVariant> = {
-	draft: { label: '未开始', variant: 'bg-neutral-100 text-black' },
+	draft: { label: '报名中', variant: 'bg-neutral-100 text-black' },
 	ongoing: { label: '进行中', variant: 'bg-black text-white' },
 	completed: { label: '已结束', variant: 'bg-accent text-white' },
 	cancelled: { label: '已取消', variant: 'bg-white text-neutral-500 line-through border border-black' },
