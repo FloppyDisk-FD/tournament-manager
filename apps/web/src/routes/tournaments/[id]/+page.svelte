@@ -9,6 +9,7 @@
 	import Label from '$lib/components/Label.svelte';
 	import Select from '$lib/components/Select.svelte';
 	import PanelHeader from '$lib/components/PanelHeader.svelte';
+	import TeamCheckinList from '$lib/components/TeamCheckinList.svelte';
 	import { FORMAT_MAP, TOURNAMENT_STATUS_MAP, REGISTRATION_STATUS_MAP } from '$lib/constants/tournament';
 	import { getUser } from '$lib/stores/auth.svelte';
 	import { success, error } from '$lib/stores/toast.svelte';
@@ -346,21 +347,10 @@ import { ArrowRight, ChartLine, Trophy } from 'lucide-svelte';
 		}
 	}
 
-	// 队长自助签到：我的队伍 ∩ 该赛事队伍
+	// 队长自助签到：我的队伍 ∩ 该赛事队伍（渲染交 TeamCheckinList 组件）
 	let myEntryTeams = $derived(
 		myTeams.filter((t) => (data.teams ?? []).some((dt: any) => dt.id === t.id)),
 	);
-	let checkinState = $state<Record<string, boolean>>({});
-
-	async function selfCheckin(teamId: string) {
-		try {
-			const res = await api.post<{ checkedIn: boolean }>(`/tournaments/${data.tournament.id}/checkins/self/${teamId}`);
-			checkinState[teamId] = res.checkedIn;
-			success(res.checkedIn ? '签到成功' : '已取消签到');
-		} catch (e: any) {
-			error(e.message || '签到失败');
-		}
-	}
 
 	const tabs = [
 		{ id: 'overview', label: '总览' },
@@ -730,26 +720,8 @@ import { ArrowRight, ChartLine, Trophy } from 'lucide-svelte';
 						<span class="pointer-events-none absolute right-2 top-1/2 -translate-y-1/2 text-4xl leading-none font-black uppercase tracking-widest whitespace-nowrap select-none text-white/15"
 							style="-webkit-mask-image: linear-gradient(to right, transparent, black); mask-image: linear-gradient(to right, transparent, black)">Check-in</span>
 					</div>
-					<div class="p-4 space-y-2">
-						{#each myEntryTeams as t (t.id)}
-							<div class="flex items-center justify-between gap-3 border border-black px-3 py-2 flex-wrap">
-								<div class="flex items-center gap-2 min-w-0">
-									<span class="shrink-0">{t.logo_emoji || '🏆'}</span>
-									<span class="text-sm font-black truncate">{t.name}</span>
-									{#if checkinState[t.id]}
-										<span class="text-xs font-bold text-accent shrink-0">已签到</span>
-									{/if}
-								</div>
-								<button
-									onclick={() => selfCheckin(t.id)}
-									class="rounded-none font-sans font-bold border border-black px-3 py-1 text-xs transition-colors duration-150 active:opacity-70 {checkinState[t.id]
-										? 'bg-white text-accent hover:bg-neutral-100'
-										: 'bg-black text-white hover:bg-neutral-800'}"
-								>
-									{checkinState[t.id] ? '取消签到' : '我队签到'}
-								</button>
-							</div>
-						{/each}
+					<div class="p-4">
+						<TeamCheckinList tournamentId={data.tournament.id} teams={myEntryTeams} />
 					</div>
 				</div>
 			{/if}
